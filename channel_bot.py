@@ -21,6 +21,12 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 NEWS_CACHE_FILE = "news_cache.json"
 MAX_POSTS_PER_RUN = 2
 
+def datetime_converter(obj):
+    """Преобразует datetime в строку при JSON-сериализации"""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
+
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
     url = f"https://platform-api.max.ru/messages?chat_id={chat_id}"
@@ -50,23 +56,35 @@ def load_news_cache():
             return json.load(f)
     except FileNotFoundError:
         return {"pending": [], "sent": []}
+    except Exception as e:
+        logger.error(f"Failed to load cache: {e}")
+        return {"pending": [], "sent": []}
 
 def save_news_cache(cache):
     """Сохраняет кэш новостей"""
     with open(NEWS_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump(cache, f, ensure_ascii=False, indent=2)
+        json.dump(cache, f, ensure_ascii=False, indent=2, default=datetime_converter)
 
 def add_news_to_cache(news_items):
     """Добавляет новости в кэш"""
     cache = load_news_cache()
     
     existing_links = {item['link'] for item in cache.get('pending', [])}
-    existing_links.update(item['link'] for item in cache.get('sent', []))
+    existing_links.update(item['link'] for item in cache.get('sent', [])}
     
     new_pending = []
     for item in news_items:
         if item['link'] not in existing_links:
-            new_pending.append(item)
+            clean_item = {
+                'title': item.get('title', ''),
+                'link': item.get('link', ''),
+                'description': item.get('description', ''),
+                'short_text': item.get('short_text', ''),
+                'image_url': item.get('image_url', ''),
+                'source': item.get('source', ''),
+                'type': item.get('type', 'general'),
+            }
+            new_pending.append(clean_item)
     
     cache['pending'] = cache.get('pending', []) + new_pending
     
@@ -100,6 +118,11 @@ def get_cached_stats():
         'sent': len(cache.get('sent', []))
     }
 
+def is_silent_hours():
+    """Проверяет, сейчас тихий час (00:00-06:00 МСК)"""
+    msk = datetime.now()
+    return msk.hour < 6
+
 def main():
     """Основная функция бота"""
     logger.info("=== Starting Insider Seller Bot ===")
@@ -124,6 +147,26 @@ def main():
     
     logger.info(f"Token: {'*' * 10}...{token[-5:]}")
     logger.info(f"Channel ID: {channel_id}")
+    
+    if is_silent_hours():
+        logger.info("🌙 Тихий час (00:00-06:00 МСК). Новости в кэш, отправка отложена.")
+        import config
+        news_items = get_all_news(config, hours=24)
+        logger.info(f"Total RSS news fetched: {len(news_items)}")
+        
+        filtered_news = []
+        for item in news_items:
+            title = item.get('title', '')
+            description = item.get('description', '')
+            link = item.get('link', '')
+            
+            if filter_news(title, description, link):
+                filtered_news.append(item)
+        
+        logger.info(f"After filtering: {len(filtered_news)} important news")
+        added = add_news_to_cache(filtered_news)
+        logger.info(f"Added {added} new items to cache. Bot will send when silent hours end.")
+        return
     
     stats = get_cached_stats()
     logger.info(f"Cache stats: {stats['pending']} pending, {stats['sent']} sent")

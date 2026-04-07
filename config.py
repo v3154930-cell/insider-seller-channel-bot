@@ -34,6 +34,8 @@ IGNORE_KEYWORDS = [
 
 POSTED_LINKS_FILE = "posted_links.txt"
 
+DEFAULT_IMAGE_URL = "https://example.com/default_news.jpg"
+
 def get_token():
     return os.environ.get("MAX_BOT_TOKEN", DEFAULT_TOKEN)
 
