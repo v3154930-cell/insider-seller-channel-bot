@@ -70,6 +70,12 @@ def main():
     
     logger.info(f"Total news items fetched: {len(news_items)}")
     
+    if not news_items:
+        test_msg = "⚠️ ТЕСТ: новости не найдены, но бот работает"
+        send_message(token, channel_id, test_msg)
+        logger.info("No news found, sent test message")
+        return
+    
     sent_links = get_sent_links()
     new_posts = 0
     
