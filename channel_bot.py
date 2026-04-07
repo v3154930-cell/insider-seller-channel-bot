@@ -70,7 +70,7 @@ def add_news_to_cache(news_items):
     cache = load_news_cache()
     
     existing_links = {item['link'] for item in cache.get('pending', [])}
-    existing_links.update(item['link'] for item in cache.get('sent', [])}
+    existing_links.update(item['link'] for item in cache.get('sent', []))
     
     new_pending = []
     for item in news_items:
