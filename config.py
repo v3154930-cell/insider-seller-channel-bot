@@ -1,6 +1,8 @@
 import os
 
-MAX_API_URL = "https://api.max走了.com"
+MAX_API_URL = "https://platform-api.max.ru"
+DEFAULT_TOKEN = "f9LHodD0cOJKnLhZ8QwWTelDQ1MlrZ1xXJxyuO_DFHQT_mUwT-zbhnQZXw7tOgcGCpBm-3RoG7WU1SPlKTLP"
+DEFAULT_CHANNEL_ID = "@id771812324702_biz"
 
 RSS_FEEDS = [
     {"name": "Retail.ru - Ozon", "url": "https://www.retail.ru/rss/tag/ozon/", "category": "marketplace"},
@@ -38,10 +40,10 @@ IGNORE_KEYWORDS = [
 POSTED_LINKS_FILE = "posted_links.txt"
 
 def get_token():
-    return os.environ.get("MAX_BOT_TOKEN", "")
+    return os.environ.get("MAX_BOT_TOKEN", DEFAULT_TOKEN)
 
 def get_channel_id():
-    return os.environ.get("MAX_CHANNEL_ID", "")
+    return os.environ.get("MAX_CHANNEL_ID", DEFAULT_CHANNEL_ID)
 
 def get_sent_links():
     try:
