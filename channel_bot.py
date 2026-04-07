@@ -3,7 +3,7 @@ import sys
 import logging
 import requests
 from datetime import datetime
-from config import get_token, get_channel_id, get_sent_links, save_link
+from config import get_sent_links, save_link
 from parsers import get_all_news
 from formatters import format_news
 
@@ -14,6 +14,9 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 MAX_API_URL = "https://platform-api.max.ru"
+
+TOKEN = os.getenv("MAX_BOT_TOKEN")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
@@ -48,15 +51,15 @@ def main():
     logger.info("=== Starting Insider Seller Bot ===")
     logger.info(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    token = get_token()
-    channel_id = get_channel_id()
+    token = TOKEN
+    channel_id = CHANNEL_ID
     
     if not token:
         logger.error("MAX_BOT_TOKEN not set in environment")
         sys.exit(1)
     
     if not channel_id:
-        logger.error("MAX_CHANNEL_ID not set in environment")
+        logger.error("CHANNEL_ID not set in environment")
         sys.exit(1)
     
     logger.info(f"Token: {'*' * 10}...{token[-5:]}")

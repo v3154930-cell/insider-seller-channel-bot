@@ -34,7 +34,7 @@ jobs:
       - name: Run bot
         env:
           MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
-          MAX_CHANNEL_ID: ${{ secrets.MAX_CHANNEL_ID }}
+          CHANNEL_ID: ${{ secrets.MAX_CHANNEL_ID }}
         run: python channel_bot.py
       
       - name: Upload posted links
