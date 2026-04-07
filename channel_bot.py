@@ -20,30 +20,32 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
-    url = f"{MAX_API_URL}/messages"
+    url = f"https://api.max.ru/bot{token}/sendMessage"
     
-    headers = {
-        "Authorization": token,
-        "Content-Type": "application/json"
-    }
+    headers = {"Content-Type": "application/json"}
     
     payload = {
         "chat_id": chat_id,
-        "text": text
+        "text": text,
+        "format": "markdown"
     }
     
+    logger.info(f"🔍 Отправка POST на {url}")
+    logger.info(f"🔍 chat_id: {chat_id}")
+    logger.info(f"🔍 текст: {text[:100]}...")
+    
     try:
-        response = requests.post(url, headers=headers, json=payload, timeout=30)
+        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        logger.info(f"✅ Статус ответа: {response.status_code}")
+        logger.info(f"📦 Тело ответа: {response.text}")
         
         if response.status_code == 200:
-            logger.info(f"Message sent successfully to {chat_id}")
             return True
         else:
-            logger.error(f"Failed to send message: {response.status_code} - {response.text}")
             return False
             
     except Exception as e:
-        logger.error(f"Error sending message: {e}")
+        logger.error(f"❌ Ошибка отправки: {e}")
         return False
 
 def main():
@@ -53,6 +55,9 @@ def main():
     
     token = TOKEN
     channel_id = CHANNEL_ID
+    
+    if channel_id and channel_id.startswith('@'):
+        channel_id = "-100" + channel_id.replace('@id', '').replace('_biz', '')
     
     if not token:
         logger.error("MAX_BOT_TOKEN not set in environment")
@@ -64,6 +69,9 @@ def main():
     
     logger.info(f"Token: {'*' * 10}...{token[-5:]}")
     logger.info(f"Channel ID: {channel_id}")
+    
+    test_result = send_message(token, channel_id, "✅ Тест: бот запущен и работает")
+    logger.info(f"Тестовое сообщение отправлено: {test_result}")
     
     import config
     news_items = get_all_news(config, hours=24)
