@@ -1,0 +1,46 @@
+name: Post News to MAX Channel
+
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: 'Hours to fetch news from'
+        required: false
+        default: '2'
+        type: string
+
+jobs:
+  post-news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+      
+      - name: Run bot
+        env:
+          MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
+          MAX_CHANNEL_ID: ${{ secrets.MAX_CHANNEL_ID }}
+        run: python channel_bot.py
+      
+      - name: Upload posted links
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: posted-links
+          path: posted_links.txt
+          retention-days: 7
