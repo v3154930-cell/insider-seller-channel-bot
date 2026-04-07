@@ -1,9 +1,6 @@
 import os
 
 MAX_API_URL = "https://platform-api.max.ru"
-DEFAULT_TOKEN = "f9LHodD0cOJKnLhZ8QwWTelDQ1MlrZ1xXJxyuO_DFHQT_mUwT-zbhnQZXw7tOgcGCpBm-3RoG7WU1SPlKTLP"
-DEFAULT_CHANNEL_ID = "@id771812324702_biz"
-
 RSS_FEEDS = [
     {"name": "Retail.ru - Новости", "url": "https://www.retail.ru/rss/news/", "category": "marketplace"},
     {"name": "Оборот.ру", "url": "https://oborot.ru/rss/", "category": "seller"},
