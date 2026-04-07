@@ -1,14 +1,12 @@
 import feedparser
 import requests
 from bs4 import BeautifulSoup
-import logging
-from datetime import datetime, timezone, timedelta
 import re
 from urllib.parse import urljoin
+import hashlib
+from datetime import datetime, timezone
 from filters import is_court_case, is_seller_story
 from config import DEFAULT_IMAGE_URL
-
-logger = logging.getLogger(__name__)
 
 RSS_FEEDS = [
     ("https://www.retail.ru/rss/news/", "Retail.ru"),
@@ -18,15 +16,22 @@ RSS_FEEDS = [
     ("https://rssexport.rbc.ru/rbcnews/news/30/full.rss", "RBC")
 ]
 
-def extract_image_from_entry(entry, link):
-    """Извлекает URL изображения из entry или со страницы новости"""
-    
+def fetch_rss_feed(url):
+    try:
+        feed = feedparser.parse(url)
+        if feed.bozo and feed.bozo_exception:
+            print(f"⚠️ Ошибка парсинга RSS: {feed.bozo_exception}")
+        return feed
+    except Exception as e:
+        print(f"❌ Ошибка загрузки RSS {url}: {e}")
+        return None
+
+def extract_image_from_entry(entry, link, default_image=None):
     if hasattr(entry, 'media_content') and entry.media_content:
         for media in entry.media_content:
             if media.get('type', '').startswith('image/'):
                 url = media.get('url')
                 if url:
-                    logger.info(f"   🖼️ Картинка из media_content: {url[:50]}...")
                     return url
     
     if hasattr(entry, 'enclosures') and entry.enclosures:
@@ -34,7 +39,6 @@ def extract_image_from_entry(entry, link):
             if enc.get('type', '').startswith('image/'):
                 url = enc.get('url')
                 if url:
-                    logger.info(f"   🖼️ Картинка из enclosure: {url[:50]}...")
                     return url
     
     try:
@@ -46,36 +50,23 @@ def extract_image_from_entry(entry, link):
             
             og_image = soup.find('meta', property='og:image')
             if og_image and og_image.get('content'):
-                img_url = og_image.get('content')
-                if img_url:
-                    logger.info(f"   🖼️ Картинка из og:image: {img_url[:50]}...")
-                    return img_url
+                return og_image.get('content')
             
             twitter_image = soup.find('meta', attrs={'name': 'twitter:image'})
             if twitter_image and twitter_image.get('content'):
-                img_url = twitter_image.get('content')
-                if img_url:
-                    logger.info(f"   🖼️ Картинка из twitter:image: {img_url[:50]}...")
-                    return img_url
+                return twitter_image.get('content')
             
             first_img = soup.find('img')
             if first_img and first_img.get('src'):
                 img_src = first_img.get('src')
-                if img_src:
-                    if img_src.startswith('http'):
-                        abs_url = img_src
-                    elif img_src.startswith('/'):
-                        abs_url = urljoin(link, img_src)
-                    else:
-                        abs_url = urljoin(link, '/' + img_src)
-                    logger.info(f"   🖼️ Картинка из первого img: {abs_url[:50]}...")
-                    return abs_url
-    
+                if img_src.startswith('http'):
+                    return img_src
+                elif img_src.startswith('/'):
+                    return urljoin(link, img_src)
     except Exception as e:
-        logger.warning(f"   ⚠️ Ошибка извлечения изображения: {e}")
+        print(f"⚠️ Ошибка извлечения изображения: {e}")
     
-    logger.info(f"   🖼️ Картинка не найдена, используется заглушка")
-    return DEFAULT_IMAGE_URL
+    return default_image
 
 def shorten_text(text, limit=200):
     if not text:
@@ -98,13 +89,9 @@ class RSSParser:
     
     def fetch(self, hours=24):
         try:
-            headers = {
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            }
-            response = requests.get(self.url, headers=headers, timeout=30)
-            response.raise_for_status()
-            
-            feed = feedparser.parse(response.text)
+            feed = fetch_rss_feed(self.url)
+            if not feed:
+                return []
             
             news_items = []
             
@@ -117,8 +104,7 @@ class RSSParser:
                     if not title or not link:
                         continue
                     
-                    published_date = self._parse_date(entry)
-                    image_url = extract_image_from_entry(entry, link)
+                    image_url = extract_image_from_entry(entry, link, DEFAULT_IMAGE_URL)
                     short_text = shorten_text(description)
                     
                     news_items.append({
@@ -127,20 +113,19 @@ class RSSParser:
                         "description": description.strip()[:500],
                         "short_text": short_text,
                         "image_url": image_url,
-                        "pub_date": published_date,
                         "source": self.name,
                         "category": self.category,
                         "type": self._determine_type(title, description)
                     })
                         
                 except Exception as e:
-                    logger.warning(f"Error parsing entry: {e}")
+                    print(f"Error parsing entry: {e}")
                     continue
             
             return news_items
             
         except Exception as e:
-            logger.error(f"Error fetching RSS {self.name}: {e}")
+            print(f"Error fetching RSS {self.name}: {e}")
             return []
     
     def _clean_html(self, text):
@@ -148,22 +133,6 @@ class RSSParser:
             return ""
         soup = BeautifulSoup(text, "lxml")
         return soup.get_text()
-    
-    def _parse_date(self, entry):
-        try:
-            published = entry.get("published_parsed") or entry.get("updated_parsed")
-            
-            if published:
-                published_date = datetime(*published[:6])
-                
-                if published_date.tzinfo is None:
-                    published_date = published_date.replace(tzinfo=timezone.utc)
-            else:
-                published_date = datetime.now(timezone.utc)
-                
-            return published_date
-        except Exception as e:
-            return datetime.now(timezone.utc)
     
     def _determine_type(self, title, description):
         text = f"{title} {description}".lower()
@@ -181,39 +150,13 @@ class RSSParser:
         else:
             return "general"
 
-
-class HTMLParser:
-    def __init__(self, url, name, category):
-        self.url = url
-        self.name = name
-        self.category = category
+def get_all_news(config, hours=24):
+    all_news = []
     
-    def fetch(self, hours=24):
-        try:
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
-            response = requests.get(self.url, headers=headers, timeout=30)
-            response.raise_for_status()
-            
-            soup = BeautifulSoup(response.text, "lxml")
-            
-            news_items = []
-            
-            articles = soup.find_all("a", href=True)
-            
-            for article in articles[:30]:
-                try:
-                    href = article.get("href", "")
-                    title = article.get_text(strip=True)
-                    
-                    if not title or len(title) < 20:
-                        continue
-                    
-                    if not href.startswith("http"):
-                        href = self.url.rstrip("/") + href
-                    
-                    news_items.append({
-                        "title": title,
-                        "link": href,
-                        "description": "",
-                        "short_text": "",
-                        "i
+    for feed_url, feed_name in RSS_FEEDS:
+        parser = RSSParser(feed_url, feed_name, "general")
+        news = parser.fetch(hours)
+        all_news.extend(news)
+        print(f"Fetched {len(news)} items from {feed_name}")
+    
+    return all_news
