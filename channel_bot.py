@@ -20,22 +20,21 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
-    url = f"https://api.max.ru/bot{token}/sendMessage"
+    url = f"https://platform-api.max.ru/messages?chat_id={chat_id}"
     
-    headers = {"Content-Type": "application/json"}
-    
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "format": "markdown"
+    headers = {
+        "Authorization": token,
+        "Content-Type": "application/json"
     }
+    
+    payload = {"text": text}
     
     logger.info(f"🔍 Отправка POST на {url}")
     logger.info(f"🔍 chat_id: {chat_id}")
     logger.info(f"🔍 текст: {text[:100]}...")
     
     try:
-        response = requests.post(url, json=payload, headers=headers, timeout=30)
+        response = requests.post(url, headers=headers, json=payload, timeout=30)
         logger.info(f"✅ Статус ответа: {response.status_code}")
         logger.info(f"📦 Тело ответа: {response.text}")
         
@@ -56,8 +55,11 @@ def main():
     token = TOKEN
     channel_id = CHANNEL_ID
     
-    if channel_id and channel_id.startswith('@'):
-        channel_id = "-100" + channel_id.replace('@id', '').replace('_biz', '')
+    if channel_id:
+        if channel_id.startswith('@'):
+            channel_id = "-73160979033512"
+        elif channel_id.isdigit():
+            channel_id = f"-{channel_id}"
     
     if not token:
         logger.error("MAX_BOT_TOKEN not set in environment")
