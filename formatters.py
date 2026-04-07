@@ -1,83 +1,56 @@
 import re
 from filters import extract_amounts
 
-THEME_EMOJI = {
-    'комиссия': '💰',
-    'тариф': '💰',
-    'логистика': '🚚',
-    'доставка': '🚚',
-    'закон': '⚖️',
-    '289-ФЗ': '⚖️',
-    'штраф': '⚠️',
-    'блокировка': '🚫',
-    'бан': '🚫',
-    'арбитраж': '⚖️',
-    'суд': '⚖️',
-    'кейс': '💡',
-    'опыт': '💡',
-    'история': '💡',
-    'оборот': '📈',
-    'миллион': '💰',
-    'рост': '📈',
-    'маркетплейс': '🏪',
-    'реклама': '📣',
-    'инструмент': '🔧',
-    'нововведение': '✨',
-    'изменение': '📝',
-}
-
-HASHTAGS = {
-    'ozon': '#озон #маркетплейсы #ozon',
-    'wildberries': '#wildberries #вилдберриз #маркетплейсы',
-    'yandex': '#яндекс #маркетплейсы',
-    'court': '#арбитраж #суд #юридические',
-    'seller_story': '#историяуспеха #опыт #кейс',
-}
-
-def get_theme_emoji(title, description):
-    """Получает эмодзи по ключевым словам"""
+def get_topic_emoji(title, description):
+    """Определяет эмодзи по теме"""
     text = f"{title} {description}".lower()
-    for keyword, emoji in THEME_EMOJI.items():
-        if keyword in text:
-            return emoji
-    return '📰'
+    if any(w in text for w in ['комисс', 'тариф', 'процент', 'налог']):
+        return "💰"
+    elif any(w in text for w in ['логистик', 'доставк', 'склад']):
+        return "🚚"
+    elif any(w in text for w in ['штраф', 'блокировк']):
+        return "⚠️"
+    elif any(w in text for w in ['закон', 'фз', 'фас']):
+        return "⚖️"
+    elif any(w in text for w in ['кейс', 'история', 'успех']):
+        return "💡"
+    else:
+        return "📦"
 
-def get_hashtags(news_type, title, description):
-    """Генерирует хештеги на основе типа и содержимого"""
+def get_hashtags(title, description, source):
+    """Генерирует хештеги"""
     text = f"{title} {description}".lower()
     tags = []
     
     if 'озон' in text or 'ozon' in text:
-        tags.extend(['#озон', '#ozon', '#маркетплейсы'])
+        tags.extend(['озон', 'ozon', 'маркетплейсы'])
     elif 'wildberries' in text or 'wb' in text:
-        tags.extend(['#wildberries', '#вилдберриз', '#маркетплейсы'])
+        tags.extend(['wildberries', 'вилдберриз', 'маркетплейсы'])
     elif 'яндекс' in text:
-        tags.extend(['#яндекс', '#маркетплейсы'])
+        tags.extend(['яндекс', 'маркетплейсы'])
     else:
-        tags.append('#маркетплейсы')
+        tags.append('маркетплейсы')
     
-    if any(w in text for w in ['комиссия', 'тариф', 'цена']):
-        tags.append('#комиссии')
+    if any(w in text for w in ['комиссия', 'тариф']):
+        tags.append('комиссии')
     if any(w in text for w in ['логистика', 'доставка']):
-        tags.append('#логистика')
-    if any(w in text for w in ['суд', 'арбитраж', 'иск']):
-        tags.append('#арбитраж')
-    if any(w in text for w in ['кейс', 'опыт', 'история']):
-        tags.append('#опыт')
+        tags.append('логистика')
+    if any(w in text for w in ['суд', 'арбитраж']):
+        tags.append('арбитраж')
     
-    return ' '.join(tags[:3])
+    return ' '.join(['#' + t for t in tags[:3]])
 
-def get_summary(title, description):
+def get_summary(text, limit=200):
     """Создаёт краткий пересказ"""
-    if not description:
-        return title[:150]
-    
-    text = description.strip()
-    if len(text) > 180:
-        text = text[:177] + '...'
-    return text
+    if not text:
+        return ''
+    clean = re.sub(r'<[^>]+>', '', text)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    if len(clean) > limit:
+        return clean[:limit-3] + '...'
+    return clean
 
-def get_key_insight(title, description):
+def get_insight(title, description):
     """Извлекает главный вывод"""
     text = f"{title} {description}"
     
@@ -99,120 +72,40 @@ def get_key_insight(title, description):
     else:
         return 'Важная информация для селлеров'
 
-def format_marketplace_news(item):
-    """Форматирует новость маркетплейса"""
+def format_news(item):
+    """Форматирует новость — чистый текст без линий и рамок"""
     source = item.get('source', 'Новость')
     news_type = item.get('type', 'general')
     
     emoji_map = {
         'ozon': '📦',
-        'wildberries': '🏷️',
-        'yandex': '🛒',
+        'wildberries': '🟣',
+        'yandex': '🟡',
+        'court': '⚖️',
+        'seller_story': '💡',
         'general': '📰'
     }
     
     source_emoji = emoji_map.get(news_type, '📰')
-    theme_emoji = get_theme_emoji(item['title'], item.get('description', ''))
-    hashtags = get_hashtags(news_type, item['title'], item.get('description', ''))
+    topic_emoji = get_topic_emoji(item['title'], item.get('description', ''))
+    hashtags = get_hashtags(item['title'], item.get('description', ''), source)
     
-    title = item['title']
+    title = item.get('title', '')
     description = item.get('description', '')
+    short_text = item.get('short_text', '') or get_summary(description)
     link = item.get('link', '')
+    insight = get_insight(title, description)
     
-    summary = get_summary(title, description)
-    insight = get_key_insight(title, description)
-    
-    message = f"""┌─────────────────────────────────────┐
-│ {source_emoji} **{source}**                      │
-│ {theme_emoji} Обновление                   │
-├─────────────────────────────────────┤
-│                                      │
-│ **{title}**                      │
-│                                      │
-│ {summary}│                                      │
-│ ─────────────────────────────────── │
-│ 💡 Суть: {insight}                    │
-│                                      │
-│ 🔗 [Подробнее]({link})                  │
-│                                      │
-│ {hashtags}
-└─────────────────────────────────────┘"""
-    
-    return message
+    post = f"""{source_emoji} **{source}** {topic_emoji}
 
-def format_court_case(item):
-    """Форматирует судебный кейс"""
-    title = item['title']
-    description = item.get('description', '')
-    link = item.get('link', '')
-    source = item.get('source', 'Суд')
-    
-    amounts = extract_amounts(f"{title} {description}")
-    amount_str = amounts[0] if amounts else 'не указана'
-    
-    summary = get_summary(title, description)
-    insight = get_key_insight(title, description)
-    hashtags = '#арбитраж #суд #юридические #кейс'
-    
-    message = f"""┌─────────────────────────────────────┐
-│ ⚖️ **АРБИТРАЖ**                           │
-│ ⚖️ Судебный кейс                    │
-├─────────────────────────────────────┤
-│                                      │
-│ **{title}**                      │
-│                                      │
-│ {summary}│                                      │
-│ ─────────────────────────────────── │
-│ 📊 Взыскано: {amount_str}                   │
-│                                      │
-│ 💡 Вывод: {description[:100] if description else insight}│                                      │
-│                                      │
-│ 🔗 [Подробнее]({link})                  │
-│                                      │
-│ {hashtags}
-└─────────────────────────────────────┘"""
-    
-    return message
+**{title}**
 
-def format_seller_story(item):
-    """Форматирует историю селлера"""
-    title = item['title']
-    description = item.get('description', '')
-    link = item.get('link', '')
-    source = item.get('source', 'История')
-    
-    amounts = extract_amounts(f"{title} {description}")
-    summary = get_summary(title, description)
-    insight = get_key_insight(title, description)
-    hashtags = '#историяуспеха #опыт #кейс #селлер'
-    
-    message = f"""┌─────────────────────────────────────┐
-│ 💡 **ОПЫТ СЕЛЛЕРОВ**                       │
-│ 💡 Кейс успеха                      │
-├─────────────────────────────────────┤
-│                                      │
-│ **{title}**                      │
-│                                      │
-│ {summary}│                                      │
-│ ─────────────────────────────────── │
-│ 📊 Результат: {amounts[0] if amounts else 'см. в статье'}                    │
-│                                      │
-│ 💡 Урок: {insight}                    │
-│                                      │
-│ 🔗 [Подробнее]({link})                  │
-│                                      │
-│ {hashtags}
-└─────────────────────────────────────┘"""
-    
-    return message
+{short_text}
 
-def format_news(item):
-    """Определяет тип новости и форматирует соответственно"""
-    news_type = item.get('type', 'general')
+💡 **Суть:** {insight}
+
+🔗 [Подробнее]({link})
+
+{hashtags}"""
     
-    if news_type == 'court':
-        return format_court_case(item)
-    elif news_type == 'seller_story':
-        return format_seller_story(item)
-    else:
-        return format_marketplace_news(item)
+    return post
