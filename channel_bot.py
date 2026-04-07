@@ -6,6 +6,7 @@ from datetime import datetime
 from config import get_sent_links, save_link
 from parsers import get_all_news
 from formatters import format_news
+from filters import filter_news
 
 logging.basicConfig(
     level=logging.INFO,
@@ -79,6 +80,22 @@ def main():
     news_items = get_all_news(config, hours=24)
     
     logger.info(f"Total news items fetched: {len(news_items)}")
+    
+    # Apply filtering
+    filtered_news = []
+    for item in news_items:
+        title = item.get('title', '')
+        description = item.get('description', '')
+        link = item.get('link', '')
+        
+        if filter_news(title, description, link):
+            filtered_news.append(item)
+            logger.info(f"✓ Passed filter: {title[:50]}...")
+        else:
+            logger.info(f"✗ Filtered out: {title[:50]}...")
+    
+    logger.info(f"After filtering: {len(filtered_news)} news items")
+    news_items = filtered_news
     
     if not news_items:
         test_msg = "⚠️ ТЕСТ: новости не найдены, но бот работает"
