@@ -1,5 +1,6 @@
 import os
 import sys
+import json
 import logging
 import requests
 from datetime import datetime
@@ -14,10 +15,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MAX_API_URL = "https://platform-api.max.ru"
-
 TOKEN = os.getenv("MAX_BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
+
+NEWS_CACHE_FILE = "news_cache.json"
+MAX_POSTS_PER_RUN = 2
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
@@ -30,23 +32,73 @@ def send_message(token, chat_id, text):
     
     payload = {"text": text}
     
-    logger.info(f"🔍 Отправка POST на {url}")
-    logger.info(f"🔍 chat_id: {chat_id}")
-    logger.info(f"🔍 текст: {text[:100]}...")
-    
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
-        logger.info(f"✅ Статус ответа: {response.status_code}")
-        logger.info(f"📦 Тело ответа: {response.text}")
-        
         if response.status_code == 200:
             return True
         else:
+            logger.error(f"API error: {response.status_code} - {response.text}")
             return False
-            
     except Exception as e:
-        logger.error(f"❌ Ошибка отправки: {e}")
+        logger.error(f"Error sending message: {e}")
         return False
+
+def load_news_cache():
+    """Загружает кэш новостей"""
+    try:
+        with open(NEWS_CACHE_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        return {"pending": [], "sent": []}
+
+def save_news_cache(cache):
+    """Сохраняет кэш новостей"""
+    with open(NEWS_CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump(cache, f, ensure_ascii=False, indent=2)
+
+def add_news_to_cache(news_items):
+    """Добавляет новости в кэш"""
+    cache = load_news_cache()
+    
+    existing_links = {item['link'] for item in cache.get('pending', [])}
+    existing_links.update(item['link'] for item in cache.get('sent', []))
+    
+    new_pending = []
+    for item in news_items:
+        if item['link'] not in existing_links:
+            new_pending.append(item)
+    
+    cache['pending'] = cache.get('pending', []) + new_pending
+    
+    save_news_cache(cache)
+    logger.info(f"Added {len(new_pending)} new items to cache. Total pending: {len(cache['pending'])}")
+    return len(new_pending)
+
+def get_pending_news(count):
+    """Получает новости для отправки и помечает как обработанные"""
+    cache = load_news_cache()
+    
+    pending = cache.get('pending', [])
+    to_send = pending[:count]
+    remaining = pending[count:]
+    
+    sent = cache.get('sent', [])
+    for item in to_send:
+        sent.append(item)
+    
+    cache['pending'] = remaining
+    cache['sent'] = sent
+    
+    save_news_cache(cache)
+    return to_send
+
+def get_cached_stats():
+    """Возвращает статистику кэша"""
+    cache = load_news_cache()
+    return {
+        'pending': len(cache.get('pending', [])),
+        'sent': len(cache.get('sent', []))
+    }
 
 def main():
     """Основная функция бота"""
@@ -73,15 +125,14 @@ def main():
     logger.info(f"Token: {'*' * 10}...{token[-5:]}")
     logger.info(f"Channel ID: {channel_id}")
     
-    test_result = send_message(token, channel_id, "✅ Тест: бот запущен и работает")
-    logger.info(f"Тестовое сообщение отправлено: {test_result}")
+    stats = get_cached_stats()
+    logger.info(f"Cache stats: {stats['pending']} pending, {stats['sent']} sent")
     
     import config
     news_items = get_all_news(config, hours=24)
     
-    logger.info(f"Total news items fetched: {len(news_items)}")
+    logger.info(f"Total RSS news fetched: {len(news_items)}")
     
-    # Apply filtering
     filtered_news = []
     for item in news_items:
         title = item.get('title', '')
@@ -90,28 +141,26 @@ def main():
         
         if filter_news(title, description, link):
             filtered_news.append(item)
-            logger.info(f"✓ Passed filter: {title[:50]}...")
-        else:
-            logger.info(f"✗ Filtered out: {title[:50]}...")
     
-    logger.info(f"After filtering: {len(filtered_news)} news items")
-    news_items = filtered_news
+    logger.info(f"After filtering: {len(filtered_news)} important news")
     
-    if not news_items:
-        test_msg = "⚠️ ТЕСТ: новости не найдены, но бот работает"
-        send_message(token, channel_id, test_msg)
-        logger.info("No news found, sent test message")
+    added = add_news_to_cache(filtered_news)
+    logger.info(f"Added {added} new items to cache")
+    
+    stats = get_cached_stats()
+    logger.info(f"Cache: {stats['pending']} pending, {stats['sent']} total sent")
+    
+    to_send = get_pending_news(MAX_POSTS_PER_RUN)
+    logger.info(f"Sending {len(to_send)} posts this run")
+    
+    if not to_send:
+        logger.info("No new posts to send this run")
         return
     
-    sent_links = get_sent_links()
     new_posts = 0
     
-    for item in news_items:
+    for item in to_send:
         link = item.get('link', '')
-        
-        if link in sent_links:
-            logger.info(f"Skipping already posted: {link[:50]}...")
-            continue
         
         formatted_message = format_news(item)
         
@@ -119,13 +168,13 @@ def main():
         
         if success:
             save_link(link)
-            sent_links.add(link)
             new_posts += 1
-            logger.info(f"Posted: {item['title'][:50]}...")
+            logger.info(f"✓ Posted: {item['title'][:50]}...")
         else:
-            logger.warning(f"Failed to post: {item['title'][:50]}...")
+            logger.error(f"✗ Failed: {item['title'][:50]}...")
     
-    logger.info(f"=== Bot finished. New posts: {new_posts} ===")
+    final_stats = get_cached_stats()
+    logger.info(f"=== Bot finished. Sent: {new_posts}, Remaining in queue: {final_stats['pending']} ===")
 
 if __name__ == "__main__":
     main()
