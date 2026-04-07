@@ -5,9 +5,7 @@ DEFAULT_TOKEN = "f9LHodD0cOJKnLhZ8QwWTelDQ1MlrZ1xXJxyuO_DFHQT_mUwT-zbhnQZXw7tOgc
 DEFAULT_CHANNEL_ID = "@id771812324702_biz"
 
 RSS_FEEDS = [
-    {"name": "Retail.ru - Ozon", "url": "https://www.retail.ru/rss/tag/ozon/", "category": "marketplace"},
-    {"name": "Retail.ru - Wildberries", "url": "https://www.retail.ru/rss/tag/wildberries/", "category": "marketplace"},
-    {"name": "Retail.ru - Яндекс Маркет", "url": "https://www.retail.ru/rss/tag/yandeks-market/", "category": "marketplace"},
+    {"name": "Retail.ru - Новости", "url": "https://www.retail.ru/rss/news/", "category": "marketplace"},
     {"name": "Оборот.ру", "url": "https://oborot.ru/rss/", "category": "seller"},
     {"name": "Клерк.ру", "url": "https://www.klerk.ru/blogs/rss/", "category": "seller"},
     {"name": "MySeldon", "url": "https://myseldon.com/ru/news/rss", "category": "news"},
