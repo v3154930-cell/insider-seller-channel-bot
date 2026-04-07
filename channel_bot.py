@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 MAX_API_URL = "https://platform-api.max.ru"
 
 TOKEN = os.getenv("MAX_BOT_TOKEN")
-CHANNEL_ID = os.getenv("MAX_CHANNEL_ID")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
