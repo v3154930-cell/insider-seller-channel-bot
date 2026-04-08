@@ -30,3 +30,10 @@ jobs:
 
       - name: Run collector
         run: python collector.py
+
+      - name: Upload database
+        uses: actions/upload-artifact@v4
+        with:
+          name: news-queue-db
+          path: news_queue.db
+          retention-days: 1

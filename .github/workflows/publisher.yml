@@ -24,6 +24,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Download latest database
+        uses: dawidd6/action-download-artifact@v3
+        with:
+          workflow: collector.yml
+          name: news-queue-db
+          path: .
+          if_no_artifact_found: warn
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
