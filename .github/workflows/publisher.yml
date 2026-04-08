@@ -1,15 +1,10 @@
-name: Post News to MAX Channel
+name: Publisher - Post to MAX
 
 on:
   schedule:
-    - cron: '0 * * * *'
+    - cron: '*/30 * * * *'
   workflow_dispatch:
     inputs:
-      hours:
-        description: 'Hours to fetch news from'
-        required: false
-        default: '2'
-        type: string
       force_audio_digest:
         description: 'Force audio digest generation'
         required: false
@@ -21,7 +16,7 @@ permissions:
   models: read
 
 jobs:
-  post-news:
+  publisher:
     runs-on: ubuntu-latest
     timeout-minutes: 10
 
@@ -40,7 +35,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Run bot
+      - name: Run publisher
         env:
           MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
@@ -53,8 +48,9 @@ jobs:
           ENABLE_EVENING_DIGEST: ${{ vars.ENABLE_EVENING_DIGEST }}
           SALUTESPEECH_VOICE: ${{ vars.SALUTESPEECH_VOICE }}
           AUDIO_DIGEST_HOUR_MSK: ${{ vars.AUDIO_DIGEST_HOUR_MSK }}
-          FORCE_AUDIO_DIGEST: ${{ github.inputs.force_audio_digest }}
-        run: python channel_bot.py
+        run: |
+          echo "FORCE_AUDIO_DIGEST=${{ github.inputs.force_audio_digest }}" >> $GITHUB_ENV
+          python publisher.py
 
       - name: Upload posted links
         uses: actions/upload-artifact@v4
