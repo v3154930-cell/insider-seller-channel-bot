@@ -9,9 +9,9 @@ from formatters import format_news
 from filters import filter_news
 from db import init_db, get_pending_news, add_to_queue_batch, mark_published, get_all_pending_count, get_top_news_for_digest, set_digest_sent, is_digest_sent_today
 from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN
-from scheduler import is_morning_time, is_evening_time, should_send_morning_digest, should_send_evening_digest, should_send_audio_digest, get_morning_summary, get_evening_digest, get_audio_digest_script, now_moscow
+from scheduler import is_morning_time, is_evening_time, should_send_morning_digest, should_send_evening_digest, should_send_audio_digest, get_morning_summary, get_evening_digest, get_audio_digest_script, now_moscow, FORCE_AUDIO_DIGEST, AUDIO_DIGEST_HOUR, SALUTESPEECH_VOICE
 from scoring import score_items
-from tts import generate_audio, is_available as tts_available
+from tts import generate_audio, is_available as tts_available, SALUTESPEECH_VOICE as TTS_VOICE
 
 logging.basicConfig(
     level=logging.INFO,
@@ -26,6 +26,9 @@ MAX_POSTS_PER_RUN = 1
 
 logger.info(f"USE_LLM = {USE_LLM}")
 logger.info(f"GITHUB_TOKEN configured = {bool(GITHUB_TOKEN)}")
+logger.info(f"FORCE_AUDIO_DIGEST = {FORCE_AUDIO_DIGEST}")
+logger.info(f"AUDIO_DIGEST_HOUR_MSK = {AUDIO_DIGEST_HOUR}")
+logger.info(f"SALUTESPEECH_VOICE = {SALUTESPEECH_VOICE}")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""

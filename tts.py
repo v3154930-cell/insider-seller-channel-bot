@@ -11,20 +11,22 @@ logger = logging.getLogger(__name__)
 SALUTESPEECH_API_URL = "https://salutespeech.com/api"
 
 SALUTE_AUTH_KEY = os.getenv("SALUTE_AUTH_KEY")
-SALUTE_SPEAKER = os.getenv("SALUTE_SPEAKER", "Aidar")
+SALUTESPEECH_VOICE = os.getenv("SALUTESPEECH_VOICE", "Tur_24000")
 
-_access_token = None
-_token_expires = 0
+ACCESS_TOKEN = None
+TOKEN_EXPIRES = 0
+
+MAX_WORD_COUNT = 400
 
 def get_salutespeech_token() -> Optional[str]:
-    global _access_token, _token_expires
+    global ACCESS_TOKEN, TOKEN_EXPIRES
     
     if not SALUTE_AUTH_KEY:
         logger.warning("[SaluteSpeech] No SALUTE_AUTH_KEY configured")
         return None
     
-    if _access_token and time.time() < _token_expires - 60:
-        return _access_token
+    if ACCESS_TOKEN and time.time() < TOKEN_EXPIRES - 60:
+        return ACCESS_TOKEN
     
     try:
         auth_header = base64.b64encode(f"{SALUTE_AUTH_KEY}:".encode()).decode()
@@ -50,12 +52,12 @@ def get_salutespeech_token() -> Optional[str]:
         
         if response.status_code == 200:
             data = response.json()
-            _access_token = data.get('access_token')
+            ACCESS_TOKEN = data.get('access_token')
             expires_in = data.get('expires_in', 1800)
-            _token_expires = time.time() + expires_in
+            TOKEN_EXPIRES = time.time() + expires_in
             
             logger.info("[SaluteSpeech] Token obtained successfully")
-            return _access_token
+            return ACCESS_TOKEN
         else:
             logger.warning(f"[SaluteSpeech] Auth failed: {response.status_code} - {response.text[:100]}")
             return None
@@ -65,12 +67,27 @@ def get_salutespeech_token() -> Optional[str]:
         return None
 
 def generate_audio(script: str, output_path: str = "digest_audio.mp3") -> Optional[str]:
-    """Генерирует аудио из текста сценария"""
+    """Генерирует аудио из текста сценария с SSML"""
     token = get_salutespeech_token()
     
     if not token:
         logger.warning("[SaluteSpeech] No token, cannot generate audio")
         return None
+    
+    word_count = len(script.split())
+    if word_count > MAX_WORD_COUNT:
+        logger.warning(f"Script too long ({word_count} words), truncating to {MAX_WORD_COUNT}")
+        words = script.split()
+        script = ' '.join(words[:MAX_WORD_COUNT])
+    
+    ssml_script = f"""<speak>
+<voice name="{SALUTESPEECH_VOICE}" lang="ru">
+{script}
+</voice>
+</speak>"""
+    
+    logger.info(f"[SaluteSpeech] Using voice: {SALUTESPEECH_VOICE}")
+    logger.info(f"[SaluteSpeech] SSML prepared: yes (word count: {len(script.split())})")
     
     try:
         headers = {
@@ -79,8 +96,7 @@ def generate_audio(script: str, output_path: str = "digest_audio.mp3") -> Option
         }
         
         payload = {
-            "text": script,
-            "speaker": SALUTE_SPEAKER,
+            "text": ssml_script,
             "format": "mp3",
             "lang": "ru-RU"
         }

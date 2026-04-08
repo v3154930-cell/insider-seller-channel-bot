@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 import logging
 import pytz
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -9,12 +10,17 @@ MOSCOW_TZ = pytz.timezone('Europe/Moscow')
 
 MORNING_HOUR = 6
 EVENING_HOUR = 23
-AUDIO_HOUR = 22
+
 TIME_WINDOW = 5
 
-ENABLE_MORNING_DIGEST = True
-ENABLE_EVENING_DIGEST = True
-ENABLE_AUDIO_DIGEST = True
+ENABLE_MORNING_DIGEST = os.getenv("ENABLE_MORNING_DIGEST", "true").lower() == "true"
+ENABLE_EVENING_DIGEST = os.getenv("ENABLE_EVENING_DIGEST", "true").lower() == "true"
+ENABLE_AUDIO_DIGEST = os.getenv("ENABLE_AUDIO_DIGEST", "true").lower() == "true"
+
+AUDIO_DIGEST_HOUR = int(os.getenv("AUDIO_DIGEST_HOUR_MSK", "22"))
+SALUTESPEECH_VOICE = os.getenv("SALUTESPEECH_VOICE", "Tur_24000")
+
+FORCE_AUDIO_DIGEST = os.getenv("FORCE_AUDIO_DIGEST", "false").lower() == "true"
 
 def now_moscow():
     return datetime.now(MOSCOW_TZ)
@@ -29,7 +35,7 @@ def is_evening_time() -> bool:
 
 def is_audio_digest_time() -> bool:
     now = now_moscow()
-    return now.hour == AUDIO_HOUR and now.minute <= TIME_WINDOW
+    return now.hour == AUDIO_DIGEST_HOUR and now.minute <= TIME_WINDOW
 
 def should_send_morning_digest() -> bool:
     from db import is_digest_sent_today
@@ -59,6 +65,12 @@ def should_send_evening_digest() -> bool:
 
 def should_send_audio_digest() -> bool:
     from db import is_digest_sent_today
+    
+    logger.info(f"force_audio_digest: {str(FORCE_AUDIO_DIGEST).lower()}")
+    
+    if FORCE_AUDIO_DIGEST:
+        logger.info("Audio digest forced via env flag")
+        return True
     
     if not ENABLE_AUDIO_DIGEST:
         logger.info("Audio digest disabled by flag")
@@ -203,23 +215,25 @@ def get_audio_digest_script(top_news: List[dict]) -> Optional[str]:
         return None
     
     news_text = "\n\n".join([
-        f"{i+1}. {n['title']}\n{n.get('raw_text', '')[:200]}" 
+        f"{i+1}. {n['title']}\n{n.get('raw_text', '')[:150]}" 
         for i, n in enumerate(top_news[:5])
     ])
     
-    script_prompt = f"""Создай сценарий для голосового аудио-дайджеста новостей о маркетплейсах.
+    script_prompt = f"""Создай сценарий для голосового аудио-дайджеста новостей о маркетплейсах и e-commerce.
 
 Главные новости дня:
 {news_text}
 
 Требования к формату:
-- Разговорный, спокойный русский язык
-- Не читай новости слово в слово - перескажи своими словами
-- Каждая новость: что произошло и почему важно для селлеров
-- Вступление: "Добрый вечер! Вот главные новости дня для продавцов..."
-- Завершение: "Это были главные новости. Хорошего дня и успешных продаж!"
-- Общая длительность текста - примерно на 2-3 минуты чтения
-- Используй простые предложения, без сложных терминов"""
+- Стиль: краткий вечерний выпуск новостей, спокойный деловой тон
+- Не читай новости слово в слово - перескажи суть своими словами
+- Каждая новость: что произошло (1 предложение) + почему важно для селлера (1-2 предложения)
+- Вступление: "Добрый вечер. Это краткий итог дня для селлеров..."
+- Завершение: краткий итог дня, 2-3 предложения
+- ОБЯЗАТЕЛЬНО: общая длина 280-350 слов, НЕ БОЛЕЕ 400 слов
+- Используй короткие предложения, без канцелярита
+- Не используй нумерацию вида "1.", "2." - пиши связным текстом
+- Каждая новость должна звучать как информация для принятия решений"""
 
     if USE_LLM and GITHUB_TOKEN:
         try:
@@ -232,6 +246,14 @@ def get_audio_digest_script(top_news: List[dict]) -> Optional[str]:
             })
             
             if result:
+                word_count = len(result.split())
+                logger.info(f"Generated script word count: {word_count}")
+                
+                if word_count > 400:
+                    logger.warning(f"Script too long ({word_count} words), truncating")
+                    words = result.split()
+                    result = ' '.join(words[:400])
+                
                 logger.info("Audio script generated: yes")
                 return result
         except Exception as e:
@@ -240,12 +262,26 @@ def get_audio_digest_script(top_news: List[dict]) -> Optional[str]:
     fallback_text = "Добрый вечер! Вот главные новости дня для продавцов маркетплейсов.\n\n"
     
     for i, n in enumerate(top_news[:5]):
-        fallback_text += f"{i+1}. {n['title']}.\n"
+        fallback_text += f"{n['title'][:100]}. "
     
-    fallback_text += "\nЭто были главные новости. Хорошего дня и успешных продаж!"
+    fallback_text += "\n\nЭто были главные новости. Хорошего дня и успешных продаж!"
     
     logger.info("Audio script generated: fallback")
     return fallback_text
 
 def get_today_date() -> str:
     return datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y")
+
+def wrap_ssml(text: str, voice: str = None) -> str:
+    """Оборачивает текст в SSML с голосом"""
+    if voice is None:
+        voice = SALUTESPEECH_VOICE
+    
+    text = text.replace('^', '')
+    
+    ssml = f"""<speak>
+<voice name="{voice}" lang="ru">
+{text}
+</voice>
+</speak>"""
+    return ssml

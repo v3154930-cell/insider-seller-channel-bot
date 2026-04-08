@@ -10,6 +10,11 @@ on:
         required: false
         default: '2'
         type: string
+      force_audio_digest:
+        description: 'Force audio digest generation'
+        required: false
+        default: 'false'
+        type: string
 
 permissions:
   contents: read
@@ -42,6 +47,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USE_LLM: ${{ secrets.USE_LLM }}
+          SALUTE_AUTH_KEY: ${{ secrets.SALUTE_AUTH_KEY }}
+          ENABLE_AUDIO_DIGEST: ${{ vars.ENABLE_AUDIO_DIGEST }}
+          ENABLE_MORNING_DIGEST: ${{ vars.ENABLE_MORNING_DIGEST }}
+          ENABLE_EVENING_DIGEST: ${{ vars.ENABLE_EVENING_DIGEST }}
+          SALUTESPEECH_VOICE: ${{ vars.SALUTESPEECH_VOICE }}
+          AUDIO_DIGEST_HOUR_MSK: ${{ vars.AUDIO_DIGEST_HOUR_MSK }}
+          FORCE_AUDIO_DIGEST: ${{ github.inputs.force_audio_digest }}
         run: python channel_bot.py
 
       - name: Upload posted links
