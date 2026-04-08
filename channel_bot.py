@@ -125,7 +125,7 @@ def main():
     logger.info(f"After filtering: {len(filtered_news)} important news")
     
     added = add_to_queue_batch(filtered_news)
-    logger.info(f"Added {added} new items to queue")
+    logger.info(f"Added {added} new items to queue, first item description: {filtered_news[0].get('description', 'NONE')[:50] if filtered_news else 'NO ITEMS'}")
     
     pending_count = get_all_pending_count()
     logger.info(f"Queue: {pending_count} pending")
