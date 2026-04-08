@@ -235,6 +235,33 @@ def mark_news_in_digest(news_ids: List[int]):
     conn.commit()
     conn.close()
 
+def get_today_published() -> List[Dict]:
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT id, title, raw_text, link, source, importance, category, created_at
+        FROM news
+        WHERE is_published = 1 
+        AND date(created_at) = date('now')
+        ORDER BY created_at DESC
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    news_list = []
+    for row in rows:
+        news_list.append({
+            'id': row[0],
+            'title': row[1],
+            'raw_text': row[2],
+            'link': row[3],
+            'source': row[4],
+            'importance': row[5],
+            'category': row[6],
+            'created_at': row[7]
+        })
+    return news_list
+
 def get_top_news_for_digest(limit: int = 5) -> List[Dict]:
     conn = get_connection()
     cursor = conn.cursor()

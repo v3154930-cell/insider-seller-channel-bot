@@ -3,14 +3,15 @@ import logging
 import requests
 from typing import Optional
 import time
+import base64
+import uuid
 
 logger = logging.getLogger(__name__)
 
 SALUTESPEECH_API_URL = "https://salutespeech.com/api"
 
-SALUTE_CLIENT_ID = os.getenv("SALUTESPEECH_CLIENT_ID")
-SALUTE_CLIENT_SECRET = os.getenv("SALUTESPEECH_CLIENT_SECRET")
-SALUTE_SPEAKER = os.getenv("SALUTESPEECH_SPEAKER", "Aidar")
+SALUTE_AUTH_KEY = os.getenv("SALUTE_AUTH_KEY")
+SALUTE_SPEAKER = os.getenv("SALUTE_SPEAKER", "Aidar")
 
 _access_token = None
 _token_expires = 0
@@ -18,33 +19,45 @@ _token_expires = 0
 def get_salutespeech_token() -> Optional[str]:
     global _access_token, _token_expires
     
-    if not SALUTE_CLIENT_ID or not SALUTE_CLIENT_SECRET:
-        logger.warning("[SaluteSpeech] No credentials configured")
+    if not SALUTE_AUTH_KEY:
+        logger.warning("[SaluteSpeech] No SALUTE_AUTH_KEY configured")
         return None
     
     if _access_token and time.time() < _token_expires - 60:
         return _access_token
     
     try:
+        auth_header = base64.b64encode(f"{SALUTE_AUTH_KEY}:".encode()).decode()
+        
+        headers = {
+            "Authorization": f"Basic {auth_header}",
+            "Content-Type": "application/x-www-form-urlencoded"
+        }
+        
+        payload = {
+            "scope": "SALUTE_SPEECH_PERS",
+            "RqUID": str(uuid.uuid4())
+        }
+        
+        logger.info("[SaluteSpeech] Requesting token...")
+        
         response = requests.post(
-            f"{SALUTESPEECH_API_URL}/v1/auth",
-            json={
-                "client_id": SALUTE_CLIENT_ID,
-                "client_secret": SALUTE_CLIENT_SECRET
-            },
+            f"{SALUTESPEECH_API_URL}/v2/oauth",
+            headers=headers,
+            data=payload,
             timeout=30
         )
         
         if response.status_code == 200:
             data = response.json()
             _access_token = data.get('access_token')
-            expires_in = data.get('expires_in', 3600)
+            expires_in = data.get('expires_in', 1800)
             _token_expires = time.time() + expires_in
             
             logger.info("[SaluteSpeech] Token obtained successfully")
             return _access_token
         else:
-            logger.warning(f"[SaluteSpeech] Auth failed: {response.status_code}")
+            logger.warning(f"[SaluteSpeech] Auth failed: {response.status_code} - {response.text[:100]}")
             return None
             
     except Exception as e:
@@ -92,11 +105,11 @@ def generate_audio(script: str, output_path: str = "digest_audio.mp3") -> Option
             
     except requests.exceptions.Timeout:
         logger.warning("[SaluteSpeech] TTS timeout")
-        return None
     except Exception as e:
         logger.warning(f"[SaluteSpeech] TTS error: {e}")
-        return None
+    
+    return None
 
 def is_available() -> bool:
     """Проверяет, настроены ли credentials"""
-    return bool(SALUTE_CLIENT_ID and SALUTE_CLIENT_SECRET)
+    return bool(SALUTE_AUTH_KEY)
