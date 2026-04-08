@@ -20,10 +20,9 @@ logger = logging.getLogger(__name__)
 TOKEN = os.getenv("MAX_BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 
-MAX_POSTS_PER_RUN = 2
+MAX_POSTS_PER_RUN = 1
 
 logger.info(f"USE_LLM = {USE_LLM}")
-logger.info(f"GITHUB_TOKEN set = {bool(os.getenv('GITHUB_TOKEN'))}")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
@@ -127,12 +126,7 @@ def main():
     pending_count = get_all_pending_count()
     logger.info(f"Queue: {pending_count} pending")
     
-    if pending_count > 10:
-        send_limit = min(5, pending_count)
-    else:
-        send_limit = MAX_POSTS_PER_RUN
-    
-    pending = get_pending_news(send_limit)
+    pending = get_pending_news(MAX_POSTS_PER_RUN)
     logger.info(f"Sending {len(pending)} posts this run")
     
     if not pending:
