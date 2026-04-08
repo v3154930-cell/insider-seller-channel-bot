@@ -143,10 +143,9 @@ def main():
         link = item.get('link', '')
         
         raw_text = item.get('raw_text', '')
-        description = item.get('description', '')
-        logger.info(f"Processing item: id={item.get('id')}, raw_text_len={len(raw_text)}, desc_len={len(description)}, title={item.get('title', '')[:30]}...")
+        logger.info(f"Processing item: id={item.get('id')}, raw_text_len={len(raw_text)}, title={item.get('title', '')[:30]}...")
         
-        has_raw_text = bool(raw_text) or bool(description)
+        has_raw_text = bool(raw_text)
         
         if USE_LLM and has_raw_text:
             logger.info(f"Calling LLM for item {item.get('id')}")

@@ -90,10 +90,12 @@ def get_pending_news(count: int = 2) -> List[Dict]:
     
     news_list = []
     for row in rows:
+        raw_t = row[2] if row[2] else ''
         news_list.append({
             'id': row[0],
             'title': row[1],
-            'raw_text': row[2] if row[2] else '',
+            'raw_text': raw_t,
+            'description': raw_t,
             'processed_text': row[3],
             'link': row[4],
             'source': row[5],
