@@ -87,6 +87,10 @@ def _fetch_one_local(query: str, params: tuple = ()):
     return cursor.fetchone()
 
 def init_db():
+    logger.info("DEBUG CHECKPOINT: entering init_db")
+    logger.info(f"DEBUG CHECKPOINT: USE_TURSO={USE_TURSO}")
+    logger.info(f"DEBUG CHECKPOINT: IS_GITHUB_ACTIONS={IS_GITHUB_ACTIONS}")
+    
     if USE_TURSO:
         client = _get_turso_client()
         if client:
