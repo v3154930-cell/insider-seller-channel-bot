@@ -11,6 +11,11 @@ on:
         default: '2'
         type: string
 
+permissions:
+  contents: read
+  actions: read
+  models: read
+
 jobs:
   post-news:
     runs-on: ubuntu-latest
@@ -31,11 +36,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
       
+      - name: Test GitHub Models API access
+        env:
+          USE_LLM: ${{ secrets.USE_LLM }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python -c "import os; from llm import USE_LLM, GITHUB_TOKEN, smoke_test_llm; print(f'USE_LLM env: {os.getenv(\"USE_LLM\", \"(not set)\")}'); print(f'USE_LLM parsed: {USE_LLM}'); print(f'Token: {bool(GITHUB_TOKEN)}'); 
+          if USE_LLM and GITHUB_TOKEN: result = smoke_test_llm(); print(f'Smoke test: {result}')"
+       
       - name: Run bot
         env:
           MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USE_LLM: ${{ secrets.USE_LLM }}
         run: python channel_bot.py
       

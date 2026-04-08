@@ -8,7 +8,7 @@ from parsers import get_all_news, parse_court_cases, parse_sales
 from formatters import format_news
 from filters import filter_news
 from db import init_db, get_pending_news, add_to_queue_batch, mark_published, get_all_pending_count
-from llm import enhance_post_with_llm, USE_LLM
+from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN
 from scheduler import is_morning_time, is_evening_time, get_morning_summary, get_evening_digest
 
 logging.basicConfig(
@@ -23,10 +23,7 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 MAX_POSTS_PER_RUN = 1
 
 logger.info(f"USE_LLM = {USE_LLM}")
-logger.info(f"GH_TOKEN configured = {bool(os.getenv('GH_TOKEN'))}")
-
-from llm import GITHUB_TOKEN
-logger.info(f"LLM will use token: {bool(GITHUB_TOKEN)}")
+logger.info(f"GITHUB_TOKEN configured = {bool(GITHUB_TOKEN)}")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
@@ -99,19 +96,18 @@ def main():
             logger.info("Evening digest sent")
         return
     
-    import config
-    news_items = get_all_news(config, hours=24)
-    logger.info(f"Total RSS news fetched: {len(news_items)}")
+    news_items = get_all_news(hours=24)
+    logger.info(f"RSS fetched: {len(news_items)}")
     
     court_items = parse_court_cases()
-    logger.info(f"Court cases fetched: {len(court_items)}")
+    logger.info(f"Legal/Court fetched: {len(court_items)}")
     news_items.extend(court_items)
     
     sale_items = parse_sales()
     logger.info(f"Sales fetched: {len(sale_items)}")
     news_items.extend(sale_items)
     
-    logger.info(f"Total news after all sources: {len(news_items)}")
+    logger.info(f"Normalized items: {len(news_items)}")
     
     filtered_news = []
     for item in news_items:

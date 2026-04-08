@@ -19,11 +19,13 @@ RSS_FEEDS = [
 COURT_RSS_FEEDS = [
     ("https://mos-gorsud.ru/rss/index", "МосГорСуд"),
     ("https://www.mosobl.sudrf.ru/modules.php?name=press_dep&func=page&page=2&rss=1", "МособлСуд"),
+    ("https://pravo.ru/news/partner/feed/", "Право.ru"),
 ]
 
 SALE_RSS_FEEDS = [
     ("https://www.retail.ru/rss/tag/akcii/", "Retail.ru Акции"),
     ("https://e-pepper.ru/news/rss.xml", "E-Pepper"),
+    ("https://www.retail.ru/rss/tag/skidki/", "Retail.ru Скидки"),
 ]
 
 SALE_KEYWORDS = ["акция", "распродажа", "скидка", "бонус", "cashback", "чёрная пятница", "11.11", "сезонная скидка"]
@@ -181,7 +183,7 @@ class RSSParser:
         else:
             return "general"
 
-def get_all_news(config, hours=24):
+def get_all_news(config=None, hours=24):
     all_news = []
     
     for feed_url, feed_name in RSS_FEEDS:
