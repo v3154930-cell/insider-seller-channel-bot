@@ -11,8 +11,6 @@ MOSCOW_TZ = pytz.timezone('Europe/Moscow')
 MORNING_HOUR = 6
 EVENING_HOUR = 23
 
-TIME_WINDOW = 5
-
 ENABLE_MORNING_DIGEST = os.getenv("ENABLE_MORNING_DIGEST", "true").lower() == "true"
 ENABLE_EVENING_DIGEST = os.getenv("ENABLE_EVENING_DIGEST", "true").lower() == "true"
 ENABLE_AUDIO_DIGEST = os.getenv("ENABLE_AUDIO_DIGEST", "true").lower() == "true"
@@ -29,15 +27,15 @@ def now_moscow():
 
 def is_morning_time() -> bool:
     now = now_moscow()
-    return now.hour == MORNING_HOUR and now.minute <= TIME_WINDOW
+    return now.hour >= MORNING_HOUR and now.hour < MORNING_HOUR + 1
 
 def is_evening_time() -> bool:
     now = now_moscow()
-    return now.hour == EVENING_HOUR and now.minute <= TIME_WINDOW
+    return now.hour >= EVENING_HOUR
 
 def is_audio_digest_time() -> bool:
     now = now_moscow()
-    return now.hour == AUDIO_DIGEST_HOUR and now.minute <= TIME_WINDOW
+    return now.hour >= AUDIO_DIGEST_HOUR
 
 def should_send_morning_digest() -> bool:
     from db import is_digest_sent_today
@@ -50,7 +48,13 @@ def should_send_morning_digest() -> bool:
         logger.info("Morning digest already sent today")
         return False
     
-    return is_morning_time()
+    now = now_moscow()
+    if now.hour >= MORNING_HOUR and now.hour < MORNING_HOUR + 1:
+        logger.info("First run after morning time window, sending digest")
+        return True
+    
+    logger.info(f"Morning digest check: now={now.hour}, target={MORNING_HOUR}, not in window")
+    return False
 
 def should_send_evening_digest() -> bool:
     from db import is_digest_sent_today
@@ -63,7 +67,13 @@ def should_send_evening_digest() -> bool:
         logger.info("Evening digest already sent today")
         return False
     
-    return is_evening_time()
+    now = now_moscow()
+    if now.hour >= EVENING_HOUR:
+        logger.info("First run after evening time, sending digest")
+        return True
+    
+    logger.info(f"Evening digest check: now={now.hour}, target={EVENING_HOUR}, not in window")
+    return False
 
 def should_send_audio_digest() -> bool:
     from db import is_digest_sent_today
@@ -82,7 +92,13 @@ def should_send_audio_digest() -> bool:
         logger.info("Audio digest already sent today")
         return False
     
-    return is_audio_digest_time()
+    now = now_moscow()
+    if now.hour >= AUDIO_DIGEST_HOUR:
+        logger.info("First run after audio digest time, sending digest")
+        return True
+    
+    logger.info(f"Audio digest check: now={now.hour}, target={AUDIO_DIGEST_HOUR}, not in window")
+    return False
 
 def get_morning_summary() -> Optional[str]:
     from db import get_critical_news_hours, set_digest_sent
@@ -274,7 +290,7 @@ def get_audio_digest_script(top_news: List[dict]) -> Optional[str]:
 def get_today_date() -> str:
     return datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y")
 
-def wrap_ssml(text: str, voice: str = None) -> str:
+def wrap_ssml(text: str, voice: str | None = None) -> str:
     """Оборачивает текст в SSML с голосом"""
     if voice is None:
         voice = SALUTESPEECH_VOICE

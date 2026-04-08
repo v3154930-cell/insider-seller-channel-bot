@@ -61,8 +61,12 @@ def run_collector():
     scored_news = score_items(filtered_news)
     logger.info(f"After scoring: {len(scored_news)} scored news")
     
+    total_before = get_all_pending_count()
     added = add_to_queue_batch(scored_news)
+    duplicates_skipped = len(scored_news) - added if scored_news else 0
+    
     logger.info(f"Saved to DB: {added} new items")
+    logger.info(f"Duplicates skipped: {duplicates_skipped}")
     
     pending_count = get_all_pending_count()
     logger.info(f"Queue size: {pending_count} pending")

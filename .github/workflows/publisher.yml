@@ -24,14 +24,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download latest database
-        uses: dawidd6/action-download-artifact@v3
-        with:
-          workflow: collector.yml
-          name: news-queue-db
-          path: .
-          if_no_artifact_found: warn
-
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -56,6 +48,8 @@ jobs:
           ENABLE_EVENING_DIGEST: ${{ vars.ENABLE_EVENING_DIGEST }}
           SALUTESPEECH_VOICE: ${{ vars.SALUTESPEECH_VOICE }}
           AUDIO_DIGEST_HOUR_MSK: ${{ vars.AUDIO_DIGEST_HOUR_MSK }}
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: |
           echo "FORCE_AUDIO_DIGEST=${{ github.inputs.force_audio_digest }}" >> $GITHUB_ENV
           python publisher.py

@@ -29,11 +29,7 @@ jobs:
           pip install -r requirements.txt
 
       - name: Run collector
+        env:
+          TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
+          TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
         run: python collector.py
-
-      - name: Upload database
-        uses: actions/upload-artifact@v4
-        with:
-          name: news-queue-db
-          path: news_queue.db
-          retention-days: 1

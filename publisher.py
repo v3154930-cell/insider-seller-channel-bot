@@ -186,11 +186,14 @@ def run_publisher():
         return
     
     pending_count = get_all_pending_count()
-    logger.info(f"Queue size: {pending_count} pending")
+    logger.info(f"Queue size: {pending_count} pending items")
     logger.info("Parsing skipped: yes")
     
     pending = get_pending_news(MAX_POSTS_PER_RUN)
-    logger.info(f"Selected pending item: {len(pending)}")
+    if pending:
+        logger.info(f"Selected pending item: id={pending[0]['id']}, title={pending[0]['title'][:50]}...")
+    else:
+        logger.info("Selected pending item: none")
     
     if not pending:
         logger.info("No pending posts to send")
@@ -223,9 +226,10 @@ def run_publisher():
             save_link(link)
             mark_published(item['id'])
             new_posts += 1
-            logger.info(f"✓ Posted: {item['title'][:50]}...")
+            logger.info(f"✓ Posted: id={item['id']}, title={item['title'][:50]}...")
+            logger.info(f"  -> Item marked as sent")
         else:
-            logger.error(f"✗ Failed: {item['title'][:50]}...")
+            logger.error(f"✗ Failed: id={item['id']}, title={item['title'][:50]}...")
     
     final_pending = get_all_pending_count()
     logger.info(f"=== Publisher finished. Sent: {new_posts}, Remaining in queue: {final_pending} ===")
