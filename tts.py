@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 SALUTESPEECH_API_URL = "https://salutespeech.com/api"
 
 SALUTE_AUTH_KEY = os.getenv("SALUTE_AUTH_KEY")
-SALUTESPEECH_VOICE = os.getenv("SALUTESPEECH_VOICE", "Tur_24000")
+SALUTESPEECH_VOICE = os.getenv("SALUTESPEECH_VOICE") or "Tur_24000"
 
 ACCESS_TOKEN = None
 TOKEN_EXPIRES = 0

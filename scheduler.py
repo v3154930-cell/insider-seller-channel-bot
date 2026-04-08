@@ -17,8 +17,10 @@ ENABLE_MORNING_DIGEST = os.getenv("ENABLE_MORNING_DIGEST", "true").lower() == "t
 ENABLE_EVENING_DIGEST = os.getenv("ENABLE_EVENING_DIGEST", "true").lower() == "true"
 ENABLE_AUDIO_DIGEST = os.getenv("ENABLE_AUDIO_DIGEST", "true").lower() == "true"
 
-AUDIO_DIGEST_HOUR = int(os.getenv("AUDIO_DIGEST_HOUR_MSK", "22"))
-SALUTESPEECH_VOICE = os.getenv("SALUTESPEECH_VOICE", "Tur_24000")
+_audio_hour = os.getenv("AUDIO_DIGEST_HOUR_MSK", "22")
+AUDIO_DIGEST_HOUR = int(_audio_hour) if _audio_hour and _audio_hour.isdigit() else 22
+
+SALUTESPEECH_VOICE = os.getenv("SALUTESPEECH_VOICE") or "Tur_24000"
 
 FORCE_AUDIO_DIGEST = os.getenv("FORCE_AUDIO_DIGEST", "false").lower() == "true"
 
