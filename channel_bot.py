@@ -142,10 +142,11 @@ def main():
     for item in pending:
         link = item.get('link', '')
         
-        raw_text = item.get('raw_text') or ''
-        description = item.get('description', item.get('raw_text', '')) if item.get('raw_text') else ''
+        raw_text = item.get('raw_text', '')
+        description = item.get('description', '')
+        logger.info(f"Processing item: id={item.get('id')}, raw_text_len={len(raw_text)}, desc_len={len(description)}, title={item.get('title', '')[:30]}...")
+        
         has_raw_text = bool(raw_text) or bool(description)
-        logger.info(f"Processing item: id={item.get('id')}, has_raw_text={has_raw_text}, title={item.get('title', '')[:30]}...")
         
         if USE_LLM and has_raw_text:
             logger.info(f"Calling LLM for item {item.get('id')}")
