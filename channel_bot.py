@@ -4,7 +4,7 @@ import logging
 import requests
 from datetime import datetime
 from config import get_sent_links, save_link
-from parsers import get_all_news
+from parsers import get_all_news, parse_court_cases, parse_sales
 from formatters import format_news
 from filters import filter_news
 from db import init_db, get_pending_news, add_to_queue_batch, mark_published, get_all_pending_count
@@ -21,6 +21,9 @@ TOKEN = os.getenv("MAX_BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 MAX_POSTS_PER_RUN = 2
+
+logger.info(f"USE_LLM = {USE_LLM}")
+logger.info(f"GITHUB_TOKEN set = {bool(os.getenv('GITHUB_TOKEN'))}")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
@@ -96,6 +99,16 @@ def main():
     import config
     news_items = get_all_news(config, hours=24)
     logger.info(f"Total RSS news fetched: {len(news_items)}")
+    
+    court_items = parse_court_cases()
+    logger.info(f"Court cases fetched: {len(court_items)}")
+    news_items.extend(court_items)
+    
+    sale_items = parse_sales()
+    logger.info(f"Sales fetched: {len(sale_items)}")
+    news_items.extend(sale_items)
+    
+    logger.info(f"Total news after all sources: {len(news_items)}")
     
     filtered_news = []
     for item in news_items:

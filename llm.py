@@ -6,7 +6,10 @@ import requests
 logger = logging.getLogger(__name__)
 
 USE_LLM = os.getenv("USE_LLM", "true").lower() == "true"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+GITHUB_TOKEN = os.getenv("GH_TOKEN") or os.getenv("GITHUB_TOKEN")
+
+logger.info(f"[LLM] USE_LLM = {USE_LLM}")
+logger.info(f"[LLM] GH_TOKEN set = {bool(GITHUB_TOKEN)}")
 
 LLM_API_URL = "https://models.github.ai/inference"
 GPT4O_MINI_MODEL = "gpt-4o-mini"
@@ -28,12 +31,15 @@ SYSTEM_PROMPT = """Ты редактор канала о маркетплейс�
 - Один ключевой вывод
 - Используй эмодзи для визуального разделения"""
 
-def enhance_post_with_llm(raw_news: Dict) -> str:
+def enhance_post_with_llm(raw_news: Dict) -> Optional[str]:
+    logger.info(f"[LLM] Starting enhancement for: {raw_news.get('title', '')[:50]}...")
+    
     if not USE_LLM:
+        logger.warning("[LLM] USE_LLM is disabled")
         return None
     
     if not GITHUB_TOKEN:
-        logger.warning("GITHUB_TOKEN not set, skipping LLM")
+        logger.warning("[LLM] GH_TOKEN not set, skipping LLM")
         return None
     
     title = raw_news.get('title', '')
@@ -75,6 +81,7 @@ def enhance_post_with_llm(raw_news: Dict) -> str:
     }
     
     try:
+        logger.info(f"[LLM] Calling GitHub Models API...")
         response = requests.post(
             LLM_API_URL + "/chat/completions",
             headers=headers,
@@ -82,33 +89,25 @@ def enhance_post_with_llm(raw_news: Dict) -> str:
             timeout=30
         )
         
+        logger.info(f"[LLM] Response status: {response.status_code}")
+        
         if response.status_code == 200:
             result = response.json()
             content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
             if content:
-                logger.info(f"LLM enhanced post successfully")
+                logger.info(f"✅ LLM successfully enhanced post")
                 return content
+            else:
+                logger.warning("[LLM] LLM returned empty content")
         else:
             logger.warning(f"LLM API error: {response.status_code} - {response.text[:200]}")
             
     except requests.exceptions.Timeout:
-        logger.warning("LLM request timeout")
+        logger.warning("[LLM] Request timeout")
     except requests.exceptions.RequestException as e:
-        logger.warning(f"LLM request error: {e}")
+        logger.warning(f"[LLM] Request error: {e}")
     except Exception as e:
-        logger.warning(f"LLM unexpected error: {e}")
+        logger.warning(f"[LLM] Unexpected error: {e}")
     
+    logger.warning("[LLM] LLM failed, will use fallback formatter")
     return None
-
-def enhance_batch(news_list: List[Dict]) -> List[Dict]:
-    if not USE_LLM:
-        return news_list
-    
-    enhanced = []
-    for news in news_list:
-        enhanced_text = enhance_post_with_llm(news)
-        if enhanced_text:
-            news['processed_text'] = enhanced_text
-        enhanced.append(news)
-    
-    return enhanced
