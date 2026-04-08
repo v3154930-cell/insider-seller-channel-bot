@@ -4,9 +4,12 @@ from bs4 import BeautifulSoup
 import re
 from urllib.parse import urljoin
 import hashlib
+import logging
 from datetime import datetime, timezone
 from filters import is_court_case, is_seller_story
 from config import DEFAULT_IMAGE_URL
+
+logger = logging.getLogger(__name__)
 
 RSS_FEEDS = [
     ("https://www.retail.ru/rss/news/", "Retail.ru"),
@@ -16,47 +19,55 @@ RSS_FEEDS = [
     ("https://rssexport.rbc.ru/rbcnews/news/30/full.rss", "RBC")
 ]
 
+LEGAL_NEWS_FEEDS = [
+    ("https://pravo.ru/news/partner/feed/", "Право.ru"),
+    ("https://www.legalreport.ru/rss/", "LegalReport"),
+]
+
 COURT_RSS_FEEDS = [
     ("https://mos-gorsud.ru/rss/index", "МосГорСуд"),
     ("https://www.mosobl.sudrf.ru/modules.php?name=press_dep&func=page&page=2&rss=1", "МособлСуд"),
-    ("https://pravo.ru/news/partner/feed/", "Право.ru"),
 ]
 
 SALE_RSS_FEEDS = [
     ("https://www.retail.ru/rss/tag/akcii/", "Retail.ru Акции"),
     ("https://e-pepper.ru/news/rss.xml", "E-Pepper"),
-    ("https://www.retail.ru/rss/tag/skidki/", "Retail.ru Скидки"),
 ]
 
-SALE_KEYWORDS = ["акция", "распродажа", "скидка", "бонус", "cashback", "чёрная пятница", "11.11", "сезонная скидка"]
+MARKETPLACE_KEYWORDS = ["маркетплейс", "озон", "wildberries", "яндекс маркет", "ozon", "wb", "ozon", "мегамаркет"]
+
+SALE_KEYWORDS = ["акция", "распродажа", "скидк", "бонус", "cashback", "чёрная пятница", "11.11", "сезонная", "промокод", "купон", "спецпредложение", "特卖", "特價"]
 
 def is_sale_news(title, description):
-    """Определяет, является ли новость акцией маркетплейса"""
     text = f"{title} {description}".lower()
     return any(kw in text for kw in SALE_KEYWORDS)
 
 def determine_importance(title, description):
-    """Определяет важность новости"""
     text = f"{title} {description}".lower()
     
-    critical_keywords = ["взыскание", "убытки", "компенсация", "миллион", "штраф", "блокировка", "крупный"]
+    critical_keywords = ["взыскание", "убытки", "компенсация", "миллион", "штраф", "блокировка", "крупный", "тяжба"]
     if any(kw in text for kw in critical_keywords):
         return "critical"
     
-    important_keywords = ["подмена товара", "возврат", "нарушение прав", "неустойка", "повышение тарифа", "изменение"]
+    important_keywords = ["подмена товара", "возврат", "нарушение прав", "неустойка", "повышение тарифа", "изменение", "иск"]
     if any(kw in text for kw in important_keywords):
         return "high"
     
     return "normal"
 
-def fetch_rss_feed(url):
+def fetch_rss_feed(url, source_name):
     try:
         feed = feedparser.parse(url)
         if feed.bozo and feed.bozo_exception:
-            print(f"⚠️ Ошибка парсинга RSS: {feed.bozo_exception}")
+            exc_str = str(feed.bozo_exception)[:100]
+            logger.warning(f"RSS [{source_name}] bozo: {exc_str}")
+        
+        if not feed.entries:
+            logger.warning(f"RSS [{source_name}] empty feed")
+        
         return feed
     except Exception as e:
-        print(f"❌ Ошибка загрузки RSS {url}: {e}")
+        logger.error(f"RSS [{source_name}] error: {e}")
         return None
 
 def extract_image_from_entry(entry, link, default_image=None):
@@ -84,20 +95,8 @@ def extract_image_from_entry(entry, link, default_image=None):
             og_image = soup.find('meta', property='og:image')
             if og_image and og_image.get('content'):
                 return og_image.get('content')
-            
-            twitter_image = soup.find('meta', attrs={'name': 'twitter:image'})
-            if twitter_image and twitter_image.get('content'):
-                return twitter_image.get('content')
-            
-            first_img = soup.find('img')
-            if first_img and first_img.get('src'):
-                img_src = first_img.get('src')
-                if img_src.startswith('http'):
-                    return img_src
-                elif img_src.startswith('/'):
-                    return urljoin(link, img_src)
-    except Exception as e:
-        print(f"⚠️ Ошибка извлечения изображения: {e}")
+    except:
+        pass
     
     return default_image
 
@@ -121,45 +120,43 @@ class RSSParser:
         self.category = category
     
     def fetch(self, hours=24):
-        try:
-            feed = fetch_rss_feed(self.url)
-            if not feed:
-                return []
-            
-            news_items = []
-            
-            for entry in feed.entries[:30]:
-                try:
-                    title = entry.get("title", "")
-                    link = entry.get("link", "")
-                    description = self._clean_html(entry.get("description", ""))
-                    
-                    if not title or not link:
-                        continue
-                    
-                    image_url = extract_image_from_entry(entry, link, DEFAULT_IMAGE_URL)
-                    short_text = shorten_text(description)
-                    
-                    news_items.append({
-                        "title": title.strip(),
-                        "link": link.strip(),
-                        "description": description.strip()[:500],
-                        "short_text": short_text,
-                        "image_url": image_url,
-                        "source": self.name,
-                        "category": self.category,
-                        "type": self._determine_type(title, description)
-                    })
-                        
-                except Exception as e:
-                    print(f"Error parsing entry: {e}")
-                    continue
-            
-            return news_items
-            
-        except Exception as e:
-            print(f"Error fetching RSS {self.name}: {e}")
+        feed = fetch_rss_feed(self.url, self.name)
+        if not feed:
             return []
+        
+        news_items = []
+        success_count = 0
+        
+        for entry in feed.entries[:30]:
+            try:
+                title = entry.get("title", "")
+                link = entry.get("link", "")
+                description = self._clean_html(entry.get("description", ""))
+                
+                if not title or not link:
+                    continue
+                
+                image_url = extract_image_from_entry(entry, link, DEFAULT_IMAGE_URL)
+                short_text = shorten_text(description)
+                
+                news_items.append({
+                    "title": title.strip(),
+                    "link": link.strip(),
+                    "description": description.strip()[:500],
+                    "short_text": short_text,
+                    "image_url": image_url,
+                    "source": self.name,
+                    "category": self.category,
+                    "type": self._determine_type(title, description)
+                })
+                success_count += 1
+                    
+            except Exception as e:
+                logger.warning(f"RSS [{self.name}] entry error: {e}")
+                continue
+        
+        logger.info(f"RSS [{self.name}]: {success_count} items")
+        return news_items
     
     def _clean_html(self, text):
         if not text:
@@ -190,37 +187,25 @@ def get_all_news(config=None, hours=24):
         parser = RSSParser(feed_url, feed_name, "general")
         news = parser.fetch(hours)
         all_news.extend(news)
-        print(f"Fetched {len(news)} items from {feed_name}")
     
+    logger.info(f"RSS total: {len(all_news)} items from {len(RSS_FEEDS)} sources")
     return all_news
 
-def parse_court_cases():
-    """Парсит судебные дела по маркетплейсам"""
-    court_news = []
-    keywords = ["маркетплейс", "озон", "wildberries", "яндекс маркет", "ozon", "wb"]
+def extract_sales_from_news(news_items):
+    """Извлекает sales-акции из общего потока новостей"""
+    sales_items = []
     
-    for feed_url, feed_name in COURT_RSS_FEEDS:
-        try:
-            parser = RSSParser(feed_url, feed_name, "court")
-            news = parser.fetch(hours=24)
-            
-            for item in news:
-                title = item.get('title', '').lower()
-                desc = item.get('description', '').lower()
-                
-                if any(kw in title or kw in desc for kw in keywords):
-                    if is_court_case(item.get('title', ''), item.get('description', '')):
-                        importance = determine_importance(item.get('title', ''), item.get('description', ''))
-                        item['importance'] = importance
-                        item['category'] = 'court'
-                        court_news.append(item)
-        except Exception as e:
-            print(f"Error parsing court feed {feed_name}: {e}")
+    for item in news_items:
+        if is_sale_news(item.get('title', ''), item.get('description', '')):
+            item['importance'] = 'normal'
+            item['category'] = 'sale'
+            sales_items.append(item)
+            logger.info(f"Sales [from RSS]: {item.get('title', '')[:50]}...")
     
-    return court_news
+    return sales_items
 
 def parse_sales():
-    """Парсит акции маркетплейсов"""
+    """Парсит акции маркетплейсов из специализированных RSS"""
     sale_news = []
     
     for feed_url, feed_name in SALE_RSS_FEEDS:
@@ -229,11 +214,58 @@ def parse_sales():
             news = parser.fetch(hours=24)
             
             for item in news:
-                if is_sale_news(item.get('title', ''), item.get('description', '')):
-                    item['importance'] = 'normal'
-                    item['category'] = 'sale'
-                    sale_news.append(item)
+                item['importance'] = 'normal'
+                item['category'] = 'sale'
+                sale_news.append(item)
         except Exception as e:
-            print(f"Error parsing sale feed {feed_name}: {e}")
+            logger.error(f"Sales [{feed_name}] error: {e}")
     
+    logger.info(f"Sales RSS: {len(sale_news)} items from dedicated feeds")
     return sale_news
+
+def parse_legal_news():
+    """Парсит legal-новости из стабильных источников"""
+    legal_news = []
+    
+    for feed_url, feed_name in LEGAL_NEWS_FEEDS:
+        try:
+            parser = RSSParser(feed_url, feed_name, "legal")
+            news = parser.fetch(hours=24)
+            
+            for item in news:
+                title_lower = item.get('title', '').lower()
+                desc_lower = item.get('description', '').lower()
+                
+                if any(kw in title_lower or kw in desc_lower for kw in MARKETPLACE_KEYWORDS):
+                    item['importance'] = determine_importance(item.get('title', ''), item.get('description', ''))
+                    item['category'] = 'legal'
+                    legal_news.append(item)
+        except Exception as e:
+            logger.error(f"Legal [{feed_name}] error: {e}")
+    
+    logger.info(f"Legal news: {len(legal_news)} items from legal feeds")
+    return legal_news
+
+def parse_court_cases():
+    """Парсит судебные дела по маркетплейсам"""
+    court_news = []
+    
+    for feed_url, feed_name in COURT_RSS_FEEDS:
+        try:
+            parser = RSSParser(feed_url, feed_name, "court")
+            news = parser.fetch(hours=24)
+            
+            for item in news:
+                title_lower = item.get('title', '').lower()
+                desc_lower = item.get('description', '').lower()
+                
+                if any(kw in title_lower or kw in desc_lower for kw in MARKETPLACE_KEYWORDS):
+                    if is_court_case(item.get('title', ''), item.get('description', '')):
+                        item['importance'] = determine_importance(item.get('title', ''), item.get('description', ''))
+                        item['category'] = 'court'
+                        court_news.append(item)
+        except Exception as e:
+            logger.error(f"Court [{feed_name}] error: {e}")
+    
+    logger.info(f"Court RSS: {len(court_news)} items from court feeds")
+    return court_news

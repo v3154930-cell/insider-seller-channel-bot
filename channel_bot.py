@@ -4,7 +4,7 @@ import logging
 import requests
 from datetime import datetime
 from config import get_sent_links, save_link
-from parsers import get_all_news, parse_court_cases, parse_sales
+from parsers import get_all_news, parse_court_cases, parse_sales, parse_legal_news, extract_sales_from_news
 from formatters import format_news
 from filters import filter_news
 from db import init_db, get_pending_news, add_to_queue_batch, mark_published, get_all_pending_count
@@ -74,8 +74,8 @@ def main():
         logger.error("CHANNEL_ID not set in environment")
         sys.exit(1)
     
-    logger.info(f"Token: {'*' * 10}...{token[-5:]}")
-    logger.info(f"Channel ID: {channel_id}")
+    logger.info(f"MAX_BOT_TOKEN configured = {bool(token)}")
+    logger.info(f"CHANNEL_ID configured = {bool(channel_id)}")
     
     init_db()
     logger.info("Database initialized")
@@ -99,12 +99,20 @@ def main():
     news_items = get_all_news(hours=24)
     logger.info(f"RSS fetched: {len(news_items)}")
     
+    legal_items = parse_legal_news()
+    logger.info(f"Legal fetched: {len(legal_items)}")
+    news_items.extend(legal_items)
+    
     court_items = parse_court_cases()
-    logger.info(f"Legal/Court fetched: {len(court_items)}")
+    logger.info(f"Court fetched: {len(court_items)}")
     news_items.extend(court_items)
     
     sale_items = parse_sales()
     logger.info(f"Sales fetched: {len(sale_items)}")
+    
+    sales_from_rss = extract_sales_from_news(news_items)
+    logger.info(f"Sales from RSS: {len(sales_from_rss)}")
+    sale_items.extend(sales_from_rss)
     news_items.extend(sale_items)
     
     logger.info(f"Normalized items: {len(news_items)}")
