@@ -142,11 +142,13 @@ def main():
     for item in pending:
         link = item.get('link', '')
         
-        has_raw_text = bool(item.get('raw_text'))
+        raw_text = item.get('raw_text', '') or item.get('description', '') or ''
+        has_raw_text = bool(raw_text)
         logger.info(f"Processing item: id={item.get('id')}, has_raw_text={has_raw_text}, title={item.get('title', '')[:30]}...")
         
         if USE_LLM and has_raw_text:
             logger.info(f"Calling LLM for item {item.get('id')}")
+            item['raw_text'] = raw_text
             enhanced = enhance_post_with_llm(item)
             if enhanced:
                 logger.info(f"LLM returned enhanced text for item {item.get('id')}")
