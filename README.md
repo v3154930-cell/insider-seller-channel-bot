@@ -114,3 +114,85 @@ python channel_bot.py
 
 - Python 3.12
 - feedparser, requests, beautifulsoup4, lxml
+
+## Техническая документация
+
+### Current Status: Production-Ready Fallback MVP
+
+Бот работает в production. Текущая версия - стабильный fallback-MVP.
+
+### Что работает
+
+- ✅ LLM (GitHub Models gpt-4o)
+- ✅ SQLite очередь с антидублями
+- ✅ Лимит 1 пост за запуск
+- ✅ Scheduler (morning/evening digest)
+- ✅ General RSS pipeline (Retail.ru, Oborot.ru, vc.ru, CNews, RBC)
+- ✅ Sales fallback classification из общего RSS
+- ✅ Legal fallback classification из общего RSS
+- ✅ GitHub Actions workflow
+
+### Primary Sources (Broken)
+
+Следующие RSS-источники **нестабильны** и не дают данных:
+- Retail.ru Акции (пустой/ошибки)
+- E-Pepper (пустой/ошибки)
+- МосГорСуд RSS (пустой/ошибки)
+- МособлСуд RSS (пустой/ошибки)
+- Право.ru (пустой/ошибки)
+
+### Fallback Sources (Active)
+
+Вместо сломанных RSS используется классификация из общего потока:
+
+**Sales classification keywords:**
+```
+акция, распродажа, скидк, бонус, cashback, промокод, купон, спецпредложение
+```
+
+**Legal classification keywords:**
+```
+суд, арбитраж, иск, взыскание, убытки, компенсация, штраф, решение суда
+```
+
+### Pipeline Flow
+
+```
+1. Parse RSS (5 sources)
+2. Classify Sales from RSS (keyword matching)
+3. Classify Legal from RSS (keyword matching)
+4. Save to SQLite with deduplication
+5. Send 1 pending post per run
+6. LLM enhancement (if USE_LLM=true)
+```
+
+### GitHub Secrets
+
+| Secret | Required | Description |
+|--------|----------|-------------|
+| MAX_BOT_TOKEN | ✅ | Bot token for MAX |
+| CHANNEL_ID | ✅ | Channel ID |
+| USE_LLM | ❌ | Set to "true" for LLM |
+| GITHUB_TOKEN | ❌ | For GitHub Models |
+
+### Technical Debt
+
+1. **Court parser** - требует HTML/API парсинг, RSS сломан
+2. **Dedicated sales feeds** - требуют замены на рабочие RSS
+3. **Quality layer** - scoring/prioritization, better classification
+
+### Logs Expected
+
+```
+RSS total: N items
+Sales dedicated feeds: N
+Sales from RSS: N
+Sales total: N
+Legal fallback feeds: N  
+Court feeds: N
+Legal/Court total: N
+Queue: N pending
+Sending N posts this run
+LLM enabled: true/false
+LLM SUCCESS / fallback used
+```
