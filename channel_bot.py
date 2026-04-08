@@ -99,21 +99,27 @@ def main():
     news_items = get_all_news(hours=24)
     logger.info(f"RSS fetched: {len(news_items)}")
     
-    legal_items = parse_legal_news()
-    logger.info(f"Legal fetched: {len(legal_items)}")
+    legal_items = parse_legal_news(news_items)
+    logger.info(f"Legal fallback feeds: {len(legal_items)}")
     news_items.extend(legal_items)
     
     court_items = parse_court_cases()
-    logger.info(f"Court fetched: {len(court_items)}")
+    logger.info(f"Court feeds: {len(court_items)}")
+    
+    legal_total = legal_items + court_items
+    logger.info(f"Legal/Court total: {len(legal_total)}")
     news_items.extend(court_items)
     
     sale_items = parse_sales()
-    logger.info(f"Sales fetched: {len(sale_items)}")
+    logger.info(f"Sales dedicated feeds: {len(sale_items)}")
     
     sales_from_rss = extract_sales_from_news(news_items)
     logger.info(f"Sales from RSS: {len(sales_from_rss)}")
-    sale_items.extend(sales_from_rss)
-    news_items.extend(sale_items)
+    
+    all_sale_items = sale_items + sales_from_rss
+    logger.info(f"Sales total: {len(all_sale_items)}")
+    
+    news_items.extend(all_sale_items)
     
     logger.info(f"Normalized items: {len(news_items)}")
     

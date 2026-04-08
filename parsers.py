@@ -38,6 +38,12 @@ MARKETPLACE_KEYWORDS = ["маркетплейс", "озон", "wildberries", "я
 
 SALE_KEYWORDS = ["акция", "распродажа", "скидк", "бонус", "cashback", "чёрная пятница", "11.11", "сезонная", "промокод", "купон", "спецпредложение", "特卖", "特價"]
 
+LEGAL_KEYWORDS = ["суд", "арбитраж", "иск", "взыскание", "убытки", "компенсация", "штраф", "решение суда", "мосгорсуд", "мосobl", "кадатр"]
+
+def is_legal_news(title, description):
+    text = f"{title} {description}".lower()
+    return any(kw in text for kw in LEGAL_KEYWORDS)
+
 def is_sale_news(title, description):
     text = f"{title} {description}".lower()
     return any(kw in text for kw in SALE_KEYWORDS)
@@ -194,14 +200,22 @@ def get_all_news(config=None, hours=24):
 def extract_sales_from_news(news_items):
     """Извлекает sales-акции из общего потока новостей"""
     sales_items = []
+    seen_links = set()
     
     for item in news_items:
+        link = item.get('link', '')
+        if not link or link in seen_links:
+            continue
+        if item.get('category') == 'sale':
+            continue
+            
         if is_sale_news(item.get('title', ''), item.get('description', '')):
             item['importance'] = 'normal'
             item['category'] = 'sale'
             sales_items.append(item)
-            logger.info(f"Sales [from RSS]: {item.get('title', '')[:50]}...")
+            seen_links.add(link)
     
+    logger.info(f"Sales from RSS: {len(sales_items)} items")
     return sales_items
 
 def parse_sales():
@@ -223,10 +237,11 @@ def parse_sales():
     logger.info(f"Sales RSS: {len(sale_news)} items from dedicated feeds")
     return sale_news
 
-def parse_legal_news():
-    """Парсит legal-новости из стабильных источников"""
+def parse_legal_news(news_items=None):
+    """Парсит legal-новости - из специализированных И из общего потока"""
     legal_news = []
     
+    # 1. Specialized legal feeds
     for feed_url, feed_name in LEGAL_NEWS_FEEDS:
         try:
             parser = RSSParser(feed_url, feed_name, "legal")
@@ -243,7 +258,15 @@ def parse_legal_news():
         except Exception as e:
             logger.error(f"Legal [{feed_name}] error: {e}")
     
-    logger.info(f"Legal news: {len(legal_news)} items from legal feeds")
+    # 2. Extract legal news from general RSS stream
+    if news_items:
+        for item in news_items:
+            if is_legal_news(item.get('title', ''), item.get('description', '')):
+                item['importance'] = determine_importance(item.get('title', ''), item.get('description', ''))
+                item['category'] = 'legal'
+                legal_news.append(item)
+    
+    logger.info(f"Legal news total: {len(legal_news)} items")
     return legal_news
 
 def parse_court_cases():
