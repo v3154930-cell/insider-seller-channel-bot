@@ -74,8 +74,6 @@ def smoke_test_llm() -> bool:
                     timeout=10
                 )
                 if response.status_code == 200:
-                    global GPT4O_MINI_MODEL
-                    GPT4O_MINI_MODEL = "gpt-4o"
                     logger.info("[LLM] Smoke test: SUCCESS with gpt-4o")
                     return True
         return False
