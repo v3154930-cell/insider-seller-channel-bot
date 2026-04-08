@@ -2,7 +2,7 @@ name: Post News to MAX Channel
 
 on:
   schedule:
-    - cron: '0 */2 * * *'
+    - cron: '0 * * * *'
   workflow_dispatch:
     inputs:
       hours:
@@ -35,6 +35,8 @@ jobs:
         env:
           MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          USE_LLM: ${{ secrets.USE_LLM }}
         run: python channel_bot.py
       
       - name: Upload posted links

@@ -16,6 +16,37 @@ RSS_FEEDS = [
     ("https://rssexport.rbc.ru/rbcnews/news/30/full.rss", "RBC")
 ]
 
+COURT_RSS_FEEDS = [
+    ("https://mos-gorsud.ru/rss/index", "МосГорСуд"),
+    ("https://www.mosobl.sudrf.ru/modules.php?name=press_dep&func=page&page=2&rss=1", "МособлСуд"),
+]
+
+SALE_RSS_FEEDS = [
+    ("https://www.retail.ru/rss/tag/akcii/", "Retail.ru Акции"),
+    ("https://e-pepper.ru/news/rss.xml", "E-Pepper"),
+]
+
+SALE_KEYWORDS = ["акция", "распродажа", "скидка", "бонус", "cashback", "чёрная пятница", "11.11", "сезонная скидка"]
+
+def is_sale_news(title, description):
+    """Определяет, является ли новость акцией маркетплейса"""
+    text = f"{title} {description}".lower()
+    return any(kw in text for kw in SALE_KEYWORDS)
+
+def determine_importance(title, description):
+    """Определяет важность новости"""
+    text = f"{title} {description}".lower()
+    
+    critical_keywords = ["взыскание", "убытки", "компенсация", "миллион", "штраф", "блокировка", "крупный"]
+    if any(kw in text for kw in critical_keywords):
+        return "critical"
+    
+    important_keywords = ["подмена товара", "возврат", "нарушение прав", "неустойка", "повышение тарифа", "изменение"]
+    if any(kw in text for kw in important_keywords):
+        return "high"
+    
+    return "normal"
+
 def fetch_rss_feed(url):
     try:
         feed = feedparser.parse(url)
@@ -160,3 +191,47 @@ def get_all_news(config, hours=24):
         print(f"Fetched {len(news)} items from {feed_name}")
     
     return all_news
+
+def parse_court_cases():
+    """Парсит судебные дела по маркетплейсам"""
+    court_news = []
+    keywords = ["маркетплейс", "озон", "wildberries", "яндекс маркет", "ozon", "wb"]
+    
+    for feed_url, feed_name in COURT_RSS_FEEDS:
+        try:
+            parser = RSSParser(feed_url, feed_name, "court")
+            news = parser.fetch(hours=24)
+            
+            for item in news:
+                title = item.get('title', '').lower()
+                desc = item.get('description', '').lower()
+                
+                if any(kw in title or kw in desc for kw in keywords):
+                    if is_court_case(item.get('title', ''), item.get('description', '')):
+                        importance = determine_importance(item.get('title', ''), item.get('description', ''))
+                        item['importance'] = importance
+                        item['category'] = 'court'
+                        court_news.append(item)
+        except Exception as e:
+            print(f"Error parsing court feed {feed_name}: {e}")
+    
+    return court_news
+
+def parse_sales():
+    """Парсит акции маркетплейсов"""
+    sale_news = []
+    
+    for feed_url, feed_name in SALE_RSS_FEEDS:
+        try:
+            parser = RSSParser(feed_url, feed_name, "sale")
+            news = parser.fetch(hours=24)
+            
+            for item in news:
+                if is_sale_news(item.get('title', ''), item.get('description', '')):
+                    item['importance'] = 'normal'
+                    item['category'] = 'sale'
+                    sale_news.append(item)
+        except Exception as e:
+            print(f"Error parsing sale feed {feed_name}: {e}")
+    
+    return sale_news
