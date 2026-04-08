@@ -50,12 +50,13 @@ def add_to_queue_batch(items: List[Dict]) -> int:
     count = 0
     for item in items:
         try:
+            raw_text = item.get('description', '') or item.get('title', '')
             cursor.execute('''
                 INSERT OR IGNORE INTO news (title, raw_text, link, source, importance, category)
                 VALUES (?, ?, ?, ?, ?, ?)
             ''', (
                 item.get('title', ''),
-                item.get('description', ''),
+                raw_text,
                 item.get('link', ''),
                 item.get('source', ''),
                 item.get('importance', 'normal'),
