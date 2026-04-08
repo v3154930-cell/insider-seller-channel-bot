@@ -23,6 +23,10 @@ CHANNEL_ID = os.getenv("CHANNEL_ID")
 MAX_POSTS_PER_RUN = 1
 
 logger.info(f"USE_LLM = {USE_LLM}")
+logger.info(f"GH_TOKEN configured = {bool(os.getenv('GH_TOKEN'))}")
+
+from llm import GITHUB_TOKEN
+logger.info(f"LLM will use token: {bool(GITHUB_TOKEN)}")
 
 def send_message(token, chat_id, text):
     """Отправляет сообщение в канал через MAX API"""
