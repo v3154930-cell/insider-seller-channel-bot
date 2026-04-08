@@ -13,45 +13,37 @@ on:
 
 permissions:
   contents: read
-  actions: read
   models: read
 
 jobs:
   post-news:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
           cache: 'pip'
-      
+
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-      
-      - name: Test GitHub Models API access
-        env:
-          USE_LLM: ${{ secrets.USE_LLM }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python -c "import os; from llm import USE_LLM, GITHUB_TOKEN, smoke_test_llm; print(f'USE_LLM env: {os.getenv(\"USE_LLM\", \"(not set)\")}'); print(f'USE_LLM parsed: {USE_LLM}'); print(f'Token: {bool(GITHUB_TOKEN)}'); 
-          if USE_LLM and GITHUB_TOKEN: result = smoke_test_llm(); print(f'Smoke test: {result}')"
-       
+
       - name: Run bot
         env:
           MAX_BOT_TOKEN: ${{ secrets.MAX_BOT_TOKEN }}
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USE_LLM: ${{ secrets.USE_LLM }}
         run: python channel_bot.py
-      
+
       - name: Upload posted links
         uses: actions/upload-artifact@v4
         if: always()
