@@ -420,6 +420,12 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
                     logger.info("Batch selection: parse repaired")
                 else:
                     logger.info("Batch selection: ok")
+
+                selected_items = [items[i] for i in index_list]
+                logger.info(f"Batch selection: selected {len(selected_items)} items")
+                for sel in selected_items:
+                    logger.info(f"  Selected: {sel.get('title', '')[:50]}...")
+                return selected_items
         else:
             logger.warning(f"Batch selection failed: HTTP {response.status_code}")
             
