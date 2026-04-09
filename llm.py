@@ -388,14 +388,15 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
 
                 if isinstance(selected_indices, list):
                     indices_source = "repaired"
+                    logger.info(f"Batch selection: indices received as list: {selected_indices}")
                     for idx in selected_indices:
                         try:
                             if isinstance(idx, int):
                                 idx_zero_based = idx - 1
                                 if 0 <= idx_zero_based < len(items):
                                     index_list.append(idx_zero_based)
-                        except (ValueError, TypeError):
-                            pass
+                        except (ValueError, TypeError) as e:
+                            logger.warning(f"Batch selection: idx parse error {idx}: {e}")
                 elif isinstance(selected_indices, str) and selected_indices:
                     indices_source = "original"
                     for part in selected_indices.split(','):
@@ -410,8 +411,10 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
                     return None
 
                 if not index_list:
-                    logger.warning("Batch selection: no valid indices, skipping run")
+                    logger.warning(f"Batch selection: no valid indices, items={len(items)}, index_list={index_list}")
                     return None
+
+                logger.info(f"Batch selection: indices parsed, count={len(index_list)}, indices={index_list}")
 
                 if indices_source == "repaired":
                     logger.info("Batch selection: parse repaired")
