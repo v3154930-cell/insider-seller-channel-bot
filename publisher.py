@@ -21,7 +21,7 @@ logger.info(f"DEBUG CHECKPOINT: GITHUB_ACTIONS={os.getenv('GITHUB_ACTIONS')}")
 
 TOKEN = os.getenv("MAX_BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
-MAX_POSTS_PER_RUN = 1
+MAX_POSTS_PER_RUN = 2
 
 logger.info(f"USE_LLM = {USE_LLM}")
 logger.info(f"GITHUB_TOKEN configured = {bool(GITHUB_TOKEN)}")
