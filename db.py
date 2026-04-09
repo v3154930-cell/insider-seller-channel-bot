@@ -56,6 +56,13 @@ def init_db():
     conn = _get_connection()
     logger.info("Database backend: libsql")
     
+    try:
+        logger.info("DEBUG DB: attempting initial sync")
+        conn.sync()
+        logger.info("DEBUG DB: initial sync completed")
+    except Exception as e:
+        logger.warning(f"DEBUG DB: initial sync failed: {e}")
+    
     conn.execute('''
         CREATE TABLE IF NOT EXISTS news (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -103,6 +110,8 @@ def add_to_queue_batch(items: List[Dict]) -> int:
     if not items:
         return 0
     
+    logger.info(f"DEBUG DB: add_to_queue_batch called with {len(items)} items")
+    title_short = ""
     count = 0
     for item in items:
         try:
@@ -110,6 +119,7 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             score = item.get('score', 0)
             priority_bucket = item.get('priority_bucket', 'low')
             reason_tags = item.get('reason_tags', '')
+            title_short = item.get('title', '')[:50]
             
             _execute(
                 '''INSERT OR IGNORE INTO news 
@@ -128,8 +138,13 @@ def add_to_queue_batch(items: List[Dict]) -> int:
                 )
             )
             count += 1
-        except Exception:
+            if count <= 3:
+                logger.info(f"DEBUG DB: inserted item {count}: {title_short}")
+        except Exception as e:
+            logger.warning(f"DEBUG DB: insert failed for {title_short}: {e}")
             continue
+    
+    logger.info(f"DEBUG DB: add_to_queue_batch completed, {count} items inserted")
     return count
 
 def get_pending_news(count: int = 2) -> List[Dict]:
@@ -169,8 +184,14 @@ def get_pending_news(count: int = 2) -> List[Dict]:
     return news_list
 
 def get_all_pending_count() -> int:
-    row = _fetch_one('SELECT COUNT(*) FROM news WHERE is_published = 0')
-    return row[0] if row else 0
+    logger.info("DEBUG DB: get_all_pending_count called")
+    try:
+        row = _fetch_one('SELECT COUNT(*) FROM news WHERE is_published = 0')
+        logger.info(f"DEBUG DB: get_all_pending_count result: {row[0] if row else 0}")
+        return row[0] if row else 0
+    except Exception as e:
+        logger.exception(f"DEBUG DB ERROR: get_all_pending_count failed: {e}")
+        raise
 
 def mark_published(news_id: int):
     _execute('UPDATE news SET is_published = 1 WHERE id = ?', (news_id,))
