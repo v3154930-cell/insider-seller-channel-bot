@@ -214,6 +214,8 @@ def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
     else:
         api_url = GITHUB_MODELS_API_URL + "/chat/completions"
     
+    logger.info(f"LLM request: provider={LLM_PROVIDER}, model={LLM_MODEL}, url={api_url}")
+    
     payload = {
         "model": LLM_MODEL,
         "messages": [
@@ -272,7 +274,7 @@ def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
         elif response.status_code == 401 or response.status_code == 403:
             logger.warning(f"LLM request failed: {response.status_code} - auth error")
         else:
-            logger.warning(f"LLM request failed: HTTP {response.status_code}")
+            logger.warning(f"LLM request failed: HTTP {response.status_code} - {response.text[:200] if response.text else 'no body'}")
             
     except json.JSONDecodeError as e:
         logger.warning(f"Seller filter JSON parse error: {e}")
