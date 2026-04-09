@@ -390,8 +390,10 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
                     indices_source = "repaired"
                     for idx in selected_indices:
                         try:
-                            if 0 <= idx < len(items):
-                                index_list.append(idx)
+                            if isinstance(idx, int):
+                                idx_zero_based = idx - 1
+                                if 0 <= idx_zero_based < len(items):
+                                    index_list.append(idx_zero_based)
                         except (ValueError, TypeError):
                             pass
                 elif isinstance(selected_indices, str) and selected_indices:
