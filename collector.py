@@ -61,16 +61,14 @@ def run_collector():
     scored_news = score_items(filtered_news)
     logger.info(f"After scoring: {len(scored_news)} scored news")
     
-    total_before = get_all_pending_count()
+    dup_count_before = get_duplicate_count()
+    if dup_count_before > 0:
+        logger.info(f"Found {dup_count_before} duplicate groups in pending queue, cleaning before insert...")
+        removed = clean_duplicates()
+        logger.info(f"Removed {removed} duplicate rows before new insert")
+    
     added = add_to_queue_batch(scored_news)
     duplicates_skipped = len(scored_news) - added if scored_news else 0
-    
-    dup_count = get_duplicate_count()
-    if dup_count > 0:
-        logger.info(f"Found {dup_count} duplicate groups in pending queue, cleaning...")
-        removed = clean_duplicates()
-        logger.info(f"Removed {removed} duplicate rows")
-        added -= removed
     
     logger.info(f"Saved to DB: {added} new items")
     logger.info(f"Duplicates skipped: {duplicates_skipped}")
