@@ -39,16 +39,13 @@ def _create_connection():
 def _execute(query: str, params: tuple = ()):
     conn = _create_connection()
     try:
-        logger.info("DEBUG DB WRITE: before execute")
         result = conn.execute(query, params)
-        logger.info("DEBUG DB WRITE: before commit")
         conn.commit()
-        logger.info("DEBUG DB WRITE: commit done")
         if USE_TURSO_DIRECT:
             conn.close()
         return result
     except Exception as e:
-        logger.warning(f"DEBUG DB: execute failed: {e}")
+        logger.warning(f"DB execute failed: {e}")
         if USE_TURSO_DIRECT:
             try:
                 conn.close()
@@ -79,21 +76,14 @@ def _fetch_one(query: str, params: tuple = ()):
     return result
 
 def init_db():
-    logger.info("DEBUG CHECKPOINT: entering init_db")
-    logger.info(f"DEBUG CHECKPOINT: USE_TURSO={USE_TURSO}")
-    logger.info(f"DEBUG CHECKPOINT: USE_TURSO_DIRECT={USE_TURSO_DIRECT}")
-    logger.info(f"DEBUG CHECKPOINT: IS_GITHUB_ACTIONS={IS_GITHUB_ACTIONS}")
-    
     conn = _create_connection()
     logger.info("Database backend: libsql")
     
     if USE_TURSO_DIRECT:
         try:
-            logger.info("DEBUG DB: attempting initial sync")
             conn.sync()
-            logger.info("DEBUG DB: initial sync completed")
         except Exception as e:
-            logger.warning(f"DEBUG DB: initial sync failed: {e}")
+            logger.warning(f"DB initial sync failed: {e}")
     
     conn.execute('''
         CREATE TABLE IF NOT EXISTS news (
@@ -145,9 +135,7 @@ def init_db():
         )
     ''')
     conn.execute('INSERT OR IGNORE INTO digest_state (id) VALUES (1)')
-    logger.info("DEBUG DB WRITE: init_db before commit")
     conn.commit()
-    logger.info("DEBUG DB WRITE: init_db commit done")
     conn.close()
     logger.info("Database tables initialized")
 
@@ -212,24 +200,14 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             logger.warning(f"DEBUG DB: insert failed for {title_short}: {e}")
             continue
     
-    logger.info(f"DEBUG DB: add_to_queue_batch completed, {count} items inserted")
+    logger.info(f"add_to_queue_batch completed, {count} items inserted")
     
     if count > 0:
         try:
             row = _fetch_one('SELECT COUNT(*) FROM news WHERE is_published = 0')
-            logger.info(f"DEBUG DB COUNT: pending after write = {row[0] if row else 0}")
+            logger.info(f"Pending count after write: {row[0] if row else 0}")
         except Exception as e:
-            logger.warning(f"DEBUG DB COUNT: pending after write failed: {e}")
-    
-    if count > 0 and last_link:
-        try:
-            row = _fetch_one('SELECT id, title, is_published, link FROM news WHERE link = ?', (last_link,))
-            if row:
-                logger.info(f"DEBUG DB: verify insert by link: id={row[0]}, title={row[1][:30] if row[1] else 'None'}, is_published={row[2]}, link={row[3]}")
-            else:
-                logger.warning(f"DEBUG DB: row with link {last_link} not found!")
-        except Exception as e:
-            logger.warning(f"DEBUG DB: verify insert failed: {e}")
+            logger.warning(f"Pending count check failed: {e}")
     
     return count
 
@@ -447,14 +425,14 @@ def clean_duplicates() -> int:
             conn.execute('UPDATE news SET is_published = 1 WHERE id = ?', (id_list[0],))
             conn.execute('DELETE FROM news WHERE id IN (SELECT id FROM news WHERE content_hash = ? AND id != ?)', (content_hash, id_list[0]))
             
-            logger.info(f"DEBUG CLEAN: kept id={id_list[0]}, removed {len(id_list)-1} duplicates for hash={content_hash[:8]}")
+            logger.info(f"Cleaned duplicates: kept id={id_list[0]}, removed {len(id_list)-1} for hash={content_hash[:8]}")
             total_removed += len(id_list) - 1
         
         conn.commit()
         conn.close()
         return total_removed
     except Exception as e:
-        logger.warning(f"DEBUG CLEAN: clean_duplicates failed: {e}")
+        logger.warning(f"clean_duplicates failed: {e}")
         try:
             conn.close()
         except:

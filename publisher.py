@@ -16,9 +16,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-logger.info(f"DEBUG CHECKPOINT: publisher started from updated code")
-logger.info(f"DEBUG CHECKPOINT: GITHUB_ACTIONS={os.getenv('GITHUB_ACTIONS')}")
-
 TOKEN = os.getenv("MAX_BOT_TOKEN")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
 MAX_POSTS_PER_RUN = 2
@@ -228,7 +225,6 @@ def run_publisher():
         if success:
             save_link(link)
             mark_published(item['id'])
-            logger.info(f"DEBUG CHECKPOINT: mark_published done for id={item['id']}")
             new_posts += 1
             logger.info(f"✓ Posted: id={item['id']}, title={item['title'][:50]}...")
             logger.info(f"  -> Item marked as sent")
