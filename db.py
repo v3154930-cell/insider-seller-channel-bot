@@ -14,6 +14,7 @@ TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
 IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 USE_TURSO = bool(TURSO_DATABASE_URL and TURSO_AUTH_TOKEN)
+USE_TURSO_EMBEDDED = USE_TURSO and not IS_GITHUB_ACTIONS
 
 if IS_GITHUB_ACTIONS and not USE_TURSO:
     logger.error("FATAL: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN not set in GitHub Actions")
@@ -24,8 +25,8 @@ _connection = None
 def _get_connection():
     global _connection
     if _connection is None:
-        sync_url = TURSO_DATABASE_URL if USE_TURSO else None
-        auth_token = TURSO_AUTH_TOKEN if USE_TURSO else None
+        sync_url = TURSO_DATABASE_URL if USE_TURSO_EMBEDDED else None
+        auth_token = TURSO_AUTH_TOKEN if USE_TURSO_EMBEDDED else None
         _connection = libsql.connect(
             "news_queue.db",
             sync_url=sync_url,
@@ -37,7 +38,7 @@ def _get_connection():
 def _execute(query: str, params: tuple = ()):
     conn = _get_connection()
     conn.execute(query, params)
-    if USE_TURSO:
+    if USE_TURSO_EMBEDDED:
         try:
             conn.sync()
         except Exception as e:
@@ -56,17 +57,19 @@ def _fetch_one(query: str, params: tuple = ()):
 def init_db():
     logger.info("DEBUG CHECKPOINT: entering init_db")
     logger.info(f"DEBUG CHECKPOINT: USE_TURSO={USE_TURSO}")
+    logger.info(f"DEBUG CHECKPOINT: USE_TURSO_EMBEDDED={USE_TURSO_EMBEDDED}")
     logger.info(f"DEBUG CHECKPOINT: IS_GITHUB_ACTIONS={IS_GITHUB_ACTIONS}")
     
     conn = _get_connection()
     logger.info("Database backend: libsql")
     
-    try:
-        logger.info("DEBUG DB: attempting initial sync")
-        conn.sync()
-        logger.info("DEBUG DB: initial sync completed")
-    except Exception as e:
-        logger.warning(f"DEBUG DB: initial sync failed: {e}")
+    if USE_TURSO_EMBEDDED:
+        try:
+            logger.info("DEBUG DB: attempting initial sync")
+            conn.sync()
+            logger.info("DEBUG DB: initial sync completed")
+        except Exception as e:
+            logger.warning(f"DEBUG DB: initial sync failed: {e}")
     
     conn.execute('''
         CREATE TABLE IF NOT EXISTS news (
