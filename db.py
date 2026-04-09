@@ -37,6 +37,11 @@ def _get_connection():
 def _execute(query: str, params: tuple = ()):
     conn = _get_connection()
     conn.execute(query, params)
+    if USE_TURSO:
+        try:
+            conn.sync()
+        except Exception as e:
+            logger.warning(f"DEBUG DB: sync after execute failed: {e}")
 
 def _fetch_all(query: str, params: tuple = ()):
     conn = _get_connection()
