@@ -37,13 +37,19 @@ def _create_connection():
 
 def _execute(query: str, params: tuple = ()):
     conn = _create_connection()
-    conn.execute(query, params)
-    if USE_TURSO_DIRECT:
-        try:
+    try:
+        result = conn.execute(query, params)
+        if USE_TURSO_DIRECT:
             conn.close()
-        except:
-            pass
-    return None
+        return result
+    except Exception as e:
+        logger.warning(f"DEBUG DB: execute failed: {e}")
+        if USE_TURSO_DIRECT:
+            try:
+                conn.close()
+            except:
+                pass
+        raise
 
 def _fetch_all(query: str, params: tuple = ()):
     conn = _create_connection()
