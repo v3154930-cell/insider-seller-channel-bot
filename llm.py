@@ -380,27 +380,41 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
                 parsed = json.loads(content)
                 selected_indices = parsed.get('selected_indices', '')
                 reason = parsed.get('reason', '')
-                
+
                 logger.info(f"Batch selection: reason={reason}")
-                
+
                 index_list = []
-                for part in selected_indices.split(','):
-                    try:
-                        idx = int(part.strip()) - 1
-                        if 0 <= idx < len(items):
-                            index_list.append(idx)
-                    except:
-                        pass
-                
-                if index_list:
-                    selected_items = [items[i] for i in index_list]
-                    logger.info(f"Batch selection: selected {len(selected_items)} items")
-                    for sel in selected_items:
-                        logger.info(f"  Selected: {sel.get('title', '')[:50]}...")
-                    return selected_items
+                indices_source = ""
+
+                if isinstance(selected_indices, list):
+                    indices_source = "repaired"
+                    for idx in selected_indices:
+                        try:
+                            if 0 <= idx < len(items):
+                                index_list.append(idx)
+                        except (ValueError, TypeError):
+                            pass
+                elif isinstance(selected_indices, str) and selected_indices:
+                    indices_source = "original"
+                    for part in selected_indices.split(','):
+                        try:
+                            idx = int(part.strip()) - 1
+                            if 0 <= idx < len(items):
+                                index_list.append(idx)
+                        except (ValueError, TypeError):
+                            pass
                 else:
-                    logger.warning("Batch selection: no valid indices, using default")
-                    return items[:max_select] if items else None
+                    logger.warning("Batch selection: invalid response, skipping run")
+                    return None
+
+                if not index_list:
+                    logger.warning("Batch selection: no valid indices, skipping run")
+                    return None
+
+                if indices_source == "repaired":
+                    logger.info("Batch selection: parse repaired")
+                else:
+                    logger.info("Batch selection: ok")
         else:
             logger.warning(f"Batch selection failed: HTTP {response.status_code}")
             
@@ -411,5 +425,5 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
     except Exception as e:
         logger.warning(f"Batch selection failed: {e}")
     
-    logger.info("Batch selection: failed, using default selection")
-    return items[:max_select] if items else None
+    logger.warning("Batch selection: failed, skipping run")
+    return None
