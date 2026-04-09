@@ -17,10 +17,10 @@ IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 USE_TURSO = bool(TURSO_DATABASE_URL and TURSO_AUTH_TOKEN)
 USE_TURSO_DIRECT = USE_TURSO and IS_GITHUB_ACTIONS
 
-DROP_TTL_HOURS = int(os.getenv("DROP_TTL_HOURS", "48"))
-DIGEST_TTL_DAYS = int(os.getenv("DIGEST_TTL_DAYS", "5"))
-SENT_TTL_DAYS = int(os.getenv("SENT_TTL_DAYS", "30"))
-PENDING_TTL_DAYS = int(os.getenv("PENDING_TTL_DAYS", "7"))
+DROP_TTL_HOURS = int(os.getenv("DROP_TTL_HOURS") or "48")
+DIGEST_TTL_DAYS = int(os.getenv("DIGEST_TTL_DAYS") or "5")
+SENT_TTL_DAYS = int(os.getenv("SENT_TTL_DAYS") or "30")
+PENDING_TTL_DAYS = int(os.getenv("PENDING_TTL_DAYS") or "7")
 
 if IS_GITHUB_ACTIONS and not USE_TURSO:
     logger.error("FATAL: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN not set in GitHub Actions")
