@@ -41,7 +41,8 @@ jobs:
           CHANNEL_ID: ${{ secrets.CHANNEL_ID }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          USE_LLM: ${{ secrets.USE_LLM }}
+          USE_LLM: ${{ vars.USE_LLM }}
+          SELLER_FILTER_MODE: ${{ vars.SELLER_FILTER_MODE }}
           SALUTE_AUTH_KEY: ${{ secrets.SALUTE_AUTH_KEY }}
           ENABLE_AUDIO_DIGEST: ${{ vars.ENABLE_AUDIO_DIGEST }}
           ENABLE_MORNING_DIGEST: ${{ vars.ENABLE_MORNING_DIGEST }}

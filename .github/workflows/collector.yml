@@ -32,4 +32,7 @@ jobs:
         env:
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          USE_LLM: ${{ vars.USE_LLM }}
+          SELLER_FILTER_MODE: ${{ vars.SELLER_FILTER_MODE }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python collector.py

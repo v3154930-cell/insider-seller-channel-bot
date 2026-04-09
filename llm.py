@@ -1,4 +1,5 @@
 import os
+import json
 import logging
 from typing import Dict, Optional, List
 import requests
@@ -7,12 +8,14 @@ logger = logging.getLogger(__name__)
 
 USE_LLM = os.getenv("USE_LLM", "false").lower() == "true"
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
+SELLER_FILTER_MODE = os.getenv("SELLER_FILTER_MODE", "off").lower()
 
 LLM_API_URL = "https://models.github.ai/inference"
 GPT4O_MINI_MODEL = "gpt-4o"
 
 logger.info("=== LLM Module Initialization ===")
-logger.info(f"[LLM] USE_LLM enabled: {USE_LLM}")
+logger.info(f"[LLM] USE_LLM: {USE_LLM}")
+logger.info(f"[LLM] SELLER_FILTER_MODE: {SELLER_FILTER_MODE}")
 logger.info(f"[LLM] Token source: {'GITHUB_TOKEN' if GITHUB_TOKEN else 'GH_TOKEN' if os.getenv('GH_TOKEN') else 'NONE'}")
 logger.info(f"[LLM] GITHUB_TOKEN configured: {bool(GITHUB_TOKEN)}")
 logger.info(f"[LLM] API endpoint: {LLM_API_URL}")

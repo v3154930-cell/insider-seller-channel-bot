@@ -67,19 +67,22 @@ def run_collector():
     scored_news = score_items(filtered_news)
     logger.info(f"After scoring: {len(scored_news)} scored news")
     
+    from llm import SELLER_FILTER_MODE
+    logger.info(f"Seller filter: mode={SELLER_FILTER_MODE}")
+    
     seller_decisions = {}
     publish_count = 0
     digest_count = 0
     drop_count = 0
     
-    if LLM_AVAILABLE:
+    if SELLER_FILTER_MODE != "off" and LLM_AVAILABLE:
         logger.info("Running seller relevance evaluation with LLM...")
         for item in scored_news:
             link = item.get('link', '')
             result = evaluate_seller_relevance(item)
             if result:
                 seller_decisions[link] = result
-                decision = result.get('decision', 'drop')
+                decision = result.get('decision', 'digest')
                 if decision == 'publish':
                     publish_count += 1
                 elif decision == 'digest':
@@ -88,20 +91,28 @@ def run_collector():
                     drop_count += 1
                 logger.info(f"Seller filter: decision={decision}, relevance={result.get('seller_relevance_score', 0)}, actionability={result.get('actionability_score', 0)}")
             else:
-                seller_decisions[link] = {'decision': 'drop', 'seller_relevance_score': 0, 'actionability_score': 0}
-                drop_count += 1
-                logger.info(f"Seller filter fallback: invalid response -> drop")
+                seller_decisions[link] = {'decision': 'digest', 'seller_relevance_score': 0, 'actionability_score': 0}
+                if SELLER_FILTER_MODE == "enforce":
+                    digest_count += 1
+                    logger.info(f"Seller filter fallback: unavailable -> digest")
+                else:
+                    drop_count += 1
+                    logger.info(f"Seller filter observe: unavailable")
         
-        logger.info(f"Seller relevance results: publish={publish_count}, digest={digest_count}, drop={drop_count}")
+        logger.info(f"Seller filter results: publish={publish_count}, digest={digest_count}, drop={drop_count}")
+    elif SELLER_FILTER_MODE == "off":
+        logger.info("Seller filter: off")
     
     scored_news_filtered = []
-    if LLM_AVAILABLE:
+    if SELLER_FILTER_MODE == "enforce":
         for item in scored_news:
             link = item.get('link', '')
-            decision = seller_decisions.get(link, {}).get('decision', 'drop')
+            decision = seller_decisions.get(link, {}).get('decision', 'digest')
             if decision == 'publish':
                 scored_news_filtered.append(item)
-        logger.info(f"After seller filter: {len(scored_news_filtered)} items for queue (publish only)")
+        logger.info(f"After seller filter (enforce): {len(scored_news_filtered)} items for queue")
+    elif SELLER_FILTER_MODE == "observe":
+        scored_news_filtered = scored_news
     else:
         scored_news_filtered = scored_news
     
