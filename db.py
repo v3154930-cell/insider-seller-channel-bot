@@ -37,7 +37,8 @@ def _get_turso_client():
             logger.info("Turso client initialized")
         except Exception as e:
             import traceback
-            logger.warning(f"Failed to init Turso client: {e}")
+            FALLBACK_REASON = f"{type(e).__name__}: {str(e)}"
+            logger.exception(f"FALLBACK REASON: {FALLBACK_REASON}")
             logger.warning(f"Traceback: {traceback.format_exc()}")
             return None
     return _connection
@@ -96,6 +97,13 @@ def init_db():
     logger.info("DEBUG CHECKPOINT: entering init_db")
     logger.info(f"DEBUG CHECKPOINT: USE_TURSO={USE_TURSO}")
     logger.info(f"DEBUG CHECKPOINT: IS_GITHUB_ACTIONS={IS_GITHUB_ACTIONS}")
+    logger.info(f"DEBUG CHECKPOINT: TURSO_READY={TURSO_READY}")
+    
+    if IS_GITHUB_ACTIONS and USE_TURSO and not TURSO_READY:
+        client = _get_turso_client()
+        if client is None:
+            logger.error("FATAL: Turso init failed in GitHub Actions")
+            sys.exit(1)
     
     if USE_TURSO and TURSO_READY:
         client = _get_turso_client()
