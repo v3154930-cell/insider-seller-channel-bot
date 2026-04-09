@@ -24,6 +24,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Trigger info
+        run: |
+          echo "Publisher workflow triggered"
+          echo "Trigger type: ${{ github.event_name }}"
+          echo "Timestamp: $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -34,6 +40,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
+
+      - name: Publisher started
+        run: echo "Publisher started at $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
       - name: Run publisher
         env:
@@ -61,6 +70,9 @@ jobs:
         run: |
           echo "FORCE_AUDIO_DIGEST=${{ github.inputs.force_audio_digest }}" >> $GITHUB_ENV
           python publisher.py
+
+      - name: Publisher finished
+        run: echo "Publisher finished at $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
 
       - name: Upload posted links
         uses: actions/upload-artifact@v4

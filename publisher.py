@@ -6,7 +6,7 @@ from datetime import datetime
 from config import get_sent_links, save_link
 from formatters import format_news
 from db import init_db, get_pending_news, mark_published, get_all_pending_count, set_digest_sent, is_digest_sent_today
-from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN
+from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN, select_best_items_for_publishing
 from scheduler import should_send_morning_digest, should_send_evening_digest, should_send_audio_digest, get_morning_summary, get_evening_digest, get_audio_digest_script, now_moscow, FORCE_AUDIO_DIGEST, SALUTESPEECH_VOICE
 from tts import generate_audio, is_available as tts_available
 
@@ -187,21 +187,31 @@ def run_publisher():
     
     pending_count = get_all_pending_count()
     logger.info(f"Queue size: {pending_count} pending items")
-    logger.info("Parsing skipped: yes")
     
-    pending = get_pending_news(MAX_POSTS_PER_RUN)
-    if pending:
-        logger.info(f"Selected pending item: id={pending[0]['id']}, title={pending[0]['title'][:50]}...")
-    else:
-        logger.info("Selected pending item: none")
+    candidate_count = min(10, pending_count)
+    pending = get_pending_news(candidate_count)
     
     if not pending:
         logger.info("No pending posts to send")
         return
     
+    logger.info(f"Loaded {len(pending)} candidate items")
+    for i, item in enumerate(pending):
+        logger.info(f"  Candidate {i+1}: id={item['id']}, title={item['title'][:50]}...")
+    
+    selected = select_best_items_for_publishing(pending, MAX_POSTS_PER_RUN)
+    
+    if not selected:
+        logger.warning("Selection LLM failed, skipping this run")
+        return
+    
+    logger.info(f"Batch selection: {len(selected)} items chosen for posting")
+    for i, item in enumerate(selected):
+        logger.info(f"  Selected {i+1}: id={item['id']}, title={item['title'][:50]}...")
+    
     new_posts = 0
     
-    for item in pending:
+    for item in selected:
         link = item.get('link', '')
         
         raw_text = item.get('raw_text', '')

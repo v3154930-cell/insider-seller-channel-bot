@@ -286,3 +286,130 @@ def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
         logger.warning(f"LLM request failed: unexpected - {e}")
     
     return None
+
+def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> Optional[List[Dict]]:
+    """Selects best 1-2 items for publishing from candidate list using LLM batch evaluation."""
+    if not USE_LLM:
+        logger.info("Batch selection: off (USE_LLM=false), returning items as-is")
+        return items[:max_select] if items else None
+    
+    if not ACTUAL_TOKEN:
+        logger.warning("Batch selection: no token, returning items as-is")
+        return items[:max_select] if items else None
+    
+    if not items:
+        logger.info("Batch selection: no items to select from")
+        return None
+    
+    items_list = []
+    for i, item in enumerate(items):
+        items_list.append(f"""
+{i+1}. Заголовок: {item.get('title', '')[:100]}
+   Источник: {item.get('source', 'Новость')}
+   Текст: {(item.get('raw_text') or item.get('description') or '')[:300]}
+   Ссылка: {item.get('link', '')}
+""")
+    
+    items_text = "\n".join(items_list)
+    
+    batch_system_prompt = """Ты — редактор Telegram-канала для селлеров маркетплейсов.
+Из списка новостей выбери ТОЛЬКО те, которые будут наиболее полезны для селлеров.
+Считай только score relevance для селлеров, не importance от источника.
+Выбери 1-2 самые важные новости для продавцов маркетплейсов (комиссии, логистика, правила, налоги, реклама, поставки, спрос и т.д.).
+Ответь СТРОГО в формате JSON без markdown."""
+
+    batch_user_prompt = f"""Из этого списка выбери {max_select} лучших новостей для канала селлеров:
+
+{items_text}
+
+Ответь СТРОГО в формате JSON:
+{{
+  "selected_indices": [номера через запятую, например "1,3"],
+  "reason": "краткое объяснение выбора"
+}}
+Выбери {max_select} новостей с наибольшей практической пользой для селлеров."""
+
+    headers = {
+        "Authorization": f"Bearer {ACTUAL_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json"
+    }
+    
+    if LLM_PROVIDER == "openai" and OPENAI_API_KEY:
+        api_url = OPENAI_API_URL + "/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+    else:
+        api_url = GITHUB_MODELS_API_URL + "/chat/completions"
+    
+    logger.info(f"Batch selection: evaluating {len(items)} items")
+    
+    payload = {
+        "model": LLM_MODEL,
+        "messages": [
+            {"role": "system", "content": batch_system_prompt},
+            {"role": "user", "content": batch_user_prompt}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 300
+    }
+    
+    try:
+        response = requests.post(
+            api_url,
+            headers=headers,
+            json=payload,
+            timeout=45
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+            if content:
+                content = content.strip()
+                if content.startswith('```json'):
+                    content = content[7:]
+                if content.startswith('```'):
+                    content = content[3:]
+                if content.endswith('```'):
+                    content = content[:-3]
+                content = content.strip()
+                
+                parsed = json.loads(content)
+                selected_indices = parsed.get('selected_indices', '')
+                reason = parsed.get('reason', '')
+                
+                logger.info(f"Batch selection: reason={reason}")
+                
+                index_list = []
+                for part in selected_indices.split(','):
+                    try:
+                        idx = int(part.strip()) - 1
+                        if 0 <= idx < len(items):
+                            index_list.append(idx)
+                    except:
+                        pass
+                
+                if index_list:
+                    selected_items = [items[i] for i in index_list]
+                    logger.info(f"Batch selection: selected {len(selected_items)} items")
+                    for sel in selected_items:
+                        logger.info(f"  Selected: {sel.get('title', '')[:50]}...")
+                    return selected_items
+                else:
+                    logger.warning("Batch selection: no valid indices, using default")
+                    return items[:max_select] if items else None
+        else:
+            logger.warning(f"Batch selection failed: HTTP {response.status_code}")
+            
+    except json.JSONDecodeError as e:
+        logger.warning(f"Batch selection JSON parse error: {e}")
+    except requests.exceptions.Timeout:
+        logger.warning("Batch selection: timeout")
+    except Exception as e:
+        logger.warning(f"Batch selection failed: {e}")
+    
+    logger.info("Batch selection: failed, using default selection")
+    return items[:max_select] if items else None
