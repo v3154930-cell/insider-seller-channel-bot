@@ -140,6 +140,7 @@ def add_to_queue_batch(items: List[Dict]) -> int:
     logger.info(f"DEBUG DB: add_to_queue_batch called with {len(items)} items")
     title_short = ""
     count = 0
+    last_link = ""
     for item in items:
         try:
             raw_text = item.get('description', '') or item.get('title', '')
@@ -148,6 +149,7 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             reason_tags = item.get('reason_tags', '')
             title_short = item.get('title', '')[:50]
             link = item.get('link', '')
+            last_link = link
             
             _execute(
                 '''INSERT OR IGNORE INTO news 
@@ -174,16 +176,15 @@ def add_to_queue_batch(items: List[Dict]) -> int:
     
     logger.info(f"DEBUG DB: add_to_queue_batch completed, {count} items inserted")
     
-    if count > 0:
+    if count > 0 and last_link:
         try:
-            row = _fetch_one('SELECT id, title, is_published FROM news ORDER BY id DESC LIMIT 1')
+            row = _fetch_one('SELECT id, title, is_published, link FROM news WHERE link = ?', (last_link,))
             if row:
-                logger.info(f"DEBUG DB: last inserted row: id={row[0]}, title={row[1][:30] if row[1] else 'None'}, is_published={row[2]}")
-            total_row = _fetch_one('SELECT COUNT(*), COUNT(CASE WHEN is_published=0 THEN 1 END), COUNT(CASE WHEN is_published=1 THEN 1 END) FROM news')
-            if total_row:
-                logger.info(f"DEBUG DB: total rows={total_row[0]}, pending={total_row[1]}, published={total_row[2]}")
+                logger.info(f"DEBUG DB: verify insert by link: id={row[0]}, title={row[1][:30] if row[1] else 'None'}, is_published={row[2]}, link={row[3]}")
+            else:
+                logger.warning(f"DEBUG DB: row with link {last_link} not found!")
         except Exception as e:
-            logger.warning(f"DEBUG DB: post-insert check failed: {e}")
+            logger.warning(f"DEBUG DB: verify insert failed: {e}")
     
     return count
 
