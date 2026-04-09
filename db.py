@@ -144,8 +144,8 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             
             _execute(
                 '''INSERT OR IGNORE INTO news 
-                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, is_published)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)''',
                 (
                     item.get('title', ''),
                     raw_text,
@@ -166,6 +166,12 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             continue
     
     logger.info(f"DEBUG DB: add_to_queue_batch completed, {count} items inserted")
+    
+    if count > 0:
+        row = _fetch_one('SELECT id, title, is_published FROM news ORDER BY id DESC LIMIT 5')
+        if row:
+            logger.info(f"DEBUG DB: last inserted rows: id={row[0]}, title={row[1][:30]}, is_published={row[2]}")
+    
     return count
 
 def get_pending_news(count: int = 2) -> List[Dict]:
