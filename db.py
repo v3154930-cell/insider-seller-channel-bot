@@ -3,6 +3,7 @@ import logging
 import pytz
 import sys
 import libsql
+import hashlib
 from datetime import datetime
 from typing import List, Dict, Optional
 
@@ -100,7 +101,7 @@ def init_db():
             title TEXT NOT NULL,
             raw_text TEXT,
             processed_text TEXT,
-            link TEXT UNIQUE NOT NULL,
+            link TEXT NOT NULL,
             source TEXT,
             importance TEXT DEFAULT 'normal',
             category TEXT DEFAULT 'general',
@@ -109,9 +110,31 @@ def init_db():
             reason_tags TEXT,
             is_published INTEGER DEFAULT 0,
             in_digest INTEGER DEFAULT 0,
+            content_hash TEXT,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
+    
+    try:
+        conn.execute('ALTER TABLE news ADD COLUMN content_hash TEXT')
+    except Exception as e:
+        logger.info(f"DEBUG DB: content_hash column already exists or cannot add: {e}")
+    
+    try:
+        conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_content_hash ON news(content_hash)')
+        logger.info("DEBUG DB: content_hash unique index created")
+    except Exception as e:
+        logger.warning(f"DEBUG DB: content_hash index creation skipped: {e}")
+    
+    try:
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_link ON news(link)')
+    except:
+        pass
+    
+    try:
+        conn.execute('CREATE INDEX IF NOT EXISTS idx_pending ON news(is_published, created_at)')
+    except:
+        pass
     conn.execute('''
         CREATE TABLE IF NOT EXISTS digest_state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -128,13 +151,18 @@ def init_db():
     conn.close()
     logger.info("Database tables initialized")
 
+def compute_content_hash(title: str, link: str) -> str:
+    normalized = f"{title.strip().lower()}|{link.strip().lower()}"
+    return hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:16]
+
 def add_to_queue(title: str, raw_text: str, link: str, source: str, 
                  importance: str = "normal", category: str = "general") -> bool:
+    content_hash = compute_content_hash(title, link)
     try:
         _execute(
-            '''INSERT OR IGNORE INTO news (title, raw_text, link, source, importance, category)
-               VALUES (?, ?, ?, ?, ?, ?)''',
-            (title, raw_text, link, source, importance, category)
+            '''INSERT OR IGNORE INTO news (title, raw_text, link, source, importance, category, content_hash)
+               VALUES (?, ?, ?, ?, ?, ?, ?)''',
+            (title, raw_text, link, source, importance, category, content_hash)
         )
         return True
     except Exception as e:
@@ -158,11 +186,12 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             title_short = item.get('title', '')[:50]
             link = item.get('link', '')
             last_link = link
+            content_hash = compute_content_hash(item.get('title', ''), link)
             
             _execute(
                 '''INSERT OR IGNORE INTO news 
-                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, is_published)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)''',
+                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, content_hash, is_published)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)''',
                 (
                     item.get('title', ''),
                     raw_text,
@@ -172,7 +201,8 @@ def add_to_queue_batch(items: List[Dict]) -> int:
                     item.get('category', 'general'),
                     score,
                     priority_bucket,
-                    reason_tags
+                    reason_tags,
+                    content_hash
                 )
             )
             count += 1
@@ -396,3 +426,50 @@ def get_top_news_for_digest(limit: int = 5) -> List[Dict]:
             'created_at': row[10]
         })
     return news_list
+
+def clean_duplicates() -> int:
+    conn = _create_connection()
+    try:
+        cursor = conn.execute('''
+            SELECT content_hash, COUNT(*) as cnt, GROUP_CONCAT(id) as ids
+            FROM news
+            WHERE content_hash IS NOT NULL AND content_hash != ''
+            GROUP BY content_hash
+            HAVING cnt > 1
+        ''')
+        duplicates = cursor.fetchall()
+        
+        total_removed = 0
+        for dup in duplicates:
+            content_hash, cnt, ids = dup[0], dup[1], dup[2]
+            id_list = [int(x) for x in ids.split(',')]
+            
+            conn.execute('UPDATE news SET is_published = 1 WHERE id = ?', (id_list[0],))
+            conn.execute('DELETE FROM news WHERE id IN (SELECT id FROM news WHERE content_hash = ? AND id != ?)', (content_hash, id_list[0]))
+            
+            logger.info(f"DEBUG CLEAN: kept id={id_list[0]}, removed {len(id_list)-1} duplicates for hash={content_hash[:8]}")
+            total_removed += len(id_list) - 1
+        
+        conn.commit()
+        conn.close()
+        return total_removed
+    except Exception as e:
+        logger.warning(f"DEBUG CLEAN: clean_duplicates failed: {e}")
+        try:
+            conn.close()
+        except:
+            pass
+        return 0
+
+def get_duplicate_count() -> int:
+    try:
+        row = _fetch_one('''
+            SELECT COUNT(*) FROM (
+                SELECT content_hash FROM news
+                WHERE content_hash IS NOT NULL AND content_hash != '' AND is_published = 0
+                GROUP BY content_hash HAVING COUNT(*) > 1
+            )
+        ''')
+        return row[0] if row else 0
+    except:
+        return 0

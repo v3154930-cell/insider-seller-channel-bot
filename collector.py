@@ -5,7 +5,7 @@ from datetime import datetime
 from config import get_sent_links
 from parsers import get_all_news, parse_court_cases, parse_sales, parse_legal_news, extract_sales_from_news
 from filters import filter_news
-from db import init_db, add_to_queue_batch, get_all_pending_count
+from db import init_db, add_to_queue_batch, get_all_pending_count, clean_duplicates, get_duplicate_count
 from scheduler import now_moscow
 from scoring import score_items
 
@@ -64,6 +64,13 @@ def run_collector():
     total_before = get_all_pending_count()
     added = add_to_queue_batch(scored_news)
     duplicates_skipped = len(scored_news) - added if scored_news else 0
+    
+    dup_count = get_duplicate_count()
+    if dup_count > 0:
+        logger.info(f"Found {dup_count} duplicate groups in pending queue, cleaning...")
+        removed = clean_duplicates()
+        logger.info(f"Removed {removed} duplicate rows")
+        added -= removed
     
     logger.info(f"Saved to DB: {added} new items")
     logger.info(f"Duplicates skipped: {duplicates_skipped}")
