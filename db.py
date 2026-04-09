@@ -27,7 +27,7 @@ def _get_turso_client():
     if _connection is None:
         try:
             import libsql_client
-            _connection = libsql_client.create_client(
+            _connection = libsql_client.create_client_sync(
                 url=TURSO_DATABASE_URL,
                 auth_token=TURSO_AUTH_TOKEN
             )
