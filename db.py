@@ -141,6 +141,7 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             priority_bucket = item.get('priority_bucket', 'low')
             reason_tags = item.get('reason_tags', '')
             title_short = item.get('title', '')[:50]
+            link = item.get('link', '')
             
             _execute(
                 '''INSERT OR IGNORE INTO news 
@@ -149,7 +150,7 @@ def add_to_queue_batch(items: List[Dict]) -> int:
                 (
                     item.get('title', ''),
                     raw_text,
-                    item.get('link', ''),
+                    link,
                     item.get('source', ''),
                     item.get('importance', 'normal'),
                     item.get('category', 'general'),
@@ -168,9 +169,15 @@ def add_to_queue_batch(items: List[Dict]) -> int:
     logger.info(f"DEBUG DB: add_to_queue_batch completed, {count} items inserted")
     
     if count > 0:
-        row = _fetch_one('SELECT id, title, is_published FROM news ORDER BY id DESC LIMIT 5')
-        if row:
-            logger.info(f"DEBUG DB: last inserted rows: id={row[0]}, title={row[1][:30]}, is_published={row[2]}")
+        try:
+            row = _fetch_one('SELECT id, title, is_published FROM news ORDER BY id DESC LIMIT 1')
+            if row:
+                logger.info(f"DEBUG DB: last inserted row: id={row[0]}, title={row[1][:30] if row[1] else 'None'}, is_published={row[2]}")
+            total_row = _fetch_one('SELECT COUNT(*), COUNT(CASE WHEN is_published=0 THEN 1 END), COUNT(CASE WHEN is_published=1 THEN 1 END) FROM news')
+            if total_row:
+                logger.info(f"DEBUG DB: total rows={total_row[0]}, pending={total_row[1]}, published={total_row[2]}")
+        except Exception as e:
+            logger.warning(f"DEBUG DB: post-insert check failed: {e}")
     
     return count
 
