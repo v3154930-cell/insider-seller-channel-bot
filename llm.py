@@ -7,9 +7,9 @@ import requests
 logger = logging.getLogger(__name__)
 
 USE_LLM = os.getenv("USE_LLM", "false").lower() == "true"
-SELLER_FILTER_MODE = os.getenv("SELLER_FILTER_MODE", "off").lower()
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "github_models").lower()
-LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+SELLER_FILTER_MODE = (os.getenv("SELLER_FILTER_MODE") or "off").lower()
+LLM_PROVIDER = (os.getenv("LLM_PROVIDER") or "github_models").lower()
+LLM_MODEL = os.getenv("LLM_MODEL") or "gpt-4o-mini"
 GITHUB_MODELS_TOKEN = os.getenv("GITHUB_MODELS_TOKEN")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
 
