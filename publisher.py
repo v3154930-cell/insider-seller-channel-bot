@@ -195,19 +195,18 @@ def run_publisher():
         logger.info("No pending posts to send")
         return
     
-    logger.info(f"Loaded {len(pending)} candidate items")
-    for i, item in enumerate(pending):
-        logger.info(f"  Candidate {i+1}: id={item['id']}, title={item['title'][:50]}...")
+    logger.info(f"Loaded candidate items: {len(pending)}")
     
+    logger.info("Batch selection started")
     selected = select_best_items_for_publishing(pending, MAX_POSTS_PER_RUN)
     
     if not selected:
-        logger.warning("Selection LLM failed, skipping this run")
+        logger.warning("Selection LLM failed, skipping run")
         return
     
-    logger.info(f"Batch selection: {len(selected)} items chosen for posting")
+    logger.info("Batch selection ok")
     for i, item in enumerate(selected):
-        logger.info(f"  Selected {i+1}: id={item['id']}, title={item['title'][:50]}...")
+        logger.info(f"Selected for publish: id={item['id']}")
     
     new_posts = 0
     
@@ -220,13 +219,14 @@ def run_publisher():
         has_raw_text = bool(raw_text)
         
         if USE_LLM and has_raw_text:
+            logger.info("Final enhance started")
             enhanced = enhance_post_with_llm(item)
             if enhanced:
                 formatted_message = enhanced
-                logger.info(f"LLM enhanced post successfully")
+                logger.info("Final enhance ok")
             else:
                 formatted_message = format_news(item)
-                logger.info(f"LLM unavailable, using fallback formatter")
+                logger.info("Final enhance failed, using fallback")
         else:
             formatted_message = format_news(item)
         
@@ -236,10 +236,9 @@ def run_publisher():
             save_link(link)
             mark_published(item['id'])
             new_posts += 1
-            logger.info(f"✓ Posted: id={item['id']}, title={item['title'][:50]}...")
-            logger.info(f"  -> Item marked as sent")
+            logger.info(f"Posted: id={item['id']}")
         else:
-            logger.error(f"✗ Failed: id={item['id']}, title={item['title'][:50]}...")
+            logger.error(f"Failed: id={item['id']}")
     
     final_pending = get_all_pending_count()
     logger.info(f"=== Publisher finished. Sent: {new_posts}, Remaining in queue: {final_pending} ===")
