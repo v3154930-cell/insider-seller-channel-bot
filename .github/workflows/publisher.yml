@@ -2,7 +2,7 @@ name: Publisher - Post to MAX
 
 on:
   schedule:
-    - cron: '15,45 * * * *'
+    - cron: '17,47 * * * *'
   workflow_dispatch:
     inputs:
       force_audio_digest:
