@@ -20,45 +20,52 @@ if IS_GITHUB_ACTIONS and not USE_TURSO:
     logger.error("FATAL: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN not set in GitHub Actions")
     sys.exit(1)
 
-_connection = None
-
-def _get_connection():
-    global _connection
-    if _connection is None:
-        if USE_TURSO_DIRECT:
-            _connection = libsql.connect(
-                TURSO_DATABASE_URL,
-                auth_token=TURSO_AUTH_TOKEN
-            )
-        elif USE_TURSO:
-            _connection = libsql.connect(
-                "news_queue.db",
-                sync_url=TURSO_DATABASE_URL,
-                auth_token=TURSO_AUTH_TOKEN
-            )
-        else:
-            _connection = libsql.connect("news_queue.db")
-        logger.info("Database connection initialized")
-    return _connection
+def _create_connection():
+    if USE_TURSO_DIRECT:
+        return libsql.connect(
+            TURSO_DATABASE_URL,
+            auth_token=TURSO_AUTH_TOKEN
+        )
+    elif USE_TURSO:
+        return libsql.connect(
+            "news_queue.db",
+            sync_url=TURSO_DATABASE_URL,
+            auth_token=TURSO_AUTH_TOKEN
+        )
+    else:
+        return libsql.connect("news_queue.db")
 
 def _execute(query: str, params: tuple = ()):
-    conn = _get_connection()
+    conn = _create_connection()
     conn.execute(query, params)
     if USE_TURSO_DIRECT:
         try:
-            conn.sync()
-        except Exception as e:
-            logger.warning(f"DEBUG DB: sync after execute failed: {e}")
+            conn.close()
+        except:
+            pass
+    return None
 
 def _fetch_all(query: str, params: tuple = ()):
-    conn = _get_connection()
+    conn = _create_connection()
     cursor = conn.execute(query, params)
-    return cursor.fetchall()
+    result = cursor.fetchall()
+    if USE_TURSO_DIRECT:
+        try:
+            conn.close()
+        except:
+            pass
+    return result
 
 def _fetch_one(query: str, params: tuple = ()):
-    conn = _get_connection()
+    conn = _create_connection()
     cursor = conn.execute(query, params)
-    return cursor.fetchone()
+    result = cursor.fetchone()
+    if USE_TURSO_DIRECT:
+        try:
+            conn.close()
+        except:
+            pass
+    return result
 
 def init_db():
     logger.info("DEBUG CHECKPOINT: entering init_db")
@@ -66,7 +73,7 @@ def init_db():
     logger.info(f"DEBUG CHECKPOINT: USE_TURSO_DIRECT={USE_TURSO_DIRECT}")
     logger.info(f"DEBUG CHECKPOINT: IS_GITHUB_ACTIONS={IS_GITHUB_ACTIONS}")
     
-    conn = _get_connection()
+    conn = _create_connection()
     logger.info("Database backend: libsql")
     
     if USE_TURSO_DIRECT:
