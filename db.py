@@ -13,6 +13,7 @@ TURSO_AUTH_TOKEN = os.getenv("TURSO_AUTH_TOKEN")
 IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 USE_TURSO = bool(TURSO_DATABASE_URL and TURSO_AUTH_TOKEN)
+TURSO_READY = False
 
 if IS_GITHUB_ACTIONS and not USE_TURSO:
     logger.error("FATAL: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN not set in GitHub Actions")
@@ -22,7 +23,7 @@ _connection = None
 _local_connection = None
 
 def _get_turso_client():
-    global _connection
+    global _connection, TURSO_READY
     if _connection is None:
         try:
             import libsql_client
@@ -30,6 +31,7 @@ def _get_turso_client():
                 url=TURSO_DATABASE_URL,
                 auth_token=TURSO_AUTH_TOKEN
             )
+            TURSO_READY = True
             logger.info("Turso client initialized")
         except Exception as e:
             logger.warning(f"Failed to init Turso client: {e}, falling back to SQLite")
@@ -44,7 +46,7 @@ def _get_local_connection():
     return _local_connection
 
 def get_connection():
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         client = _get_turso_client()
         if client:
             return client
@@ -90,8 +92,13 @@ def init_db():
     logger.info("DEBUG CHECKPOINT: entering init_db")
     logger.info(f"DEBUG CHECKPOINT: USE_TURSO={USE_TURSO}")
     logger.info(f"DEBUG CHECKPOINT: IS_GITHUB_ACTIONS={IS_GITHUB_ACTIONS}")
+    logger.info(f"DEBUG CHECKPOINT: TURSO_READY={TURSO_READY}")
     
-    if USE_TURSO:
+    if IS_GITHUB_ACTIONS and USE_TURSO and not TURSO_READY:
+        logger.error("FATAL: Turso client initialization failed in GitHub Actions")
+        sys.exit(1)
+    
+    if USE_TURSO and TURSO_READY:
         client = _get_turso_client()
         if client:
             logger.info("Database backend: Turso")
@@ -163,7 +170,7 @@ def init_db():
 
 def add_to_queue(title: str, raw_text: str, link: str, source: str, 
                  importance: str = "normal", category: str = "general") -> bool:
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         try:
             result = _execute_turso(
                 '''INSERT OR IGNORE INTO news (title, raw_text, link, source, importance, category)
@@ -191,7 +198,7 @@ def add_to_queue_batch(items: List[Dict]) -> int:
     if not items:
         return 0
     
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         count = 0
         for item in items:
             try:
@@ -255,7 +262,7 @@ def add_to_queue_batch(items: List[Dict]) -> int:
         return count
 
 def get_pending_news(count: int = 2) -> List[Dict]:
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         rows = _fetch_all_turso(
             '''SELECT id, title, raw_text, processed_text, link, source, importance, category, 
                       score, priority_bucket, reason_tags, created_at
@@ -329,7 +336,7 @@ def get_pending_news(count: int = 2) -> List[Dict]:
         return news_list
 
 def get_all_pending_count() -> int:
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         row = _fetch_one_turso('SELECT COUNT(*) FROM news WHERE is_published = 0')
         return row[0] if row else 0
     else:
@@ -339,7 +346,7 @@ def get_all_pending_count() -> int:
         return cursor.fetchone()[0]
 
 def mark_published(news_id: int):
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         _execute_turso('UPDATE news SET is_published = 1 WHERE id = ?', (news_id,))
     else:
         conn = _get_local_connection()
@@ -348,7 +355,7 @@ def mark_published(news_id: int):
         conn.commit()
 
 def update_processed_text(news_id: int, processed_text: str):
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         _execute_turso('UPDATE news SET processed_text = ? WHERE id = ?', (processed_text, news_id))
     else:
         conn = _get_local_connection()
@@ -357,7 +364,7 @@ def update_processed_text(news_id: int, processed_text: str):
         conn.commit()
 
 def get_critical_news_hours(hours: int = 24) -> List[Dict]:
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         MOSCOW_TZ = pytz.timezone('Europe/Moscow')
         now = datetime.now(MOSCOW_TZ)
         from datetime import timedelta
@@ -411,7 +418,7 @@ def get_critical_news_hours(hours: int = 24) -> List[Dict]:
         return news_list
 
 def get_digest_state() -> Dict:
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         row = _fetch_one_turso(
             'SELECT morning_sent_date, evening_sent_date, audio_sent_date FROM digest_state WHERE id = 1'
         )
@@ -439,7 +446,7 @@ def set_digest_sent(digest_type: str):
     MOSCOW_TZ = pytz.timezone('Europe/Moscow')
     today = datetime.now(MOSCOW_TZ).strftime('%Y-%m-%d')
     
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         if digest_type == 'morning':
             _execute_turso(
                 'UPDATE digest_state SET morning_sent_date = ?, last_updated = ? WHERE id = 1',
@@ -492,7 +499,7 @@ def mark_news_in_digest(news_ids: List[int]):
     if not news_ids:
         return
     
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         placeholders = ','.join(['?' for _ in news_ids])
         _execute_turso(f'UPDATE news SET in_digest = 1 WHERE id IN ({placeholders})', tuple(news_ids))
     else:
@@ -503,7 +510,7 @@ def mark_news_in_digest(news_ids: List[int]):
         conn.commit()
 
 def get_today_published() -> List[Dict]:
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         MOSCOW_TZ = pytz.timezone('Europe/Moscow')
         today = datetime.now(MOSCOW_TZ).strftime('%Y-%m-%d')
         
@@ -553,7 +560,7 @@ def get_today_published() -> List[Dict]:
         return news_list
 
 def get_top_news_for_digest(limit: int = 5) -> List[Dict]:
-    if USE_TURSO:
+    if USE_TURSO and TURSO_READY:
         MOSCOW_TZ = pytz.timezone('Europe/Moscow')
         today = datetime.now(MOSCOW_TZ).strftime('%Y-%m-%d')
         
