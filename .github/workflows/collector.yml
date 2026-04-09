@@ -34,5 +34,12 @@ jobs:
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
           USE_LLM: ${{ vars.USE_LLM }}
           SELLER_FILTER_MODE: ${{ vars.SELLER_FILTER_MODE }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DROP_TTL_HOURS: ${{ vars.DROP_TTL_HOURS }}
+          DIGEST_TTL_DAYS: ${{ vars.DIGEST_TTL_DAYS }}
+          SENT_TTL_DAYS: ${{ vars.SENT_TTL_DAYS }}
+          PENDING_TTL_DAYS: ${{ vars.PENDING_TTL_DAYS }}
         run: python collector.py

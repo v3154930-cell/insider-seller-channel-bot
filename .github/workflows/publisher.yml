@@ -43,6 +43,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           USE_LLM: ${{ vars.USE_LLM }}
           SELLER_FILTER_MODE: ${{ vars.SELLER_FILTER_MODE }}
+          LLM_PROVIDER: ${{ vars.LLM_PROVIDER }}
+          LLM_MODEL: ${{ vars.LLM_MODEL }}
+          GITHUB_MODELS_TOKEN: ${{ secrets.GITHUB_MODELS_TOKEN }}
           SALUTE_AUTH_KEY: ${{ secrets.SALUTE_AUTH_KEY }}
           ENABLE_AUDIO_DIGEST: ${{ vars.ENABLE_AUDIO_DIGEST }}
           ENABLE_MORNING_DIGEST: ${{ vars.ENABLE_MORNING_DIGEST }}
@@ -51,6 +54,10 @@ jobs:
           AUDIO_DIGEST_HOUR_MSK: ${{ vars.AUDIO_DIGEST_HOUR_MSK }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}
           TURSO_AUTH_TOKEN: ${{ secrets.TURSO_AUTH_TOKEN }}
+          DROP_TTL_HOURS: ${{ vars.DROP_TTL_HOURS }}
+          DIGEST_TTL_DAYS: ${{ vars.DIGEST_TTL_DAYS }}
+          SENT_TTL_DAYS: ${{ vars.SENT_TTL_DAYS }}
+          PENDING_TTL_DAYS: ${{ vars.PENDING_TTL_DAYS }}
         run: |
           echo "FORCE_AUDIO_DIGEST=${{ github.inputs.force_audio_digest }}" >> $GITHUB_ENV
           python publisher.py

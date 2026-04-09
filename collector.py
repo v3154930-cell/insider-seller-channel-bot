@@ -5,7 +5,7 @@ from datetime import datetime
 from config import get_sent_links
 from parsers import get_all_news, parse_court_cases, parse_sales, parse_legal_news, extract_sales_from_news
 from filters import filter_news
-from db import init_db, add_to_queue_batch, get_all_pending_count, clean_duplicates, get_duplicate_count
+from db import init_db, add_to_queue_batch, get_all_pending_count, clean_duplicates, get_duplicate_count, cleanup_by_retention_policy, save_to_rejects
 from scheduler import now_moscow
 from scoring import score_items
 
@@ -29,6 +29,9 @@ def run_collector():
     init_db()
     logger.info("Database initialized")
     logger.info(f"Current time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    cleanup_results = cleanup_by_retention_policy()
+    logger.info(f"Cleanup done: {cleanup_results}")
     
     news_items = get_all_news(hours=24)
     logger.info(f"RSS fetched: {len(news_items)}")
@@ -104,17 +107,24 @@ def run_collector():
         logger.info("Seller filter: off")
     
     scored_news_filtered = []
+    drop_items_for_rejects = []
+    
     if SELLER_FILTER_MODE == "enforce":
         for item in scored_news:
             link = item.get('link', '')
             decision = seller_decisions.get(link, {}).get('decision', 'digest')
             if decision == 'publish':
                 scored_news_filtered.append(item)
-        logger.info(f"After seller filter (enforce): {len(scored_news_filtered)} items for queue")
+            elif decision == 'drop':
+                drop_items_for_rejects.append((item, seller_decisions.get(link, {})))
+        logger.info(f"After seller filter (enforce): {len(scored_news_filtered)} items for queue, {len(drop_items_for_rejects)} dropped")
     elif SELLER_FILTER_MODE == "observe":
         scored_news_filtered = scored_news
     else:
         scored_news_filtered = scored_news
+    
+    for item, seller_info in drop_items_for_rejects:
+        save_to_rejects(item, seller_info)
     
     dup_count_before = get_duplicate_count()
     if dup_count_before > 0:

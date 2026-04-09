@@ -7,18 +7,29 @@ import requests
 logger = logging.getLogger(__name__)
 
 USE_LLM = os.getenv("USE_LLM", "false").lower() == "true"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
 SELLER_FILTER_MODE = os.getenv("SELLER_FILTER_MODE", "off").lower()
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "github_models").lower()
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")
+GITHUB_MODELS_TOKEN = os.getenv("GITHUB_MODELS_TOKEN")
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN") or os.getenv("GH_TOKEN")
 
-LLM_API_URL = "https://models.github.ai/inference"
-GPT4O_MINI_MODEL = "gpt-4o"
+GITHUB_MODELS_API_URL = "https://models.github.ai/inference"
+OPENAI_API_URL = os.getenv("OPENAI_API_URL", "https://api.openai.com/v1")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-logger.info("=== LLM Module Initialization ===")
-logger.info(f"[LLM] USE_LLM: {USE_LLM}")
-logger.info(f"[LLM] SELLER_FILTER_MODE: {SELLER_FILTER_MODE}")
-logger.info(f"[LLM] Token source: {'GITHUB_TOKEN' if GITHUB_TOKEN else 'GH_TOKEN' if os.getenv('GH_TOKEN') else 'NONE'}")
-logger.info(f"[LLM] GITHUB_TOKEN configured: {bool(GITHUB_TOKEN)}")
-logger.info(f"[LLM] API endpoint: {LLM_API_URL}")
+if GITHUB_MODELS_TOKEN:
+    ACTUAL_TOKEN = GITHUB_MODELS_TOKEN
+    AUTH_MODE = "github_models_token"
+elif GITHUB_TOKEN:
+    ACTUAL_TOKEN = GITHUB_TOKEN
+    AUTH_MODE = "github_actions_token"
+else:
+    ACTUAL_TOKEN = None
+    AUTH_MODE = "none"
+
+logger.info("LLM provider: " + LLM_PROVIDER)
+logger.info("LLM auth: " + AUTH_MODE)
+logger.info("Seller filter mode: " + SELLER_FILTER_MODE)
 
 SYSTEM_PROMPT = """Ты редактор канала о маркетплейсах (Ozon, Wildberries, Яндекс Маркет). 
 Твоя задача — переписать новость в формате для телеграм-канала.
@@ -39,60 +50,42 @@ SYSTEM_PROMPT = """Ты редактор канала о маркетплейс�
 
 def smoke_test_llm() -> bool:
     """Smoke test for GitHub Models API"""
-    if not GITHUB_TOKEN:
-        logger.warning("[LLM] Smoke test: no token")
+    if not ACTUAL_TOKEN:
+        logger.warning("LLM smoke test: no token")
         return False
     
     try:
         headers = {
-            "Authorization": f"Bearer {GITHUB_TOKEN}",
+            "Authorization": f"Bearer {ACTUAL_TOKEN}",
             "X-GitHub-Api-Version": "2022-11-28",
             "Content-Type": "application/json"
         }
         payload = {
-            "model": GPT4O_MINI_MODEL,
+            "model": LLM_MODEL,
             "messages": [{"role": "user", "content": "test"}],
             "max_tokens": 1
         }
         response = requests.post(
-            LLM_API_URL + "/chat/completions",
+            GITHUB_MODELS_API_URL + "/chat/completions",
             headers=headers,
             json=payload,
             timeout=10
         )
-        logger.info(f"[LLM] Smoke test HTTP: {response.status_code}")
+        logger.info("LLM smoke test HTTP: " + str(response.status_code))
         if response.status_code == 200:
-            logger.info("[LLM] Smoke test: SUCCESS")
+            logger.info("LLM smoke test: SUCCESS")
             return True
-        elif response.status_code == 403:
-            error_detail = response.json().get('error', {}).get('details', '')
-            logger.warning(f"[LLM] Smoke test: 403 - {error_detail}")
-            if 'no_access' in error_detail.lower() or 'gpt-4o-mini' in error_detail.lower():
-                logger.warning("[LLM] Smoke test: gpt-4o-mini not available, trying gpt-4o")
-                payload["model"] = "gpt-4o"
-                response = requests.post(
-                    LLM_API_URL + "/chat/completions",
-                    headers=headers,
-                    json=payload,
-                    timeout=10
-                )
-                if response.status_code == 200:
-                    logger.info("[LLM] Smoke test: SUCCESS with gpt-4o")
-                    return True
         return False
     except Exception as e:
-        logger.warning(f"[LLM] Smoke test: {e}")
+        logger.warning("LLM smoke test: " + str(e))
         return False
 
 def enhance_post_with_llm(raw_news: Dict) -> Optional[str]:
-    logger.info("[LLM] ===== START enhance_post_with_llm =====")
-    
     if not USE_LLM:
-        logger.info("[LLM] USE_LLM=false, returning None for fallback")
         return None
     
-    if not GITHUB_TOKEN:
-        logger.warning("[LLM] No GITHUB_TOKEN, returning None for fallback")
+    if not ACTUAL_TOKEN:
+        logger.warning("LLM enhance: no token")
         return None
     
     title = raw_news.get('title', '')
@@ -100,9 +93,6 @@ def enhance_post_with_llm(raw_news: Dict) -> Optional[str]:
     link = raw_news.get('link', '')
     source = raw_news.get('source', 'Новость')
     category = raw_news.get('category', 'general')
-    
-    logger.info(f"[LLM] Processing: {title[:40]}...")
-    logger.info("[LLM] Attempting GitHub Models API call...")
     
     user_prompt = f"""Перепиши эту новость:
 
@@ -121,7 +111,7 @@ def enhance_post_with_llm(raw_news: Dict) -> Optional[str]:
 #хештеги"""
 
     payload = {
-        "model": GPT4O_MINI_MODEL,
+        "model": LLM_MODEL,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
@@ -131,43 +121,34 @@ def enhance_post_with_llm(raw_news: Dict) -> Optional[str]:
     }
     
     headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "Authorization": f"Bearer {ACTUAL_TOKEN}",
         "X-GitHub-Api-Version": "2022-11-28",
         "Content-Type": "application/json"
     }
     
     try:
-        logger.info("[LLM] Calling GitHub Models API...")
         response = requests.post(
-            LLM_API_URL + "/chat/completions",
+            GITHUB_MODELS_API_URL + "/chat/completions",
             headers=headers,
             json=payload,
             timeout=30
         )
         
-        logger.info(f"[LLM] Response HTTP: {response.status_code}")
-        
         if response.status_code == 200:
             result = response.json()
             content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
             if content:
-                logger.info("[LLM] SUCCESS - post enhanced")
                 return content
-            else:
-                logger.warning("[LLM] Empty response content")
         elif response.status_code == 403:
-            logger.warning("[LLM] 403 Forbidden - check token permissions for GitHub Models")
+            logger.warning("LLM enhance: 403 - check token permissions")
         else:
-            logger.warning(f"[LLM] API Error: {response.status_code} - {response.text[:200]}")
+            logger.warning("LLM enhance: HTTP " + str(response.status_code))
             
     except requests.exceptions.Timeout:
-        logger.warning("[LLM] Request timeout")
+        logger.warning("LLM enhance: timeout")
     except requests.exceptions.RequestException as e:
-        logger.warning(f"[LLM] Request error: {e}")
-    except Exception as e:
-        logger.warning(f"[LLM] Unexpected error: {e}")
+        logger.warning("LLM enhance: request error - " + str(e))
     
-    logger.info("[LLM] Fallback to standard formatter")
     return None
 
 SELLER_RELEVANCE_SYSTEM_PROMPT = """Ты — редактор Telegram-канала для селлеров маркетплейсов и товарного бизнеса.
@@ -199,9 +180,11 @@ SELLER_RELEVANCE_USER_PROMPT_TEMPLATE = """Оцени эту новость дл
 def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
     """Оценивает новость по релевантности для селлеров. Возвращает dict с решением или None при ошибке."""
     if not USE_LLM:
+        logger.info("Seller filter: off (USE_LLM=false)")
         return None
     
-    if not GITHUB_TOKEN:
+    if not ACTUAL_TOKEN:
+        logger.warning("Seller filter: no token available")
         return None
     
     title = raw_news.get('title', '')
@@ -216,8 +199,23 @@ def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
         link=link
     )
     
+    headers = {
+        "Authorization": f"Bearer {ACTUAL_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json"
+    }
+    
+    if LLM_PROVIDER == "openai" and OPENAI_API_KEY:
+        api_url = OPENAI_API_URL + "/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {OPENAI_API_KEY}",
+            "Content-Type": "application/json"
+        }
+    else:
+        api_url = GITHUB_MODELS_API_URL + "/chat/completions"
+    
     payload = {
-        "model": GPT4O_MINI_MODEL,
+        "model": LLM_MODEL,
         "messages": [
             {"role": "system", "content": SELLER_RELEVANCE_SYSTEM_PROMPT},
             {"role": "user", "content": user_prompt}
@@ -226,25 +224,19 @@ def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
         "max_tokens": 400
     }
     
-    headers = {
-        "Authorization": f"Bearer {GITHUB_TOKEN}",
-        "X-GitHub-Api-Version": "2022-11-28",
-        "Content-Type": "application/json"
-    }
-    
     try:
         response = requests.post(
-            LLM_API_URL + "/chat/completions",
+            api_url,
             headers=headers,
             json=payload,
             timeout=30
         )
         
         if response.status_code == 200:
+            logger.info("LLM request ok")
             result = response.json()
             content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
             if content:
-                import json
                 content = content.strip()
                 if content.startswith('```json'):
                     content = content[7:]
@@ -256,17 +248,18 @@ def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
                 
                 parsed = json.loads(content)
                 
-                decision = parsed.get('decision', 'drop')
+                decision = parsed.get('decision', 'digest')
                 relevance = parsed.get('seller_relevance_score', 0)
                 actionability = parsed.get('actionability_score', 0)
                 
                 if decision not in ['publish', 'digest', 'drop']:
-                    decision = 'drop'
+                    decision = 'digest'
                 if not isinstance(relevance, int) or not (0 <= relevance <= 10):
                     relevance = 0
                 if not isinstance(actionability, int) or not (0 <= actionability <= 10):
                     actionability = 0
                 
+                logger.info(f"Seller filter: decision={decision}, relevance={relevance}, actionability={actionability}")
                 return {
                     'decision': decision,
                     'seller_relevance_score': relevance,
@@ -276,18 +269,18 @@ def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
                     'seller_impact': parsed.get('seller_impact', ''),
                     'action_hint': parsed.get('action_hint', '')
                 }
-        elif response.status_code == 403:
-            logger.warning("[LLM Seller] 403 - no API access")
+        elif response.status_code == 401 or response.status_code == 403:
+            logger.warning(f"LLM request failed: {response.status_code} - auth error")
         else:
-            logger.warning(f"[LLM Seller] API error: {response.status_code}")
+            logger.warning(f"LLM request failed: HTTP {response.status_code}")
             
     except json.JSONDecodeError as e:
-        logger.warning(f"[LLM Seller] JSON parse error: {e}")
+        logger.warning(f"Seller filter JSON parse error: {e}")
     except requests.exceptions.Timeout:
-        logger.warning("[LLM Seller] Request timeout")
+        logger.warning("LLM request failed: timeout")
     except requests.exceptions.RequestException as e:
-        logger.warning(f"[LLM Seller] Request error: {e}")
+        logger.warning(f"LLM request failed: {e}")
     except Exception as e:
-        logger.warning(f"[LLM Seller] Unexpected error: {e}")
+        logger.warning(f"LLM request failed: unexpected - {e}")
     
     return None

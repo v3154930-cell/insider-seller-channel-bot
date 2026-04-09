@@ -4,7 +4,7 @@ import pytz
 import sys
 import libsql
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Optional
 
 logger = logging.getLogger(__name__)
@@ -16,6 +16,11 @@ IS_GITHUB_ACTIONS = os.getenv("GITHUB_ACTIONS") == "true"
 
 USE_TURSO = bool(TURSO_DATABASE_URL and TURSO_AUTH_TOKEN)
 USE_TURSO_DIRECT = USE_TURSO and IS_GITHUB_ACTIONS
+
+DROP_TTL_HOURS = int(os.getenv("DROP_TTL_HOURS", "48"))
+DIGEST_TTL_DAYS = int(os.getenv("DIGEST_TTL_DAYS", "5"))
+SENT_TTL_DAYS = int(os.getenv("SENT_TTL_DAYS", "30"))
+PENDING_TTL_DAYS = int(os.getenv("PENDING_TTL_DAYS", "7"))
 
 if IS_GITHUB_ACTIONS and not USE_TURSO:
     logger.error("FATAL: TURSO_DATABASE_URL or TURSO_AUTH_TOKEN not set in GitHub Actions")
@@ -143,6 +148,28 @@ def init_db():
         conn.execute('CREATE INDEX IF NOT EXISTS idx_pending ON news(is_published, created_at)')
     except:
         pass
+    
+    conn.execute('''
+        CREATE TABLE IF NOT EXISTS news_rejects (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            raw_text TEXT,
+            link TEXT NOT NULL,
+            source TEXT,
+            content_hash TEXT,
+            seller_decision TEXT,
+            seller_relevance_score INTEGER DEFAULT 0,
+            actionability_score INTEGER DEFAULT 0,
+            seller_reason TEXT,
+            created_at TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+    
+    try:
+        conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_rejects_content_hash ON news_rejects(content_hash)')
+    except:
+        pass
+    
     conn.execute('''
         CREATE TABLE IF NOT EXISTS digest_state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -202,10 +229,13 @@ def add_to_queue_batch(items: List[Dict], seller_decisions: Dict[str, Dict] = No
             seller_relevance = seller_info.get('seller_relevance_score', 0)
             actionability = seller_info.get('actionability_score', 0)
             
+            is_published = 1 if seller_decision == 'publish' else 0
+            in_digest = 1 if seller_decision in ['digest', 'publish'] else 0
+            
             _execute(
                 '''INSERT OR IGNORE INTO news 
-                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, content_hash, seller_decision, seller_relevance_score, actionability_score, is_published)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)''',
+                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, content_hash, seller_decision, seller_relevance_score, actionability_score, is_published, in_digest)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                 (
                     item.get('title', ''),
                     raw_text,
@@ -219,7 +249,9 @@ def add_to_queue_batch(items: List[Dict], seller_decisions: Dict[str, Dict] = No
                     content_hash,
                     seller_decision,
                     seller_relevance,
-                    actionability
+                    actionability,
+                    is_published,
+                    in_digest
                 )
             )
             count += 1
@@ -532,3 +564,82 @@ def get_duplicate_count() -> int:
         return row[0] if row else 0
     except:
         return 0
+
+def cleanup_by_retention_policy() -> Dict[str, int]:
+    """Удаляет старые записи по TTL политике. Возвращает словарь с количеством удаленных по типам."""
+    MOSCOW_TZ = pytz.timezone('Europe/Moscow')
+    now = datetime.now(MOSCOW_TZ)
+    results = {}
+    
+    try:
+        drop_cutoff = (now - timedelta(hours=DROP_TTL_HOURS)).strftime('%Y-%m-%d %H:%M:%S')
+        row = _fetch_one("SELECT COUNT(*) FROM news WHERE seller_decision = 'drop' AND created_at < ?", (drop_cutoff,))
+        drop_count = row[0] if row else 0
+        if drop_count > 0:
+            _execute("DELETE FROM news WHERE seller_decision = 'drop' AND created_at < ?", (drop_cutoff,))
+            results['drop'] = drop_count
+            logger.info(f"Cleanup: removed {drop_count} drop items")
+        
+        digest_cutoff = (now - timedelta(days=DIGEST_TTL_DAYS)).strftime('%Y-%m-%d %H:%M:%S')
+        row = _fetch_one("SELECT COUNT(*) FROM news WHERE seller_decision = 'digest' AND created_at < ?", (digest_cutoff,))
+        digest_count = row[0] if row else 0
+        if digest_count > 0:
+            _execute("DELETE FROM news WHERE seller_decision = 'digest' AND created_at < ?", (digest_cutoff,))
+            results['digest'] = digest_count
+            logger.info(f"Cleanup: removed {digest_count} digest items")
+        
+        pending_cutoff = (now - timedelta(days=PENDING_TTL_DAYS)).strftime('%Y-%m-%d %H:%M:%S')
+        row = _fetch_one("SELECT COUNT(*) FROM news WHERE is_published = 0 AND created_at < ?", (pending_cutoff,))
+        pending_count = row[0] if row else 0
+        if pending_count > 0:
+            _execute("DELETE FROM news WHERE is_published = 0 AND created_at < ?", (pending_cutoff,))
+            results['pending'] = pending_count
+            logger.info(f"Cleanup: removed {pending_count} stale pending items")
+        
+        sent_cutoff = (now - timedelta(days=SENT_TTL_DAYS)).strftime('%Y-%m-%d %H:%M:%S')
+        row = _fetch_one("SELECT COUNT(*) FROM news WHERE is_published = 1 AND created_at < ?", (sent_cutoff,))
+        sent_count = row[0] if row else 0
+        if sent_count > 0:
+            _execute("DELETE FROM news WHERE is_published = 1 AND created_at < ?", (sent_cutoff,))
+            results['sent'] = sent_count
+            logger.info(f"Cleanup: removed {sent_count} sent items")
+        
+        reject_cutoff = (now - timedelta(hours=DROP_TTL_HOURS)).strftime('%Y-%m-%d %H:%M:%S')
+        row = _fetch_one("SELECT COUNT(*) FROM news_rejects WHERE created_at < ?", (reject_cutoff,))
+        reject_count = row[0] if row else 0
+        if reject_count > 0:
+            _execute("DELETE FROM news_rejects WHERE created_at < ?", (reject_cutoff,))
+            results['rejects'] = reject_count
+            logger.info(f"Cleanup: removed {reject_count} reject items")
+        
+        total = sum(results.values())
+        logger.info(f"Cleanup summary: total removed {total}")
+        
+    except Exception as e:
+        logger.warning(f"Cleanup failed: {e}")
+    
+    return results
+
+def save_to_rejects(item: Dict, seller_info: Dict):
+    """Сохраняет отклоненную новость в таблицу news_rejects"""
+    try:
+        content_hash = compute_content_hash(item.get('title', ''), item.get('link', ''))
+        _execute(
+            '''INSERT OR IGNORE INTO news_rejects 
+               (title, raw_text, link, source, content_hash, seller_decision, seller_relevance_score, actionability_score, seller_reason)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''',
+            (
+                item.get('title', ''),
+                item.get('description', '') or item.get('raw_text', ''),
+                item.get('link', ''),
+                item.get('source', ''),
+                content_hash,
+                seller_info.get('decision', 'drop'),
+                seller_info.get('seller_relevance_score', 0),
+                seller_info.get('actionability_score', 0),
+                seller_info.get('reason', '')
+            )
+        )
+        logger.info(f"Reject store: saved drop item hash={content_hash[:8]}")
+    except Exception as e:
+        logger.warning(f"Failed to save to rejects: {e}")
