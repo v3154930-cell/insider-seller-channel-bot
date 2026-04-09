@@ -166,3 +166,125 @@ def enhance_post_with_llm(raw_news: Dict) -> Optional[str]:
     
     logger.info("[LLM] Fallback to standard formatter")
     return None
+
+SELLER_RELEVANCE_SYSTEM_PROMPT = """Ты — редактор Telegram-канала для селлеров маркетплейсов и товарного бизнеса.
+Твоя задача — оценивать новости только с точки зрения практической пользы для продавцов.
+
+Пропускай новости, если они влияют на продажи, маржу, комиссии, логистику, поставки, рекламу, правила маркетплейсов, маркировку, налоги, спрос, поведение покупателей или инструменты для продавцов.
+Отбрасывай новости, которые являются просто общим новостным фоном, политикой, международной повесткой или инфраструктурными событиями без прямого эффекта на селлеров.
+Всегда думай как редактор канала для продавцов: если из новости нельзя сделать полезный вывод "что это значит для селлера", такая новость не подходит для отдельного поста.
+Отвечай только валидным JSON без markdown и без дополнительных комментариев."""
+
+SELLER_RELEVANCE_USER_PROMPT_TEMPLATE = """Оцени эту новость для Telegram-канала селлеров маркетплейсов:
+
+Заголовок: {title}
+Текст: {raw_text}
+Источник: {source}
+Ссылка: {link}
+
+Ответь СТРОГО в формате JSON без markdown:
+{{
+  "decision": "publish" | "digest" | "drop",
+  "seller_relevance_score": 0-10,
+  "actionability_score": 0-10,
+  "category": "marketplace_rules" | "commissions_fees" | "logistics_fulfillment" | "ads_promotion" | "taxes_regulation" | "labeling_compliance" | "import_supply" | "consumer_demand" | "category_trends" | "tools_automation_ai" | "ecommerce_market" | "other",
+  "reason": "краткое объяснение",
+  "seller_impact": "что это значит для селлера",
+  "action_hint": "что стоит сделать/учесть селлеру (если нет - пустая строка)"
+}}"""
+
+def evaluate_seller_relevance(raw_news: Dict) -> Optional[Dict]:
+    """Оценивает новость по релевантности для селлеров. Возвращает dict с решением или None при ошибке."""
+    if not USE_LLM:
+        return None
+    
+    if not GITHUB_TOKEN:
+        return None
+    
+    title = raw_news.get('title', '')
+    raw_text = raw_news.get('raw_text', raw_news.get('description', ''))
+    source = raw_news.get('source', 'Новость')
+    link = raw_news.get('link', '')
+    
+    user_prompt = SELLER_RELEVANCE_USER_PROMPT_TEMPLATE.format(
+        title=title[:200],
+        raw_text=raw_text[:800] if raw_text else '',
+        source=source,
+        link=link
+    )
+    
+    payload = {
+        "model": GPT4O_MINI_MODEL,
+        "messages": [
+            {"role": "system", "content": SELLER_RELEVANCE_SYSTEM_PROMPT},
+            {"role": "user", "content": user_prompt}
+        ],
+        "temperature": 0.3,
+        "max_tokens": 400
+    }
+    
+    headers = {
+        "Authorization": f"Bearer {GITHUB_TOKEN}",
+        "X-GitHub-Api-Version": "2022-11-28",
+        "Content-Type": "application/json"
+    }
+    
+    try:
+        response = requests.post(
+            LLM_API_URL + "/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            content = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+            if content:
+                import json
+                content = content.strip()
+                if content.startswith('```json'):
+                    content = content[7:]
+                if content.startswith('```'):
+                    content = content[3:]
+                if content.endswith('```'):
+                    content = content[:-3]
+                content = content.strip()
+                
+                parsed = json.loads(content)
+                
+                decision = parsed.get('decision', 'drop')
+                relevance = parsed.get('seller_relevance_score', 0)
+                actionability = parsed.get('actionability_score', 0)
+                
+                if decision not in ['publish', 'digest', 'drop']:
+                    decision = 'drop'
+                if not isinstance(relevance, int) or not (0 <= relevance <= 10):
+                    relevance = 0
+                if not isinstance(actionability, int) or not (0 <= actionability <= 10):
+                    actionability = 0
+                
+                return {
+                    'decision': decision,
+                    'seller_relevance_score': relevance,
+                    'actionability_score': actionability,
+                    'category': parsed.get('category', 'other'),
+                    'reason': parsed.get('reason', ''),
+                    'seller_impact': parsed.get('seller_impact', ''),
+                    'action_hint': parsed.get('action_hint', '')
+                }
+        elif response.status_code == 403:
+            logger.warning("[LLM Seller] 403 - no API access")
+        else:
+            logger.warning(f"[LLM Seller] API error: {response.status_code}")
+            
+    except json.JSONDecodeError as e:
+        logger.warning(f"[LLM Seller] JSON parse error: {e}")
+    except requests.exceptions.Timeout:
+        logger.warning("[LLM Seller] Request timeout")
+    except requests.exceptions.RequestException as e:
+        logger.warning(f"[LLM Seller] Request error: {e}")
+    except Exception as e:
+        logger.warning(f"[LLM Seller] Unexpected error: {e}")
+    
+    return None

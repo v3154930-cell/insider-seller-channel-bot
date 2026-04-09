@@ -9,6 +9,12 @@ from db import init_db, add_to_queue_batch, get_all_pending_count, clean_duplica
 from scheduler import now_moscow
 from scoring import score_items
 
+try:
+    from llm import evaluate_seller_relevance, USE_LLM
+    LLM_AVAILABLE = USE_LLM
+except ImportError:
+    LLM_AVAILABLE = False
+
 logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
@@ -61,13 +67,51 @@ def run_collector():
     scored_news = score_items(filtered_news)
     logger.info(f"After scoring: {len(scored_news)} scored news")
     
+    seller_decisions = {}
+    publish_count = 0
+    digest_count = 0
+    drop_count = 0
+    
+    if LLM_AVAILABLE:
+        logger.info("Running seller relevance evaluation with LLM...")
+        for item in scored_news:
+            link = item.get('link', '')
+            result = evaluate_seller_relevance(item)
+            if result:
+                seller_decisions[link] = result
+                decision = result.get('decision', 'drop')
+                if decision == 'publish':
+                    publish_count += 1
+                elif decision == 'digest':
+                    digest_count += 1
+                else:
+                    drop_count += 1
+                logger.info(f"Seller filter: decision={decision}, relevance={result.get('seller_relevance_score', 0)}, actionability={result.get('actionability_score', 0)}")
+            else:
+                seller_decisions[link] = {'decision': 'drop', 'seller_relevance_score': 0, 'actionability_score': 0}
+                drop_count += 1
+                logger.info(f"Seller filter fallback: invalid response -> drop")
+        
+        logger.info(f"Seller relevance results: publish={publish_count}, digest={digest_count}, drop={drop_count}")
+    
+    scored_news_filtered = []
+    if LLM_AVAILABLE:
+        for item in scored_news:
+            link = item.get('link', '')
+            decision = seller_decisions.get(link, {}).get('decision', 'drop')
+            if decision == 'publish':
+                scored_news_filtered.append(item)
+        logger.info(f"After seller filter: {len(scored_news_filtered)} items for queue (publish only)")
+    else:
+        scored_news_filtered = scored_news
+    
     dup_count_before = get_duplicate_count()
     if dup_count_before > 0:
         logger.info(f"Found {dup_count_before} duplicate groups in pending queue, cleaning before insert...")
         removed = clean_duplicates()
         logger.info(f"Removed {removed} duplicate rows before new insert")
     
-    added = add_to_queue_batch(scored_news)
+    added = add_to_queue_batch(scored_news_filtered, seller_decisions)
     duplicates_skipped = len(scored_news) - added if scored_news else 0
     
     logger.info(f"Saved to DB: {added} new items")

@@ -101,6 +101,9 @@ def init_db():
             is_published INTEGER DEFAULT 0,
             in_digest INTEGER DEFAULT 0,
             content_hash TEXT,
+            seller_decision TEXT DEFAULT 'pending',
+            seller_relevance_score INTEGER DEFAULT 0,
+            actionability_score INTEGER DEFAULT 0,
             created_at TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
@@ -108,7 +111,22 @@ def init_db():
     try:
         conn.execute('ALTER TABLE news ADD COLUMN content_hash TEXT')
     except Exception as e:
-        logger.info(f"DEBUG DB: content_hash column already exists or cannot add: {e}")
+        logger.info(f"content_hash column: {e}")
+    
+    try:
+        conn.execute('ALTER TABLE news ADD COLUMN seller_decision TEXT DEFAULT \'pending\'')
+    except:
+        pass
+    
+    try:
+        conn.execute('ALTER TABLE news ADD COLUMN seller_relevance_score INTEGER DEFAULT 0')
+    except:
+        pass
+    
+    try:
+        conn.execute('ALTER TABLE news ADD COLUMN actionability_score INTEGER DEFAULT 0')
+    except:
+        pass
     
     try:
         conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS idx_content_hash ON news(content_hash)')
@@ -157,11 +175,14 @@ def add_to_queue(title: str, raw_text: str, link: str, source: str,
         logger.warning(f"add_to_queue failed: {e}")
         return False
 
-def add_to_queue_batch(items: List[Dict]) -> int:
+def add_to_queue_batch(items: List[Dict], seller_decisions: Dict[str, Dict] = None) -> int:
     if not items:
         return 0
     
-    logger.info(f"DEBUG DB: add_to_queue_batch called with {len(items)} items")
+    if seller_decisions is None:
+        seller_decisions = {}
+    
+    logger.info(f"add_to_queue_batch called with {len(items)} items")
     title_short = ""
     count = 0
     last_link = ""
@@ -176,10 +197,15 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             last_link = link
             content_hash = compute_content_hash(item.get('title', ''), link)
             
+            seller_info = seller_decisions.get(link, {})
+            seller_decision = seller_info.get('decision', 'pending')
+            seller_relevance = seller_info.get('seller_relevance_score', 0)
+            actionability = seller_info.get('actionability_score', 0)
+            
             _execute(
                 '''INSERT OR IGNORE INTO news 
-                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, content_hash, is_published)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)''',
+                   (title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, content_hash, seller_decision, seller_relevance_score, actionability_score, is_published)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)''',
                 (
                     item.get('title', ''),
                     raw_text,
@@ -190,14 +216,17 @@ def add_to_queue_batch(items: List[Dict]) -> int:
                     score,
                     priority_bucket,
                     reason_tags,
-                    content_hash
+                    content_hash,
+                    seller_decision,
+                    seller_relevance,
+                    actionability
                 )
             )
             count += 1
             if count <= 3:
-                logger.info(f"DEBUG DB: inserted item {count}: {title_short}")
+                logger.info(f"Inserted item {count}: {title_short}")
         except Exception as e:
-            logger.warning(f"DEBUG DB: insert failed for {title_short}: {e}")
+            logger.warning(f"Insert failed for {title_short}: {e}")
             continue
     
     logger.info(f"add_to_queue_batch completed, {count} items inserted")
@@ -248,14 +277,11 @@ def get_pending_news(count: int = 2) -> List[Dict]:
     return news_list
 
 def get_all_pending_count() -> int:
-    logger.info("DEBUG DB: get_all_pending_count called")
     try:
         row = _fetch_one('SELECT COUNT(*) FROM news WHERE is_published = 0')
-        logger.info(f"DEBUG DB: get_all_pending_count result: {row[0] if row else 0}")
         return row[0] if row else 0
-    except Exception as e:
-        logger.exception(f"DEBUG DB ERROR: get_all_pending_count failed: {e}")
-        raise
+    except:
+        return 0
 
 def mark_published(news_id: int):
     _execute('UPDATE news SET is_published = 1 WHERE id = ?', (news_id,))
@@ -387,6 +413,61 @@ def get_top_news_for_digest(limit: int = 5) -> List[Dict]:
                END,
                score DESC
            LIMIT ?''', (today, limit)
+    )
+    news_list = []
+    for row in rows:
+        news_list.append({
+            'id': row[0],
+            'title': row[1],
+            'raw_text': row[2],
+            'link': row[3],
+            'source': row[4],
+            'importance': row[5],
+            'category': row[6],
+            'score': row[7],
+            'priority_bucket': row[8],
+            'reason_tags': row[9],
+            'created_at': row[10]
+        })
+    return news_list
+
+def get_digest_candidates(limit: int = 5) -> List[Dict]:
+    MOSCOW_TZ = pytz.timezone('Europe/Moscow')
+    today = datetime.now(MOSCOW_TZ).strftime('%Y-%m-%d')
+    
+    try:
+        rows = _fetch_all(
+            '''SELECT id, title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, created_at
+               FROM news
+               WHERE is_published = 0 
+               AND (seller_decision = 'digest' OR seller_decision IS NULL OR seller_decision = '')
+               AND date(created_at) = ?
+               ORDER BY 
+                   CASE importance 
+                       WHEN 'critical' THEN 1 
+                       WHEN 'high' THEN 2 
+                       WHEN 'normal' THEN 3 
+                       ELSE 4 
+                   END,
+                   seller_relevance_score DESC,
+                   score DESC
+               LIMIT ?''', (today, limit)
+        )
+    except:
+        rows = _fetch_all(
+            '''SELECT id, title, raw_text, link, source, importance, category, score, priority_bucket, reason_tags, created_at
+               FROM news
+               WHERE is_published = 0 
+               AND date(created_at) = ?
+               ORDER BY 
+                   CASE importance 
+                       WHEN 'critical' THEN 1 
+                       WHEN 'high' THEN 2 
+                       WHEN 'normal' THEN 3 
+                       ELSE 4 
+                   END,
+                   score DESC
+            LIMIT ?''', (today, limit)
     )
     news_list = []
     for row in rows:
