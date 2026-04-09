@@ -25,13 +25,14 @@ _connection = None
 def _get_connection():
     global _connection
     if _connection is None:
-        sync_url = TURSO_DATABASE_URL if USE_TURSO_EMBEDDED else None
-        auth_token = TURSO_AUTH_TOKEN if USE_TURSO_EMBEDDED else None
-        _connection = libsql.connect(
-            "news_queue.db",
-            sync_url=sync_url,
-            auth_token=auth_token
-        )
+        if USE_TURSO_EMBEDDED:
+            _connection = libsql.connect(
+                "news_queue.db",
+                sync_url=TURSO_DATABASE_URL,
+                auth_token=TURSO_AUTH_TOKEN
+            )
+        else:
+            _connection = libsql.connect("news_queue.db")
         logger.info("Database connection initialized")
     return _connection
 
