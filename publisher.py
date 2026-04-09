@@ -201,10 +201,13 @@ def run_publisher():
     selected = select_best_items_for_publishing(pending, MAX_POSTS_PER_RUN)
     
     if not selected:
-        logger.warning("Selection LLM failed, skipping run")
+        logger.warning("Selection LLM failed or no relevant items, skipping run")
         return
     
-    logger.info("Batch selection ok")
+    selected_ids = [item['id'] for item in selected]
+    rejected_count = len(pending) - len(selected)
+    logger.info(f"Batch selection ok: selected={selected_ids}, rejected={rejected_count}")
+    
     for i, item in enumerate(selected):
         logger.info(f"Selected for publish: id={item['id']}")
     
@@ -217,16 +220,18 @@ def run_publisher():
         logger.info(f"Processing item: id={item.get('id')}, raw_text_len={len(raw_text)}")
         
         has_raw_text = bool(raw_text)
+        enhance_success = False
         
         if USE_LLM and has_raw_text:
             logger.info("Final enhance started")
             enhanced = enhance_post_with_llm(item)
             if enhanced:
                 formatted_message = enhanced
-                logger.info("Final enhance ok")
+                enhance_success = True
+                logger.info(f"Final enhance ok: id={item['id']}")
             else:
                 formatted_message = format_news(item)
-                logger.info("Final enhance failed, using fallback")
+                logger.warning(f"Final enhance failed: id={item['id']}, using fallback")
         else:
             formatted_message = format_news(item)
         
