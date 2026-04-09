@@ -38,7 +38,11 @@ def _create_connection():
 def _execute(query: str, params: tuple = ()):
     conn = _create_connection()
     try:
+        logger.info("DEBUG DB WRITE: before execute")
         result = conn.execute(query, params)
+        logger.info("DEBUG DB WRITE: before commit")
+        conn.commit()
+        logger.info("DEBUG DB WRITE: commit done")
         if USE_TURSO_DIRECT:
             conn.close()
         return result
@@ -118,6 +122,10 @@ def init_db():
         )
     ''')
     conn.execute('INSERT OR IGNORE INTO digest_state (id) VALUES (1)')
+    logger.info("DEBUG DB WRITE: init_db before commit")
+    conn.commit()
+    logger.info("DEBUG DB WRITE: init_db commit done")
+    conn.close()
     logger.info("Database tables initialized")
 
 def add_to_queue(title: str, raw_text: str, link: str, source: str, 
@@ -175,6 +183,13 @@ def add_to_queue_batch(items: List[Dict]) -> int:
             continue
     
     logger.info(f"DEBUG DB: add_to_queue_batch completed, {count} items inserted")
+    
+    if count > 0:
+        try:
+            row = _fetch_one('SELECT COUNT(*) FROM news WHERE is_published = 0')
+            logger.info(f"DEBUG DB COUNT: pending after write = {row[0] if row else 0}")
+        except Exception as e:
+            logger.warning(f"DEBUG DB COUNT: pending after write failed: {e}")
     
     if count > 0 and last_link:
         try:
