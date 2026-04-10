@@ -309,19 +309,22 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
     
     items_text = "\n".join(items_list)
     
-    batch_system_prompt = """Ты — строгий редактор Telegram-канала для селлеров маркетплейсов.
+    batch_system_prompt = """Ты — редактор канала для селлеров маркетплейсов.
 
-Фильтр отбора — только то, что влияет на продажи селлеров:
-✓ Комиссии, тарифы, цены
-✓ Логистика, доставка, склады
-✓ Правила площадок, ограничения, блокировки
-✓ Реклама, продвижение, SEO
-✓ Инструменты аналитики и анализа
-✓ Законы (289-ФЗ и др.), налоги
-✗ Общие новости экономики, tech, политика
-✗HR, карьера, недвижимость (без связи с маркетплейсами)
+Фильтр отбора — важное для бизнеса селлеров:
+✓ Комиссии, тарифы, цены, себестоимость
+✓ Логистика, доставка, склады, фулфилмент
+✓ Правила площадок, ограничения, блокировки, аккаунты
+✓ Реклама, продвижение, SEO, видимость в поиске
+✓ Инструменты аналитики и анализа продаж
+✓ Законы (289-ФЗ и др.), налоги, проверки
+✓ Документы, сертификация, маркировка
+✓ Карточки товаров, ассортимент, ценообразование
+✓ Упаковка, маркировка, складская логистика
+✓ Конкуренты, ниши, спрос, тренды
+✗ Общие новости экономики, tech, политика без связи с маркетплейсами
 
-Выбери 1-2 самые важные новости. Если ничего релевантного — верни пустой selected_indices.
+Выбери 1-2 самые полезные новости. Если ничего криминального — верни пустой selected_indices.
 Ответь СТРОГО в формате JSON."""
 
     batch_user_prompt = f"""Из списка выбери {max_select} новостей строго по критериям:
@@ -422,7 +425,67 @@ def select_best_items_for_publishing(items: List[Dict], max_select: int = 2) -> 
                     return None
 
                 if not index_list:
-                    logger.warning(f"Batch selection: no valid indices, items={len(items)}, index_list={index_list}")
+                    logger.warning(f"Batch selection: first pass empty, trying lenient fallback")
+                    
+                    lenient_prompt = f"""Из списка выбери {max_select} наиболее полезных новостей для селлеров маркетплейсов.
+Если есть хоть что-то связанное с маркетплейсами, комиссиями, доставкой, правилами, карточками, сертификацией — выбирай.
+
+Список новостей:
+{items_text}
+
+Выбери хотя бы 1, если в очереди есть хоть что-то приемлемое. Не будь слишком строгим.
+
+Ответ JSON:
+{{
+  "selected_indices": [1],
+  "reason": "причина"
+}}"""
+
+                    payload_fallback = {
+                        "model": LLM_MODEL,
+                        "messages": [
+                            {"role": "system", "content": "Ты помогаешь выбрать полезные новости для селлеров. Не будь слишком строгим."},
+                            {"role": "user", "content": lenient_prompt}
+                        ],
+                        "temperature": 0.5,
+                        "max_tokens": 200
+                    }
+                    
+                    try:
+                        fallback_response = requests.post(api_url, headers=headers, json=payload_fallback, timeout=45)
+                        if fallback_response.status_code == 200:
+                            result = fallback_response.json()
+                            content = result.get('choices', [{}])[0].get('message', {}).get('content', '').strip()
+                            if content.startswith('```json'):
+                                content = content[7:]
+                            if content.startswith('```'):
+                                content = content[3:]
+                            if content.endswith('```'):
+                                content = content[:-3]
+                            content = content.strip()
+                            
+                            parsed = json.loads(content)
+                            selected_indices = parsed.get('selected_indices', [])
+                            
+                            index_list = []
+                            if isinstance(selected_indices, list):
+                                for idx in selected_indices:
+                                    try:
+                                        if isinstance(idx, int):
+                                            idx_zero = idx - 1
+                                            if 0 <= idx_zero < len(items):
+                                                index_list.append(idx_zero)
+                                    except (ValueError, TypeError):
+                                        pass
+                            
+                            if index_list:
+                                logger.info(f"Batch selection: fallback succeeded, indices={index_list}")
+                                selected_items = [items[i] for i in index_list]
+                                return selected_items
+                    except Exception as e:
+                        logger.warning(f"Batch selection: fallback failed: {e}")
+                    
+                    logger.warning(f"Batch selection: fallback also empty, skipping run")
                     return None
 
                 logger.info(f"Batch selection: indices parsed, count={len(index_list)}, indices={index_list}")

@@ -138,7 +138,7 @@ def run_regular_publisher():
     pending_count = get_all_pending_count()
     logger.info(f"Queue size: {pending_count} pending items")
     
-    candidate_count = min(10, pending_count)
+    candidate_count = min(25, pending_count)
     pending = get_pending_news(candidate_count)
     
     if not pending:
