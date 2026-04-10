@@ -106,6 +106,8 @@ def format_news(item):
 
 🔗 <a href="{link}">Подробнее</a>
 
+📎 Источник: {link}
+
 {hashtags}"""
     
     return post
