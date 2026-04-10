@@ -1,8 +1,6 @@
 name: Publisher - Post to MAX
 
 on:
-  schedule:
-    - cron: '17,47 * * * *'
   workflow_dispatch:
     inputs:
       force_audio_digest:
@@ -33,7 +31,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.13'
           cache: 'pip'
 
       - name: Install dependencies
@@ -59,6 +57,10 @@ jobs:
           ENABLE_AUDIO_DIGEST: ${{ vars.ENABLE_AUDIO_DIGEST }}
           ENABLE_MORNING_DIGEST: ${{ vars.ENABLE_MORNING_DIGEST }}
           ENABLE_EVENING_DIGEST: ${{ vars.ENABLE_EVENING_DIGEST }}
+          ENABLE_QUIET_HOURS: ${{ vars.ENABLE_QUIET_HOURS }}
+          QUIET_HOURS_START: ${{ vars.QUIET_HOURS_START }}
+          QUIET_HOURS_END: ${{ vars.QUIET_HOURS_END }}
+          MORNING_WINDOW_END: ${{ vars.MORNING_WINDOW_END }}
           SALUTESPEECH_VOICE: ${{ vars.SALUTESPEECH_VOICE }}
           AUDIO_DIGEST_HOUR_MSK: ${{ vars.AUDIO_DIGEST_HOUR_MSK }}
           TURSO_DATABASE_URL: ${{ secrets.TURSO_DATABASE_URL }}

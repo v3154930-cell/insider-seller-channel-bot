@@ -73,7 +73,7 @@ def get_insight(title, description):
         return 'Важная информация для селлеров'
 
 def format_news(item):
-    """Форматирует новость — чистый текст без линий и рамок"""
+    """Форматирует новость — HTML для MAX"""
     source = item.get('source', 'Новость')
     news_type = item.get('type', 'general')
     
@@ -96,15 +96,15 @@ def format_news(item):
     link = item.get('link', '')
     insight = get_insight(title, description)
     
-    post = f"""{source_emoji} **{source}** {topic_emoji}
+    post = f"""{source_emoji} <b>{source}</b> {topic_emoji}
 
-**{title}**
+<b>{title}</b>
 
 {short_text}
 
-💡 **Суть:** {insight}
+💡 <b>Суть:</b> {insight}
 
-🔗 [Подробнее]({link})
+🔗 <a href="{link}">Подробнее</a>
 
 {hashtags}"""
     

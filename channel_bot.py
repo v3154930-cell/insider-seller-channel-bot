@@ -30,7 +30,7 @@ logger.info(f"FORCE_AUDIO_DIGEST = {FORCE_AUDIO_DIGEST}")
 logger.info(f"AUDIO_DIGEST_HOUR_MSK = {AUDIO_DIGEST_HOUR}")
 logger.info(f"SALUTESPEECH_VOICE = {SALUTESPEECH_VOICE}")
 
-def send_message(token, chat_id, text):
+def send_message(token, chat_id, text, parse_mode: str = "HTML"):
     """Отправляет сообщение в канал через MAX API"""
     url = f"https://platform-api.max.ru/messages?chat_id={chat_id}"
     
@@ -40,6 +40,9 @@ def send_message(token, chat_id, text):
     }
     
     payload = {"text": text}
+    
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
     
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)

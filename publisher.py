@@ -2,12 +2,13 @@ import os
 import sys
 import logging
 import requests
+import argparse
 from datetime import datetime
 from config import get_sent_links, save_link
 from formatters import format_news
-from db import init_db, get_pending_news, mark_published, get_all_pending_count, set_digest_sent, is_digest_sent_today
+from db import init_db, get_pending_news, mark_published, get_all_pending_count, set_digest_sent, is_digest_sent_today, cleanup_by_retention_policy, get_top_news_for_digest, mark_news_in_digest, get_critical_news_hours, get_today_published
 from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN, select_best_items_for_publishing
-from scheduler import should_send_morning_digest, should_send_evening_digest, should_send_audio_digest, get_morning_summary, get_evening_digest, get_audio_digest_script, now_moscow, FORCE_AUDIO_DIGEST, SALUTESPEECH_VOICE
+from scheduler import get_morning_summary, get_evening_digest, get_audio_digest_script, now_moscow, FORCE_AUDIO_DIGEST, SALUTESPEECH_VOICE, MOSCOW_TZ
 from tts import generate_audio, is_available as tts_available
 
 logging.basicConfig(
@@ -25,13 +26,16 @@ logger.info(f"GITHUB_TOKEN configured = {bool(GITHUB_TOKEN)}")
 logger.info(f"FORCE_AUDIO_DIGEST = {FORCE_AUDIO_DIGEST}")
 logger.info(f"SALUTESPEECH_VOICE = {SALUTESPEECH_VOICE}")
 
-def send_message(token, chat_id, text):
+def send_message(token, chat_id, text, parse_mode: str = "HTML"):
     url = f"https://platform-api.max.ru/messages?chat_id={chat_id}"
     headers = {
         "Authorization": token,
         "Content-Type": "application/json"
     }
     payload = {"text": text}
+    
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
     
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
@@ -103,10 +107,10 @@ def send_audio_message(token, chat_id, audio_path, text_announce):
         send_message(token, chat_id, text_announce)
         return False
 
-def run_publisher():
-    """Публикация постов из очереди SQLite"""
-    logger.info("=== Publisher mode ===")
-    logger.info(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+def run_regular_publisher():
+    """Regular mode: publish posts without any time checks"""
+    logger.info("=== Regular Publisher mode ===")
+    logger.info(f"Time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
     
     token = TOKEN
     channel_id = CHANNEL_ID
@@ -127,63 +131,12 @@ def run_publisher():
     
     init_db()
     logger.info("Database initialized")
-    logger.info(f"Current time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
     
-    logger.info(f"Morning digest check: {'yes' if should_send_morning_digest() else 'no'}")
-    logger.info(f"Evening digest check: {'yes' if should_send_evening_digest() else 'no'}")
-    logger.info(f"Audio digest check: {'yes' if should_send_audio_digest() else 'no'}")
-    
-    if should_send_morning_digest():
-        logger.info("Morning digest time matched: yes")
-        summary = get_morning_summary()
-        if summary:
-            send_message(token, channel_id, summary)
-            logger.info("Morning summary sent")
-        return
-    
-    if should_send_evening_digest():
-        logger.info("Evening digest time matched: yes")
-        digest = get_evening_digest()
-        if digest:
-            send_message(token, channel_id, digest)
-            logger.info("Evening digest sent")
-        return
-    
-    if should_send_audio_digest():
-        logger.info("Audio digest time matched: yes")
-        from db import get_top_news_for_digest
-        top_news = get_top_news_for_digest(limit=5)
-        logger.info(f"Selected top news for digest: {len(top_news)}")
-        
-        if top_news:
-            script = get_audio_digest_script(top_news)
-            
-            if script:
-                logger.info("Audio script generated: yes")
-                
-                if tts_available():
-                    logger.info("SaluteSpeech token obtained: yes")
-                    audio_path = generate_audio(script, "daily_digest.mp3")
-                    
-                    if audio_path:
-                        logger.info("Audio mp3 generated: yes")
-                        send_audio_message(token, channel_id, audio_path, script)
-                    else:
-                        logger.warning("Audio mp3 generation failed, falling back to text")
-                        send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
-                else:
-                    logger.info("SaluteSpeech not configured, sending text digest")
-                    send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
-                
-                news_ids = [n['id'] for n in top_news]
-                from db import mark_news_in_digest
-                mark_news_in_digest(news_ids)
-                set_digest_sent('audio')
-            else:
-                logger.warning("Audio script generation failed")
-        else:
-            logger.info("No top news for audio digest")
-        return
+    cleanup_results = cleanup_by_retention_policy()
+    if cleanup_results:
+        logger.info(f"Cleanup: {cleanup_results}")
+    else:
+        logger.info("Cleanup: nothing to clean")
     
     pending_count = get_all_pending_count()
     logger.info(f"Queue size: {pending_count} pending items")
@@ -246,7 +199,143 @@ def run_publisher():
             logger.error(f"Failed: id={item['id']}")
     
     final_pending = get_all_pending_count()
-    logger.info(f"=== Publisher finished. Sent: {new_posts}, Remaining in queue: {final_pending} ===")
+    logger.info(f"=== Regular Publisher finished. Sent: {new_posts}, Remaining in queue: {final_pending} ===")
+
+def run_morning_digest():
+    """Morning digest mode"""
+    logger.info("=== Morning Digest mode ===")
+    logger.info(f"Time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    token = TOKEN
+    channel_id = CHANNEL_ID
+    
+    if channel_id:
+        if channel_id.startswith('@'):
+            channel_id = "-73160979033512"
+        elif channel_id.isdigit():
+            channel_id = f"-{channel_id}"
+    
+    if not token or not channel_id:
+        logger.error("MAX_BOT_TOKEN or CHANNEL_ID not set")
+        sys.exit(1)
+    
+    init_db()
+    logger.info("Database initialized")
+    
+    logger.info("Morning digest: generating...")
+    summary = get_morning_summary()
+    
+    if summary:
+        send_message(token, channel_id, summary)
+        logger.info("Morning summary sent")
+    else:
+        logger.warning("Morning summary generation failed")
+
+def run_audio_digest():
+    """Audio digest mode"""
+    logger.info("=== Audio Digest mode ===")
+    logger.info(f"Time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    token = TOKEN
+    channel_id = CHANNEL_ID
+    
+    if channel_id:
+        if channel_id.startswith('@'):
+            channel_id = "-73160979033512"
+        elif channel_id.isdigit():
+            channel_id = f"-{channel_id}"
+    
+    if not token or not channel_id:
+        logger.error("MAX_BOT_TOKEN or CHANNEL_ID not set")
+        sys.exit(1)
+    
+    init_db()
+    logger.info("Database initialized")
+    
+    top_news = get_top_news_for_digest(limit=5)
+    logger.info(f"Selected top news for digest: {len(top_news)}")
+    
+    if top_news:
+        script = get_audio_digest_script(top_news)
+        
+        if script:
+            logger.info("Audio script generated: yes")
+            
+            if tts_available():
+                logger.info("SaluteSpeech token obtained: yes")
+                audio_path = generate_audio(script, "daily_digest.mp3")
+                
+                if audio_path:
+                    logger.info("Audio mp3 generated: yes")
+                    send_audio_message(token, channel_id, audio_path, script)
+                else:
+                    logger.warning("Audio mp3 generation failed, falling back to text")
+                    send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
+            else:
+                logger.info("SaluteSpeech not configured, sending text digest")
+                send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
+            
+            news_ids = [n['id'] for n in top_news]
+            mark_news_in_digest(news_ids)
+            set_digest_sent('audio')
+            logger.info("Audio digest sent")
+        else:
+            logger.warning("Audio script generation failed")
+    else:
+        logger.info("No top news for audio digest")
+
+def run_final_digest():
+    """Final (evening) text digest mode"""
+    logger.info("=== Final Digest mode ===")
+    logger.info(f"Time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
+    
+    token = TOKEN
+    channel_id = CHANNEL_ID
+    
+    if channel_id:
+        if channel_id.startswith('@'):
+            channel_id = "-73160979033512"
+        elif channel_id.isdigit():
+            channel_id = f"-{channel_id}"
+    
+    if not token or not channel_id:
+        logger.error("MAX_BOT_TOKEN or CHANNEL_ID not set")
+        sys.exit(1)
+    
+    init_db()
+    logger.info("Database initialized")
+    
+    logger.info("Final digest: generating...")
+    digest = get_evening_digest()
+    
+    if digest:
+        send_message(token, channel_id, digest)
+        logger.info("Final digest sent")
+    else:
+        logger.warning("Final digest generation failed")
+
+def main():
+    parser = argparse.ArgumentParser(description='Publisher mode selector')
+    parser.add_argument(
+        '--mode',
+        type=str,
+        default='regular',
+        choices=['regular', 'morning_digest', 'audio_digest', 'final_digest'],
+        help='Publisher mode: regular, morning_digest, audio_digest, final_digest'
+    )
+    
+    args = parser.parse_args()
+    
+    logger.info(f"Starting in mode: {args.mode}")
+    
+    if args.mode == 'regular':
+        run_regular_publisher()
+    elif args.mode == 'morning_digest':
+        run_morning_digest()
+    elif args.mode == 'audio_digest':
+        run_audio_digest()
+    elif args.mode == 'final_digest':
+        run_final_digest()
 
 if __name__ == "__main__":
-    run_publisher()
+    main()
