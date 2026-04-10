@@ -26,16 +26,13 @@ logger.info(f"GITHUB_TOKEN configured = {bool(GITHUB_TOKEN)}")
 logger.info(f"FORCE_AUDIO_DIGEST = {FORCE_AUDIO_DIGEST}")
 logger.info(f"SALUTESPEECH_VOICE = {SALUTESPEECH_VOICE}")
 
-def send_message(token, chat_id, text, parse_mode: str = "HTML"):
+def send_message(token, chat_id, text, format: str = "html"):
     url = f"https://platform-api.max.ru/messages?chat_id={chat_id}"
     headers = {
         "Authorization": token,
         "Content-Type": "application/json"
     }
-    payload = {"text": text}
-    
-    if parse_mode:
-        payload["parse_mode"] = parse_mode
+    payload = {"text": text, "format": format, "disable_link_preview": False}
     
     try:
         response = requests.post(url, headers=headers, json=payload, timeout=30)
