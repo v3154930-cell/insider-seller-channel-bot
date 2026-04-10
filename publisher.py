@@ -6,7 +6,7 @@ import argparse
 from datetime import datetime
 from config import get_sent_links, save_link
 from formatters import format_news
-from db import init_db, get_pending_news, mark_published, get_all_pending_count, set_digest_sent, is_digest_sent_today, cleanup_by_retention_policy, get_top_news_for_digest, mark_news_in_digest, get_critical_news_hours, get_today_published
+from db import init_db, get_pending_news, mark_published, mark_dropped, get_all_pending_count, set_digest_sent, is_digest_sent_today, cleanup_by_retention_policy, get_top_news_for_digest, mark_news_in_digest, get_critical_news_hours, get_today_published
 from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN, select_best_items_for_publishing
 from scheduler import get_morning_summary, get_evening_digest, get_audio_digest_script, now_moscow, FORCE_AUDIO_DIGEST, SALUTESPEECH_VOICE, MOSCOW_TZ
 from tts import generate_audio, is_available as tts_available
@@ -151,12 +151,19 @@ def run_regular_publisher():
     selected = select_best_items_for_publishing(pending, MAX_POSTS_PER_RUN)
     
     if not selected:
-        logger.warning("Selection LLM failed or no relevant items, skipping run")
+        all_pending_ids = [item['id'] for item in pending]
+        mark_dropped(all_pending_ids)
+        logger.warning(f"Selection LLM failed or no relevant items, marked {len(all_pending_ids)} as dropped, skipping run")
         return
     
     selected_ids = [item['id'] for item in selected]
-    rejected_count = len(pending) - len(selected)
+    rejected_ids = [item['id'] for item in pending if item['id'] not in selected_ids]
+    rejected_count = len(rejected_ids)
     logger.info(f"Batch selection ok: selected={selected_ids}, rejected={rejected_count}")
+    
+    if rejected_ids:
+        mark_dropped(rejected_ids)
+        logger.info(f"Marked {len(rejected_ids)} items as dropped for cleanup")
     
     for i, item in enumerate(selected):
         logger.info(f"Selected for publish: id={item['id']}")
