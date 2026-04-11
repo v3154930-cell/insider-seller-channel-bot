@@ -16,6 +16,27 @@ SCORE_WEIGHTS = {
     'general': 5
 }
 
+# Source priority weights (Tier 1 = highest)
+SOURCE_PRIORITY = {
+    'tier1': 20,   # Ozon, WB, Yandex direct
+    'tier2': 10,   # Retail, Oborot, E-commerce media
+    'tier3': 0,    # General news (RBC, CNews, vc.ru)
+}
+
+# Source name to tier mapping (matches parsers.py feed names)
+SOURCE_TIER_MAP = {
+    'Ozon Seller API': 'tier1',
+    'Ozon Seller News': 'tier1',
+    'WB Docs News': 'tier1',
+    'Yandex Market Dev': 'tier1',
+    'Retail.ru': 'tier2',
+    'Oborot.ru': 'tier2',
+    'E-Pepper': 'tier2',
+    'Право.ru': 'tier2',
+    'МосГорСуд': 'tier2',
+    'МособлСуд': 'tier2',
+}
+
 PRIORITY_BUCKETS = {
     'critical': ['court', 'fine', 'regulation', 'bankruptcy', 'restriction'],
     'high': ['marketplace', 'seller_impact', 'deal', 'important_sale'],
@@ -38,29 +59,65 @@ KEYWORD_PATTERNS = {
 }
 
 NOISE_PATTERNS = [
+    # Events without seller impact
     r'конференция',
     r'выставка',
     r'мероприятие',
     r'презентация',
     r'интервью',
+    r'форум',
+    r'митап',
+    r'вебинар',
+    # HR / career noise
     r'назначение',
     r'вакансия',
     r'приём на работу',
     r'карьера',
     r'hr',
+    r'сокращение',
+    r'увольнение',
+    r'найм',
+    r'новый глава',
+    r'новый директор',
+    r'гендиректор',
+    # Corporate / strategy
     r'спонсор',
     r'благотворительн',
     r'иммерсивн',
     r'культурн',
     r'спортивн',
-    r'открытие склада \(новый склад\)',
-    r'новый склад',
-    r'зелёный свет',
     r'миссия',
-    r'стратеги'
+    r'стратеги',
+    r'планы развития',
+    # Local facilities (no broad impact)
+    r'открытие склада',
+    r'новый склад',
+    r'новое помещение',
+    r'открытие офиса',
+    r'новый офис',
+    r'зелёный свет',
+    # Personal / opinion
+    r'мнение',
+    r'колонка',
+    r'блог',
+    r'личный опыт',
+    # Real estate (unless massive)
+    r'аренда помещен',
+    r'купили офис',
+    r'продали офис',
+    r'арендовали помещен',
+    # Routine news without impact
+    r'поздравляем',
+    r'праздник',
+    r'день рождения',
+    r'юбилей',
+    r'получил преми',
+    r'награда',
+    r'рейтинг.*компани',
+    r'топ.*компани'
 ]
 
-def calculate_score(title: str, description: str, category: str = 'general') -> Tuple[int, str, List[str]]:
+def calculate_score(title: str, description: str, category: str = 'general', source: str | None = None) -> Tuple[int, str, List[str]]:
     """Рассчитывает score, priority bucket и reason tags для новости"""
     text = f"{title} {description}".lower()
     matched_tags = []
@@ -73,6 +130,12 @@ def calculate_score(title: str, description: str, category: str = 'general') -> 
                 total_score += weight
                 matched_tags.append(tag)
                 break
+    
+    # Apply source priority bonus
+    if source:
+        tier = SOURCE_TIER_MAP.get(source)
+        if tier and SOURCE_PRIORITY.get(tier):
+            total_score += SOURCE_PRIORITY[tier]
     
     if category == 'sale':
         total_score += SCORE_WEIGHTS.get('important_sale', 15)
@@ -117,8 +180,9 @@ def score_item(item: Dict) -> Dict:
     title = item.get('title', '')
     description = item.get('description', item.get('raw_text', ''))
     category = item.get('category', 'general')
+    source = item.get('source', '')
     
-    score, priority_bucket, reason_tags = calculate_score(title, description, category)
+    score, priority_bucket, reason_tags = calculate_score(title, description, category, source)
     
     item['score'] = score
     item['priority_bucket'] = priority_bucket

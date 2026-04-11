@@ -12,6 +12,12 @@ from config import DEFAULT_IMAGE_URL
 logger = logging.getLogger(__name__)
 
 RSS_FEEDS = [
+    # Tier 1 - Priority: Marketplace seller news (highest)
+    ("https://seller.ozon.ru/api/v1/news/", "Ozon Seller API"),
+    ("https://seller.ozon.ru/info/news/", "Ozon Seller News"),
+    ("https://docs.wildberries.ru/news/", "WB Docs News"),
+    ("https://market.yandex.ru/dev/news", "Yandex Market Dev"),
+    # Tier 2 - Useful: E-commerce / retail media
     ("https://www.retail.ru/rss/news/", "Retail.ru"),
     ("https://oborot.ru/feed/", "Oborot.ru"),
     ("https://vc.ru/rss/all", "vc.ru"),
