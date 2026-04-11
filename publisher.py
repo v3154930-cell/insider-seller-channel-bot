@@ -226,14 +226,16 @@ def run_morning_digest():
     init_db()
     logger.info("Database initialized")
     
-    logger.info("Morning digest: generating...")
+    logger.info("Generating morning digest summary...")
     summary = get_morning_summary()
     
     if summary:
+        logger.info(f"Morning summary generated (length: {len(summary)} chars)")
+        logger.info("Sending morning digest to channel...")
         send_message(token, channel_id, summary)
-        logger.info("Morning summary sent")
+        logger.info("Morning digest sent successfully")
     else:
-        logger.warning("Morning summary generation failed")
+        logger.warning("Morning summary generation failed or returned empty")
 
 def run_audio_digest():
     """Audio digest mode"""
@@ -256,37 +258,42 @@ def run_audio_digest():
     init_db()
     logger.info("Database initialized")
     
+    logger.info("Fetching top news for audio digest...")
     top_news = get_top_news_for_digest(limit=5)
     logger.info(f"Selected top news for digest: {len(top_news)}")
     
-    if top_news:
-        script = get_audio_digest_script(top_news)
+    if not top_news:
+        logger.warning("No top news available for audio digest - skipping")
+        return
+    
+    logger.info("Generating audio digest script...")
+    script = get_audio_digest_script(top_news)
+    
+    if not script:
+        logger.error("FAILURE: Audio script generation failed - no script returned")
+        return
+    
+    logger.info(f"Audio script generated: yes (length: {len(script)} chars)")
+    
+    if tts_available():
+        logger.info("SaluteSpeech available: yes, generating audio...")
+        audio_path = generate_audio(script, "daily_digest.mp3")
         
-        if script:
-            logger.info("Audio script generated: yes")
-            
-            if tts_available():
-                logger.info("SaluteSpeech token obtained: yes")
-                audio_path = generate_audio(script, "daily_digest.mp3")
-                
-                if audio_path:
-                    logger.info("Audio mp3 generated: yes")
-                    send_audio_message(token, channel_id, audio_path, script)
-                else:
-                    logger.warning("Audio mp3 generation failed, falling back to text")
-                    send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
-            else:
-                logger.info("SaluteSpeech not configured, sending text digest")
-                send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
-            
-            news_ids = [n['id'] for n in top_news]
-            mark_news_in_digest(news_ids)
-            set_digest_sent('audio')
-            logger.info("Audio digest sent")
+        if audio_path:
+            logger.info(f"Audio mp3 generated: yes (path: {audio_path})")
+            logger.info("Sending audio message to channel...")
+            send_audio_message(token, channel_id, audio_path, script)
         else:
-            logger.warning("Audio script generation failed")
+            logger.warning("Audio mp3 generation FAILED, falling back to text")
+            send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
     else:
-        logger.info("No top news for audio digest")
+        logger.warning("SaluteSpeech NOT configured, sending text digest")
+        send_message(token, channel_id, f"🎙️ Daily Digest\n\n{script}")
+    
+    news_ids = [n['id'] for n in top_news]
+    mark_news_in_digest(news_ids)
+    set_digest_sent('audio')
+    logger.info("Audio digest sent - digest marked as sent")
 
 def run_final_digest():
     """Final (evening) text digest mode"""
@@ -309,14 +316,16 @@ def run_final_digest():
     init_db()
     logger.info("Database initialized")
     
-    logger.info("Final digest: generating...")
+    logger.info("Generating final digest summary...")
     digest = get_evening_digest()
     
     if digest:
+        logger.info(f"Final digest generated (length: {len(digest)} chars)")
+        logger.info("Sending final digest to channel...")
         send_message(token, channel_id, digest)
-        logger.info("Final digest sent")
+        logger.info("Final digest sent successfully")
     else:
-        logger.warning("Final digest generation failed")
+        logger.warning("Final digest generation failed or returned empty")
 
 def main():
     parser = argparse.ArgumentParser(description='Publisher mode selector')
@@ -331,6 +340,7 @@ def main():
     args = parser.parse_args()
     
     logger.info(f"Starting in mode: {args.mode}")
+    logger.info(f"Current Moscow time: {now_moscow().strftime('%Y-%m-%d %H:%M:%S %Z')}")
     
     if args.mode == 'regular':
         run_regular_publisher()

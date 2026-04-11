@@ -54,7 +54,8 @@ def send_message(token, chat_id, text, format: str = "html"):
 
 def is_silent_hours():
     """Проверяет, сейчас тихий час (00:00-06:00 МСК)"""
-    msk = datetime.now()
+    from scheduler import now_moscow
+    msk = now_moscow()
     return msk.hour < 6
 
 def send_audio_message(token, chat_id, audio_path, text_announce):
@@ -120,7 +121,7 @@ def send_audio_message(token, chat_id, audio_path, text_announce):
 def main():
     """Основная функция бота"""
     logger.info("=== Starting Insider Seller Bot ===")
-    logger.info(f"Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info(f"Time (local): {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     
     token = TOKEN
     channel_id = CHANNEL_ID
