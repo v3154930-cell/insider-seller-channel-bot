@@ -3,7 +3,7 @@ import sys
 import logging
 from datetime import datetime
 from config import get_sent_links
-from parsers import get_all_news, parse_court_cases, parse_sales, parse_legal_news, extract_sales_from_news
+from parsers import get_all_news, parse_court_cases, parse_sales, parse_legal_news, extract_sales_from_news, fetch_html_sources
 from filters import filter_news
 from db import init_db, add_to_queue_batch, get_all_pending_count, clean_duplicates, get_duplicate_count, cleanup_by_retention_policy, save_to_rejects
 from scheduler import now_moscow
@@ -35,6 +35,10 @@ def run_collector():
     
     news_items = get_all_news(hours=24)
     logger.info(f"RSS fetched: {len(news_items)}")
+    
+    html_news = fetch_html_sources(hours=24)
+    logger.info(f"HTML sources fetched: {len(html_news)}")
+    news_items.extend(html_news)
     
     legal_items = parse_legal_news(news_items)
     logger.info(f"Legal fallback feeds: {len(legal_items)}")
