@@ -15,9 +15,9 @@ EVENING_HOUR = 23
 QUIET_HOURS_START = int(os.getenv("QUIET_HOURS_START", "22"))
 QUIET_HOURS_END = int(os.getenv("QUIET_HOURS_END", "6"))
 
-ENABLE_MORNING_DIGEST = os.getenv("ENABLE_MORNING_DIGEST", "true").lower() == "true"
-ENABLE_EVENING_DIGEST = os.getenv("ENABLE_EVENING_DIGEST", "true").lower() == "true"
-ENABLE_AUDIO_DIGEST = os.getenv("ENABLE_AUDIO_DIGEST", "true").lower() == "true"
+ENABLE_MORNING_DIGEST = os.getenv("ENABLE_MORNING_DIGEST", "false").lower() == "true"
+ENABLE_EVENING_DIGEST = os.getenv("ENABLE_EVENING_DIGEST", "false").lower() == "true"
+ENABLE_AUDIO_DIGEST = os.getenv("ENABLE_AUDIO_DIGEST", "false").lower() == "true"
 ENABLE_QUIET_HOURS = os.getenv("ENABLE_QUIET_HOURS", "true").lower() == "true"
 
 _audio_hour = os.getenv("AUDIO_DIGEST_HOUR_MSK", "22")
