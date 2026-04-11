@@ -323,7 +323,7 @@ def mark_dropped(news_ids: List[int]):
     if not news_ids:
         return
     placeholders = ','.join('?' * len(news_ids))
-    _execute(f'UPDATE news SET seller_decision = "drop" WHERE id IN ({placeholders})', tuple(news_ids))
+    _execute(f"UPDATE news SET seller_decision = 'drop' WHERE id IN ({placeholders})", tuple(news_ids))
 
 def update_processed_text(news_id: int, processed_text: str):
     _execute('UPDATE news SET processed_text = ? WHERE id = ?', (processed_text, news_id))
