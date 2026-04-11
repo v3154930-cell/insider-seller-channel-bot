@@ -6,24 +6,70 @@ from urllib.parse import urljoin
 import hashlib
 import logging
 from datetime import datetime, timezone
+from typing import List, Dict
 from filters import is_court_case, is_seller_story
 from config import DEFAULT_IMAGE_URL
 
 logger = logging.getLogger(__name__)
 
 RSS_FEEDS = [
-    # Tier 1 - Priority: Marketplace seller news (highest)
-    ("https://seller.ozon.ru/api/v1/news/", "Ozon Seller API"),
-    ("https://seller.ozon.ru/info/news/", "Ozon Seller News"),
-    ("https://docs.wildberries.ru/news/", "WB Docs News"),
-    ("https://market.yandex.ru/dev/news", "Yandex Market Dev"),
-    # Tier 2 - Useful: E-commerce / retail media
+    # === TIER 1: Marketplace Official Sources (highest priority) ===
+    # Ozon Seller (no RSS - use Telegram or dev.ozon.ru HTML parsing)
+    # Watch: https://dev.ozon.ru/news/ and Telegram: @OzonSellerAPI
+    # Wildberries API Digest
+    ("https://dev.wildberries.ru/news/rss/", "WB API Digest"),
+    ("https://dev.wildberries.ru/en/news/rss/", "WB API Digest EN"),
+    # Yandex Market Partner API Changelog
+    ("https://yandex.ru/dev/market/partner-api/doc/ru/changelog/feed.atom", "Yandex Market Changelog"),
+    # === TIER 2: E-commerce / Retail Media (medium priority) ===
     ("https://www.retail.ru/rss/news/", "Retail.ru"),
     ("https://oborot.ru/feed/", "Oborot.ru"),
     ("https://vc.ru/rss/all", "vc.ru"),
     ("https://www.cnews.ru/inc/rss/news.xml", "CNews"),
     ("https://rssexport.rbc.ru/rbcnews/news/30/full.rss", "RBC")
 ]
+
+# HTML-only sources (no RSS) - require custom parsing
+HTML_ONLY_SOURCES = {
+    "Ozon Seller News": {
+        "url": "https://dev.ozon.ru/news/",
+        "type": "html",
+        "tier": "tier1",
+        "selectors": {
+            "item": ".news-item, .article-item, .news-list__item",
+            "title": "h2, .news-item__title, .article-title",
+            "link": "a[href]",
+            "date": ".news-item__date, time, .article-date"
+        }
+    },
+    "Ozon Seller API Changes": {
+        "url": "https://dev.ozon.ru/api/v1/news/",
+        "type": "json",  # API endpoint
+        "tier": "tier1"
+    },
+    "WB Release Notes": {
+        "url": "https://dev.wildberries.ru/news/",
+        "type": "html",
+        "tier": "tier1",
+        "selectors": {
+            "item": ".news-item, .digest-item",
+            "title": "h3, .news-item__title",
+            "link": "a[href]",
+            "date": ".news-item__date"
+        }
+    },
+    "Yandex Market Updates": {
+        "url": "https://yandex.ru/dev/market/partner-api/doc/ru/changelog/all",
+        "type": "html",
+        "tier": "tier1",
+        "selectors": {
+            "item": "h2, .changelog-item",
+            "title": "h3, .method-name",
+            "link": "a[href*=method]",
+            "date": ".date, time"
+        }
+    }
+}
 
 LEGAL_NEWS_FEEDS = [
     ("https://pravo.ru/news/partner/feed/", "Право.ru"),
@@ -298,3 +344,61 @@ def parse_court_cases():
     
     logger.info(f"Court RSS: {len(court_news)} items from court feeds")
     return court_news
+
+
+def fetch_html_sources(hours: int = 24) -> List[Dict]:
+    """Fetch news from HTML-only sources (no RSS available)"""
+    html_news = []
+    
+    for source_name, config in HTML_ONLY_SOURCES.items():
+        try:
+            url = config.get('url')
+            source_type = config.get('type', 'html')
+            tier = config.get('tier', 'tier2')
+            
+            if source_type == 'json':
+                # API endpoint
+                response = requests.get(url, timeout=15)
+                if response.status_code == 200:
+                    data = response.json()
+                    # Parse JSON structure (Ozon-style)
+                    items = data.get('items', data.get('news', []))
+                    for item in items:
+                        html_news.append({
+                            'title': item.get('title', ''),
+                            'description': item.get('description', item.get('annotation', '')),
+                            'link': item.get('link', item.get('url', '')),
+                            'source': source_name,
+                            'category': 'marketplace',
+                            'importance': 'high',
+                            'priority_bucket': 'high'
+                        })
+            else:
+                # HTML parsing
+                response = requests.get(url, timeout=15)
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    selectors = config.get('selectors', {})
+                    
+                    items = soup.select(selectors.get('item', 'article, .news-item'))
+                    for item in items:
+                        title_elem = item.select_one(selectors.get('title', 'h2, h3, .title'))
+                        link_elem = item.select_one(selectors.get('link', 'a[href]'))
+                        date_elem = item.select_one(selectors.get('date', 'time, .date'))
+                        
+                        if title_elem:
+                            html_news.append({
+                                'title': title_elem.get_text(strip=True),
+                                'description': item.get_text(strip=True)[:200],
+                                'link': link_elem.get('href', '') if link_elem else '',
+                                'source': source_name,
+                                'category': 'marketplace',
+                                'importance': 'high',
+                                'priority_bucket': 'high'
+                            })
+            
+            logger.info(f"HTML source [{source_name}]: {len(html_news)} items")
+        except Exception as e:
+            logger.warning(f"HTML source [{source_name}] error: {e}")
+    
+    return html_news

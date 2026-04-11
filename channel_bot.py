@@ -4,7 +4,7 @@ import logging
 import requests
 from datetime import datetime
 from config import get_sent_links, save_link
-from parsers import get_all_news, parse_court_cases, parse_sales, parse_legal_news, extract_sales_from_news
+from parsers import get_all_news, parse_court_cases, parse_sales, parse_legal_news, extract_sales_from_news, fetch_html_sources
 from formatters import format_news
 from filters import filter_news
 from db import init_db, get_pending_news, add_to_queue_batch, mark_published, get_all_pending_count, get_top_news_for_digest, set_digest_sent, is_digest_sent_today
@@ -204,6 +204,10 @@ def main():
     
     news_items = get_all_news(hours=24)
     logger.info(f"RSS fetched: {len(news_items)}")
+    
+    html_news = fetch_html_sources(hours=24)
+    logger.info(f"HTML sources fetched: {len(html_news)}")
+    news_items.extend(html_news)
     
     legal_items = parse_legal_news(news_items)
     logger.info(f"Legal fallback feeds: {len(legal_items)}")
