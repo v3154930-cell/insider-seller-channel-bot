@@ -13,15 +13,10 @@ from config import DEFAULT_IMAGE_URL
 logger = logging.getLogger(__name__)
 
 RSS_FEEDS = [
-    # === TIER 1: Marketplace Official Sources (highest priority) ===
-    # Ozon Seller (no RSS - use Telegram or dev.ozon.ru HTML parsing)
-    # Watch: https://dev.ozon.ru/news/ and Telegram: @OzonSellerAPI
-    # Wildberries API Digest
-    ("https://dev.wildberries.ru/news/rss/", "WB API Digest"),
-    ("https://dev.wildberries.ru/en/news/rss/", "WB API Digest EN"),
-    # Yandex Market Partner API Changelog
-    ("https://yandex.ru/dev/market/partner-api/doc/ru/changelog/feed.atom", "Yandex Market Changelog"),
-    # === TIER 2: E-commerce / Retail Media (medium priority) ===
+    # === TIER 1: Marketplace Official - NO PUBLIC RSS AVAILABLE ===
+    # All official marketplace docs use HTML/API, not RSS
+    # Monitoring via: Telegram @OzonSellerAPI, @wb_api_news
+    # === TIER 2: E-commerce / Retail Media (working RSS) ===
     ("https://www.retail.ru/rss/news/", "Retail.ru"),
     ("https://oborot.ru/feed/", "Oborot.ru"),
     ("https://vc.ru/rss/all", "vc.ru"),
@@ -29,44 +24,30 @@ RSS_FEEDS = [
     ("https://rssexport.rbc.ru/rbcnews/news/30/full.rss", "RBC")
 ]
 
-# HTML-only sources (no RSS) - require custom parsing
+# HTML-only sources with actual working endpoints
 HTML_ONLY_SOURCES = {
     "Ozon Seller News": {
-        "url": "https://dev.ozon.ru/news/",
+        "url": "https://dev.ozon.ru/ru/news/",
         "type": "html",
         "tier": "tier1",
+        "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
         "selectors": {
-            "item": ".news-item, .article-item, .news-list__item",
-            "title": "h2, .news-item__title, .article-title",
+            "item": "article, .news-item, .article",
+            "title": "h1, h2, .news-item__title",
             "link": "a[href]",
-            "date": ".news-item__date, time, .article-date"
-        }
-    },
-    "Ozon Seller API Changes": {
-        "url": "https://dev.ozon.ru/api/v1/news/",
-        "type": "json",  # API endpoint
-        "tier": "tier1"
-    },
-    "WB Release Notes": {
-        "url": "https://dev.wildberries.ru/news/",
-        "type": "html",
-        "tier": "tier1",
-        "selectors": {
-            "item": ".news-item, .digest-item",
-            "title": "h3, .news-item__title",
-            "link": "a[href]",
-            "date": ".news-item__date"
+            "date": "time, .news-item__date, .article__date"
         }
     },
     "Yandex Market Updates": {
         "url": "https://yandex.ru/dev/market/partner-api/doc/ru/changelog/all",
         "type": "html",
         "tier": "tier1",
+        "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
         "selectors": {
-            "item": "h2, .changelog-item",
-            "title": "h3, .method-name",
-            "link": "a[href*=method]",
-            "date": ".date, time"
+            "item": "h3[id]",
+            "title": "h3",
+            "link": "a[href]",
+            "date": "h3"
         }
     }
 }
@@ -375,7 +356,8 @@ def fetch_html_sources(hours: int = 24) -> List[Dict]:
                         })
             else:
                 # HTML parsing
-                response = requests.get(url, timeout=15)
+                headers = config.get('headers', {})
+                response = requests.get(url, timeout=15, headers=headers)
                 if response.status_code == 200:
                     soup = BeautifulSoup(response.text, 'html.parser')
                     selectors = config.get('selectors', {})
@@ -387,9 +369,17 @@ def fetch_html_sources(hours: int = 24) -> List[Dict]:
                         date_elem = item.select_one(selectors.get('date', 'time, .date'))
                         
                         if title_elem:
+                            title_text = title_elem.get_text(strip=True)
+                            if not title_text or len(title_text) < 5:
+                                continue
+                            
+                            item_text = item.get_text(strip=True)
+                            if len(item_text) > 1000:
+                                item_text = item_text[:1000]
+                            
                             html_news.append({
-                                'title': title_elem.get_text(strip=True),
-                                'description': item.get_text(strip=True)[:200],
+                                'title': title_text,
+                                'description': item_text,
                                 'link': link_elem.get('href', '') if link_elem else '',
                                 'source': source_name,
                                 'category': 'marketplace',
