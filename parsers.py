@@ -24,33 +24,37 @@ RSS_FEEDS = [
     ("https://rssexport.rbc.ru/rbcnews/news/30/full.rss", "RBC")
 ]
 
-# HTML-only sources with actual working endpoints
+# HTML-only sources - DISABLED: return 0 items consistently
+# Keeping for future reference if URLs start working
 HTML_ONLY_SOURCES = {
-    "Ozon Seller News": {
-        "url": "https://dev.ozon.ru/ru/news/",
-        "type": "html",
-        "tier": "tier1",
-        "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
-        "selectors": {
-            "item": "article, .news-item, .article",
-            "title": "h1, h2, .news-item__title",
-            "link": "a[href]",
-            "date": "time, .news-item__date, .article__date"
-        }
-    },
-    "Yandex Market Updates": {
-        "url": "https://yandex.ru/dev/market/partner-api/doc/ru/changelog/all",
-        "type": "html",
-        "tier": "tier1",
-        "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
-        "selectors": {
-            "item": "h3[id]",
-            "title": "h3",
-            "link": "a[href]",
-            "date": "h3"
-        }
-    }
+    # "Ozon Seller News": {
+    #     "url": "https://dev.ozon.ru/ru/news/",
+    #     "type": "html",
+    #     "tier": "tier1",
+    #     "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
+    #     "selectors": {
+    #         "item": "article, .news-item, .article",
+    #         "title": "h1, h2, .news-item__title",
+    #         "link": "a[href]",
+    #         "date": "time, .news-item__date, .article__date"
+    #     }
+    # },
+    # "Yandex Market Updates": {
+    #     "url": "https://yandex.ru/dev/market/partner-api/doc/ru/changelog/all",
+    #     "type": "html",
+    #     "tier": "tier1",
+    #     "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
+    #     "selectors": {
+    #         "item": "h3[id]",
+    #         "title": "h3",
+    #         "link": "a[href]",
+    #         "date": "h3"
+    #     }
+    # }
 }
+
+# Enable/disable flag
+ENABLE_HTML_SOURCES = False
 
 LEGAL_NEWS_FEEDS = [
     ("https://pravo.ru/news/partner/feed/", "Право.ru"),
@@ -329,6 +333,10 @@ def parse_court_cases():
 
 def fetch_html_sources(hours: int = 24) -> List[Dict]:
     """Fetch news from HTML-only sources (no RSS available)"""
+    if not ENABLE_HTML_SOURCES:
+        logger.info("HTML sources disabled (ENABLE_HTML_SOURCES=False)")
+        return []
+    
     html_news = []
     
     for source_name, config in HTML_ONLY_SOURCES.items():

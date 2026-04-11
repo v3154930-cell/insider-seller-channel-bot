@@ -1,4 +1,5 @@
 import re
+import os
 from typing import Dict, List, Tuple
 
 SCORE_WEIGHTS = {
@@ -15,6 +16,9 @@ SCORE_WEIGHTS = {
     'commission': 10,
     'general': 5
 }
+
+# Minimum score threshold - filter out low-quality items
+MIN_SCORE_THRESHOLD = int(os.getenv("MIN_SCORE_THRESHOLD", "15"))
 
 # Source priority weights (Tier 1 = highest)
 SOURCE_PRIORITY = {
@@ -114,7 +118,52 @@ NOISE_PATTERNS = [
     r'получил преми',
     r'награда',
     r'рейтинг.*компани',
-    r'топ.*компани'
+    r'топ.*компани',
+    # === NEW: Political / Macro / International noise ===
+    r'поддержал.*орбан',
+    r'орбан.*поддержал',
+    r'сорос',
+    r'нато',
+    r'евросоюз',
+    r'европейск',
+    r'сша',
+    r'америка',
+    r'китай',
+    r'германи',
+    r'франци',
+    r'выборы',
+    r'президент',
+    r'правительство',
+    r'военн',
+    r'конфликт',
+    r'санкции',
+    r'дипломат',
+    r'чехи[я]',
+    r'серби[я]',
+    r'венгри[я]',
+    r'польш[а]',
+    r'украин',
+    r'ближний восток',
+    r'инфляция.*рф',
+    r'курс.*доллар',
+    r'курс.*евро',
+    r'ключевая ставк',
+    r'центробанк',
+    r'ввп.*росси',
+    r'безработиц',
+    r'отчёт.*год',
+    r'выручка.*год',
+    r'финансов.*результат',
+    r'дивиденд',
+    r'акции.*компани',
+    r'ipo',
+    # Foreign language noise
+    r'相关新闻',
+    r'ข่าว',
+    r'日本',
+    r'한국',
+    r'BREAKING',
+    r'updated:',
 ]
 
 def calculate_score(title: str, description: str, category: str = 'general', source: str | None = None) -> Tuple[int, str, List[str]]:
@@ -199,6 +248,11 @@ def score_items(items: List[Dict]) -> List[Dict]:
             continue
         
         item = score_item(item)
+        
+        # Skip items below minimum score threshold
+        if item.get('score', 0) < MIN_SCORE_THRESHOLD:
+            continue
+        
         scored.append(item)
     
     scored.sort(key=lambda x: (x.get('score', 0), x.get('importance', 'normal')), reverse=True)
