@@ -96,18 +96,14 @@ def format_news(item):
     link = item.get('link', '')
     insight = get_insight(title, description)
     
-    post = f"""{source_emoji} <b>{source}</b> {topic_emoji}
+    post = f"""📰 <b>{source}</b>
 
-<b>{title}</b>
+🔹 <b>{title}</b>
 
 {short_text}
 
-💡 <b>Суть:</b> {insight}
+⚠️ <b>Что это значит для селлера:</b> {insight}
 
-🔗 <a href="{link}">Подробнее</a>
-
-📎 Источник: {link}
-
-{hashtags}"""
+🔗 <a href="{link}">Источник</a>"""
     
     return post
