@@ -207,6 +207,12 @@ def run_regular_publisher():
 
 def run_morning_digest():
     """Morning digest mode"""
+    from scheduler import ENABLE_MORNING_DIGEST
+    
+    if not ENABLE_MORNING_DIGEST:
+        logger.info("Morning digest disabled by ENABLE_MORNING_DIGEST flag - skipping")
+        return
+    
     logger.info("=== Morning Digest mode ===")
     logger.info(f"Time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
     
@@ -303,6 +309,12 @@ def run_audio_digest():
 
 def run_final_digest():
     """Final (evening) text digest mode"""
+    from scheduler import ENABLE_EVENING_DIGEST
+    
+    if not ENABLE_EVENING_DIGEST:
+        logger.info("Evening digest disabled by ENABLE_EVENING_DIGEST flag - skipping")
+        return
+    
     logger.info("=== Final Digest mode ===")
     logger.info(f"Time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
     
