@@ -239,6 +239,12 @@ def run_morning_digest():
 
 def run_audio_digest():
     """Audio digest mode"""
+    from scheduler import ENABLE_AUDIO_DIGEST
+    
+    if not ENABLE_AUDIO_DIGEST:
+        logger.info("Audio digest disabled by ENABLE_AUDIO_DIGEST flag - skipping")
+        return
+    
     logger.info("=== Audio Digest mode ===")
     logger.info(f"Time (Moscow): {now_moscow().strftime('%Y-%m-%d %H:%M:%S')}")
     
