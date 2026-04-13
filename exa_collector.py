@@ -9,7 +9,7 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict
 
 try:
-    from exa import Exa
+    from exa_py import Exa
 except ImportError:
     Exa = None
 
@@ -94,20 +94,26 @@ def search_exa(query: str, num_results: int = 10) -> List[Dict]:
         results = exa.search(
             query,
             num_results=num_results,
-            text=True,
-            include_domains=["news", "blog"]
+            include_domains=["news", "blog"],
+            contents={"highlights": {"num_highlights": 3}}
         )
         
         _increment_usage()
         
         news_items = []
         for item in results.results:
+            raw_text = ""
+            if hasattr(item, 'highlights') and item.highlights:
+                raw_text = "\n\n".join(item.highlights)
+            elif hasattr(item, 'text') and item.text:
+                raw_text = item.text
+            
             news_items.append({
                 "title": item.title or "",
-                "raw_text": item.text or "",
+                "raw_text": raw_text,
                 "link": item.url or "",
                 "source": "exa",
-                "published_at": item.published_date or None
+                "published_at": getattr(item, 'published_date', None)
             })
         
         logger.info(f"EXA search ok: {len(news_items)} results")
