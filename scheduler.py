@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 MOSCOW_TZ = pytz.timezone('Europe/Moscow')
 
 MORNING_HOUR = 6
-MORNING_WINDOW_END = int(os.getenv("MORNING_WINDOW_END", "9"))  # До 9:00 MSK можно отправить morning digest
+MORNING_WINDOW_END = int(os.getenv("MORNING_WINDOW_END", "9"))
 EVENING_HOUR = 23
 
 QUIET_HOURS_START = int(os.getenv("QUIET_HOURS_START", "22"))
@@ -31,7 +31,6 @@ def now_moscow():
     return datetime.now(MOSCOW_TZ)
 
 def is_quiet_hours() -> bool:
-    """Проверяет, сейчас ли Quiet Hours (ночное время, когда regular posts не публикуются)"""
     if not ENABLE_QUIET_HOURS:
         return False
     
@@ -131,34 +130,34 @@ def get_morning_summary() -> Optional[str]:
     logger.info(f"Selected top news for digest: {len(critical_news)}")
     
     if not critical_news:
-        result = "Утренняя сводка\n\nНочь прошла спокойно, важных изменений нет.\nХорошего дня!"
+        result = "Morning digest: nothing important happened overnight. Have a good day!"
         set_digest_sent('morning')
         return result
     
     if USE_LLM:
         summary_text = "\n\n".join([
-            f"• {n['title']}" for n in critical_news[:5]
+            f"- {n['title']}" for n in critical_news[:5]
         ])
         
         from llm import GITHUB_TOKEN
         if GITHUB_TOKEN:
             try:
                 from llm import enhance_post_with_llm
-                prompt = f"""Создай утреннюю сводку для канала о маркетплейсах. 
+                prompt = f"""Create morning summary for marketplace channel.
 
-Новости за ночь:
+News overnight:
 {summary_text}
 
-Формат:
-🌅 Доброе утро! За ночь произошли изменения:
-[кратко 2-3 предложения о главном]
-Хорошего дня!"""
+Format:
+Morning digest - what changed overnight:
+[brief 2-3 sentences about main things]
+Have a good day!"""
 
                 result = enhance_post_with_llm({
-                    'title': 'Утренняя сводка',
+                    'title': 'Morning summary',
                     'raw_text': summary_text,
                     'link': '',
-                    'source': 'Бот',
+                    'source': 'Bot',
                     'category': 'summary'
                 })
                 
@@ -169,14 +168,14 @@ def get_morning_summary() -> Optional[str]:
                 logger.warning(f"LLM morning summary error: {e}")
     
     critical_items = "\n".join([
-        f"• {n['title'][:100]}" for n in critical_news[:5]
+        f"- {n['title'][:100]}" for n in critical_news[:5]
     ])
     
-    result = f"""Утренняя сводка | За ночь произошли изменения:
+    result = f"""Morning digest | What changed overnight:
 
 {critical_items}
 
-Хорошего дня!"
+Have a good day!"""
     
     set_digest_sent('morning')
     return result
@@ -191,7 +190,7 @@ def get_evening_digest() -> Optional[str]:
     
     if not today_news:
         date = datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y")
-        result = f"ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}\n\nДень прошёл спокойно, значимых изменений не произошло.\nДоброй ночи!"
+        result = f"EVENING DIGEST | {date}\n\nDay was quiet, no important changes. Good night!"
         set_digest_sent('evening')
         return result
     
@@ -200,15 +199,15 @@ def get_evening_digest() -> Optional[str]:
     
     if USE_LLM and GITHUB_TOKEN and critical:
         summary_text = "\n\n".join([
-            f"• {n['title']}" for n in critical[:7]
+            f"- {n['title']}" for n in critical[:7]
         ])
         
         try:
             result = enhance_post_with_llm({
-                'title': 'Вечерний дайджест',
+                'title': 'Evening digest',
                 'raw_text': summary_text,
                 'link': '',
-                'source': 'Бот',
+                'source': 'Bot',
                 'category': 'digest'
             })
             
@@ -226,26 +225,25 @@ def get_evening_digest() -> Optional[str]:
         critical_items = "\n".join([
             f"[*] {n['title'][:80]}" for n in critical[:3]
         ])
-        result = f"""ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}
+        result = f"""EVENING DIGEST | {date}
 
-КРИТИЧНО:
+CRITICAL:
 {critical_items}
 
-Всего опубликовано: {len(today_news)} новостей
-Доброй ночи!"""
+Total published: {len(today_news)} news
+Good night!"""
     else:
-        result = f"""ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}
+        result = f"""EVENING DIGEST | {date}
 
-День прошёл спокойно, значимых изменений не произошло.
+Day was quiet, no important changes.
 
-Всего опубликовано: {len(today_news)} новостей
-Доброй ночи!"""
+Total published: {len(today_news)} news
+Good night!"""
     
     set_digest_sent('evening')
     return result
 
 def get_audio_digest_script(top_news: List[dict]) -> Optional[str]:
-    """Генерирует сценарий для аудио-дайджеста"""
     from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN
     
     logger.info("Audio script generation check: yes")
@@ -258,29 +256,29 @@ def get_audio_digest_script(top_news: List[dict]) -> Optional[str]:
         for i, n in enumerate(top_news[:5])
     ])
     
-    script_prompt = f"""Создай сценарий для голосового аудио-дайджеста новостей о маркетплейсах и e-commerce.
+    script_prompt = f"""Create script for voice audio digest of marketplace and e-commerce news.
 
-Главные новости дня:
+Main news of the day:
 {news_text}
 
-Требования к формату:
-- Стиль: краткий вечерний выпуск новостей, спокойный деловой тон
-- Не читай новости слово в слово - перескажи суть своими словами
-- Каждая новость: что произошло (1 предложение) + почему важно для селлера (1-2 предложения)
-- Вступление: "Добрый вечер. Это краткий итог дня для селлеров..."
-- Завершение: краткий итог дня, 2-3 предложения
-- ОБЯЗАТЕЛЬНО: общая длина 280-350 слов, НЕ БОЛЕЕ 400 слов
-- Используй короткие предложения, без канцелярита
-- Не используй нумерацию вида "1.", "2." - пиши связным текстом
-- Каждая новость должна звучать как информация для принятия решений"""
+Format requirements:
+- Style: brief evening news broadcast, calm business tone
+- Don't read news verbatim - summarize essence in your own words
+- Each news: what happened (1 sentence) + why important for seller (1-2 sentences)
+- Introduction: "Good evening. This is a brief day summary for sellers..."
+- Ending: brief day summary, 2-3 sentences
+- REQUIRED: total length 280-350 words, NO MORE THAN 400 words
+- Use short sentences, avoid bureaucracy
+- Don't use numbering like "1.", "2." - write as connected text
+- Each news should sound as decision-making information"""
 
     if USE_LLM and GITHUB_TOKEN:
         try:
             result = enhance_post_with_llm({
-                'title': 'Аудио дайджест',
+                'title': 'Audio digest',
                 'raw_text': script_prompt,
                 'link': '',
-                'source': 'Бот',
+                'source': 'Bot',
                 'category': 'audio_digest'
             })
             
@@ -298,12 +296,12 @@ def get_audio_digest_script(top_news: List[dict]) -> Optional[str]:
         except Exception as e:
             logger.warning(f"LLM audio script error: {e}")
     
-    fallback_text = "Добрый вечер! Вот главные новости дня для продавцов маркетплейсов.\n\n"
+    fallback_text = "Good evening! Here are the main news of the day for marketplace sellers.\n\n"
     
     for i, n in enumerate(top_news[:5]):
         fallback_text += f"{n['title'][:100]}. "
     
-    fallback_text += "\n\nЭто были главные новости. Хорошего дня и успешных продаж!"
+    fallback_text += "\n\nThese were the main news. Have a good day and successful sales!"
     
     logger.info("Audio script generated: fallback")
     return fallback_text
@@ -312,7 +310,6 @@ def get_today_date() -> str:
     return datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y")
 
 def wrap_ssml(text: str, voice: str | None = None) -> str:
-    """Оборачивает текст в SSML с голосом"""
     if voice is None:
         voice = SALUTESPEECH_VOICE
     
