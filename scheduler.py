@@ -123,6 +123,7 @@ def should_send_audio_digest() -> bool:
 def get_morning_summary() -> Optional[str]:
     from db import get_critical_news_hours, set_digest_sent
     from llm import enhance_post_with_llm, USE_LLM
+    from message_templates import get_morning_empty_template, get_morning_fallback_template
     
     logger.info("Morning digest check: yes")
     
@@ -130,7 +131,7 @@ def get_morning_summary() -> Optional[str]:
     logger.info(f"Selected top news for digest: {len(critical_news)}")
     
     if not critical_news:
-        result = "Morning digest: nothing important happened overnight. Have a good day!"
+        result = get_morning_empty_template()
         set_digest_sent('morning')
         return result
     
@@ -171,17 +172,15 @@ Have a good day!"""
         f"- {n['title'][:100]}" for n in critical_news[:5]
     ])
     
-    result = f"""Morning digest | What changed overnight:
-
-{critical_items}
-
-Have a good day!"""
+    result = get_morning_fallback_template(critical_items)
     
     set_digest_sent('morning')
     return result
 
 def get_evening_digest() -> Optional[str]:
     from db import get_today_published, set_digest_sent, mark_news_in_digest
+    from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN
+    from message_templates import get_evening_empty_template, get_evening_fallback_template, get_evening_no_critical_template
     
     logger.info("Evening digest check: yes")
     
@@ -190,7 +189,7 @@ def get_evening_digest() -> Optional[str]:
     
     if not today_news:
         date = datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y")
-        result = f"EVENING DIGEST | {date}\n\nDay was quiet, no important changes. Good night!"
+        result = get_evening_empty_template(date)
         set_digest_sent('evening')
         return result
     
@@ -225,20 +224,9 @@ def get_evening_digest() -> Optional[str]:
         critical_items = "\n".join([
             f"[*] {n['title'][:80]}" for n in critical[:3]
         ])
-        result = f"""EVENING DIGEST | {date}
-
-CRITICAL:
-{critical_items}
-
-Total published: {len(today_news)} news
-Good night!"""
+        result = get_evening_fallback_template(date, critical_items, len(today_news))
     else:
-        result = f"""EVENING DIGEST | {date}
-
-Day was quiet, no important changes.
-
-Total published: {len(today_news)} news
-Good night!"""
+        result = get_evening_no_critical_template(date, len(today_news))
     
     set_digest_sent('evening')
     return result
