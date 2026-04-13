@@ -318,9 +318,4 @@ def wrap_ssml(text: str, voice: str | None = None) -> str:
     
     text = text.replace('^', '')
     
-    ssml = f"""<speak>
-<voice name="{voice}" lang="ru">
-{text}
-</voice>
-</speak>"""
-    return ssml
+    return "<speak><voice name=\"" + voice + "\" lang=\"ru\">" + text + "</voice></speak>"
