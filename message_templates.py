@@ -1,29 +1,29 @@
 def get_morning_empty_template():
-    return "Morning digest: nothing important happened overnight. Have a good day!"
+    return "Утренняя сводка\n\nНочь прошла спокойно, важных изменений нет.\nХорошего дня!"
 
 def get_morning_fallback_template(items_text):
-    return f"""Morning digest | What changed overnight:
+    return f"""Утренняя сводка | За ночь произошли изменения:
 
 {items_text}
 
-Have a good day!"""
+Хорошего дня!"""
 
 def get_evening_empty_template(date):
-    return f"EVENING DIGEST | {date}\n\nDay was quiet, no important changes. Good night!"
+    return f"Вечерняя сводка | {date}\n\nДень прошёл спокойно, значимых изменений не произошло.\nДоброй ночи!"
 
 def get_evening_fallback_template(date, items_text, news_count):
-    return f"""EVENING DIGEST | {date}
+    return f"""Вечерняя сводка | {date}
 
-CRITICAL:
+КРИТИЧНО:
 {items_text}
 
-Total published: {news_count} news
-Good night!"""
+Опубликовано: {news_count} новостей
+Доброй ночи!"""
 
 def get_evening_no_critical_template(date, news_count):
-    return f"""EVENING DIGEST | {date}
+    return f"""Вечерняя сводка | {date}
 
-Day was quiet, no important changes.
+День прошёл спокойно, значимых изменений не произошло.
 
-Total published: {news_count} news
-Good night!"""
+Опубликовано: {news_count} новостей
+Доброй ночи!"""
