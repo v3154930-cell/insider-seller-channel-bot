@@ -131,7 +131,7 @@ def get_morning_summary() -> Optional[str]:
     logger.info(f"Selected top news for digest: {len(critical_news)}")
     
     if not critical_news:
-        result = "📰 Утренняя сводка\n\nНочь прошла спокойно, важных изменений нет.\nХорошего дня!"
+        result = "Утренняя сводка\n\nНочь прошла спокойно, важных изменений нет.\nХорошего дня!"
         set_digest_sent('morning')
         return result
     
@@ -152,7 +152,7 @@ def get_morning_summary() -> Optional[str]:
 Формат:
 🌅 Доброе утро! За ночь произошли изменения:
 [кратко 2-3 предложения о главном]
-Хорошего дня! ☀️"""
+Хорошего дня!"""
 
                 result = enhance_post_with_llm({
                     'title': 'Утренняя сводка',
@@ -172,7 +172,7 @@ def get_morning_summary() -> Optional[str]:
         f"• {n['title'][:100]}" for n in critical_news[:5]
     ])
     
-    result = f"""📰 Утренняя сводка | За ночь произошли изменения:
+    result = f"""Утренняя сводка | За ночь произошли изменения:
 
 {critical_items}
 
@@ -191,7 +191,7 @@ def get_evening_digest() -> Optional[str]:
     
     if not today_news:
         date = datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y")
-        result = f"📰 ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}\n\nДень прошёл спокойно, значимых изменений не произошло.\nДоброй ночи!"
+        result = f"ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}\n\nДень прошёл спокойно, значимых изменений не произошло.\nДоброй ночи!"
         set_digest_sent('evening')
         return result
     
@@ -224,17 +224,17 @@ def get_evening_digest() -> Optional[str]:
     
     if critical:
         critical_items = "\n".join([
-            f"⚠️ *{n['title'][:80]}*" for n in critical[:3]
+            f"[*] {n['title'][:80]}" for n in critical[:3]
         ])
-        result = f"""📰 ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}
+        result = f"""ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}
 
-⚠️ КРИТИЧНО:
+КРИТИЧНО:
 {critical_items}
 
 Всего опубликовано: {len(today_news)} новостей
 Доброй ночи!"""
     else:
-        result = f"""📰 ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}
+        result = f"""ВЕЧЕРНИЙ ДАЙДЖЕСТ | {date}
 
 День прошёл спокойно, значимых изменений не произошло.
 
