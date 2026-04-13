@@ -5,9 +5,8 @@ Exa Collector - Search news via Exa API with daily rate limit.
 import os
 import json
 import logging
-from datetime import datetime
-from typing import List, Dict, Optional
-from datetime import timezone
+from datetime import datetime, timezone, timedelta
+from typing import List, Dict
 
 try:
     from exa import Exa
@@ -22,12 +21,12 @@ logger = logging.getLogger(__name__)
 
 USAGE_FILE = "exa_usage.json"
 MAX_DAILY_REQUESTS = 10
-MOSCOW_TZ = timezone(datetime.now().astimezone().tzinfo)
 
 
 def _get_moscow_date() -> str:
     """Get today's date in Moscow timezone as YYYY-MM-DD string."""
-    return datetime.now(MOSCOW_TZ).strftime("%Y-%m-%d")
+    moscow_offset = timedelta(hours=3)
+    return datetime.now(timezone(moscow_offset)).strftime("%Y-%m-%d")
 
 
 def _get_usage() -> Dict[str, int]:
