@@ -1,12 +1,13 @@
 """
 Exa Collector - Search news via Exa API with daily rate limit.
+Supports multi-query search and unified news item format.
 """
 
 import os
 import json
 import logging
 from datetime import datetime, timezone, timedelta
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 try:
     from exa_py import Exa
@@ -21,6 +22,9 @@ logger = logging.getLogger(__name__)
 
 USAGE_FILE = "exa_usage.json"
 MAX_DAILY_REQUESTS = 10
+
+EXA_MAX_ITEMS_PER_QUERY = int(os.getenv("EXA_MAX_ITEMS_PER_QUERY", "5"))
+EXA_MAX_TOTAL_ITEMS = int(os.getenv("EXA_MAX_TOTAL_ITEMS", "30"))
 
 
 def _get_moscow_date() -> str:
@@ -77,9 +81,9 @@ def search_exa(query: str, num_results: int = 10) -> List[Dict]:
         List of news items with keys: title, raw_text, link, source, published_at
         Returns empty list if limit reached or API unavailable.
     """
-    api_key = os.getenv("EXA_API_KEY")
+    api_key = os.getenv("EXA_API_KEY") or os.getenv("EXA_API_TOKEN")
     if not api_key:
-        logger.info("EXA skipped: missing EXA_API_KEY")
+        logger.info("EXA skipped: missing EXA_API_KEY (also checked EXA_API_TOKEN)")
         return []
     
     if not _check_limit():
@@ -108,12 +112,24 @@ def search_exa(query: str, num_results: int = 10) -> List[Dict]:
             elif hasattr(item, 'text') and item.text:
                 raw_text = item.text
             
+            snippet = ""
+            if hasattr(item, 'highlights') and item.highlights:
+                snippet = item.highlights[0] if item.highlights else ""
+            
+            url = getattr(item, 'url', None) or ""
+            link = url
+            
             news_items.append({
-                "title": item.title or "",
+                "source_type": "exa",
+                "source_name": "exa",
+                "title": getattr(item, 'title', None) or "",
+                "link": link,
+                "url": url,
                 "raw_text": raw_text,
-                "link": item.url or "",
-                "source": "exa",
-                "published_at": getattr(item, 'published_date', None)
+                "snippet": snippet,
+                "published_at": getattr(item, 'published_date', None),
+                "query": query,
+                "score": getattr(item, 'score', None)
             })
         
         logger.info(f"EXA search ok: {len(news_items)} results")
@@ -122,6 +138,41 @@ def search_exa(query: str, num_results: int = 10) -> List[Dict]:
     except Exception as e:
         logger.warning(f"EXA search failed: {e}")
         return []
+
+
+def search_exa_multi(queries: List[str], max_per_query: Optional[int] = None, max_total: Optional[int] = None) -> List[Dict]:
+    """
+    Search news via Exa API with multiple queries.
+    
+    Args:
+        queries: List of search query strings
+        max_per_query: Maximum results per query (default: from env EXA_MAX_ITEMS_PER_QUERY)
+        max_total: Maximum total results (default: from env EXA_MAX_TOTAL_ITEMS)
+    
+    Returns:
+        List of unified news items with all required fields.
+    """
+    if max_per_query is None:
+        max_per_query = EXA_MAX_ITEMS_PER_QUERY
+    if max_total is None:
+        max_total = EXA_MAX_TOTAL_ITEMS
+    
+    if not queries:
+        logger.info("EXA multi-query: no queries provided")
+        return []
+    
+    all_items = []
+    
+    for query in queries:
+        items = search_exa(query, num_results=max_per_query)
+        all_items.extend(items)
+        
+        if len(all_items) >= max_total:
+            all_items = all_items[:max_total]
+            break
+    
+    logger.info(f"EXA multi-query: {len(all_items)} total items (limit: {max_total})")
+    return all_items
 
 
 # Predefined queries for marketplace/e-commerce news

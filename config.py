@@ -52,3 +52,12 @@ def get_sent_links():
 def save_link(link):
     with open(POSTED_LINKS_FILE, "a", encoding="utf-8") as f:
         f.write(link + "\n")
+
+
+ENABLE_EXA = os.getenv("ENABLE_EXA", "false").lower() == "true"
+EXA_MODE = os.getenv("EXA_MODE", "shadow")
+EXA_API_KEY = os.getenv("EXA_API_KEY") or os.getenv("EXA_API_TOKEN")
+ENABLE_EXA_IN_DIGEST = os.getenv("ENABLE_EXA_IN_DIGEST", "false").lower() == "true"
+EXA_MAX_ITEMS_PER_QUERY = int(os.getenv("EXA_MAX_ITEMS_PER_QUERY", "5"))
+EXA_MAX_TOTAL_ITEMS = int(os.getenv("EXA_MAX_TOTAL_ITEMS", "30"))
+EXA_MAX_ITEMS_FOR_DIGEST = int(os.getenv("EXA_MAX_ITEMS_FOR_DIGEST", "2"))

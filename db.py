@@ -114,9 +114,14 @@ def init_db():
     ''')
     
     try:
-        conn.execute('ALTER TABLE news ADD COLUMN content_hash TEXT')
+        conn.execute('SELECT content_hash FROM news LIMIT 1')
     except Exception as e:
-        logger.info(f"content_hash column: {e}")
+        pass
+    else:
+        try:
+            conn.execute('ALTER TABLE news ADD COLUMN content_hash TEXT')
+        except:
+            pass
     
     try:
         conn.execute('ALTER TABLE news ADD COLUMN seller_decision TEXT DEFAULT \'pending\'')
