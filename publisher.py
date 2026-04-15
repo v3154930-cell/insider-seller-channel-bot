@@ -5,7 +5,7 @@ import requests
 import argparse
 from datetime import datetime
 from config import get_sent_links, save_link
-from formatters import format_news
+from formatters import format_news, get_item_url
 from db import init_db, get_pending_news, mark_published, mark_dropped, get_all_pending_count, set_digest_sent, is_digest_sent_today, cleanup_by_retention_policy, get_top_news_for_digest, mark_news_in_digest, get_critical_news_hours, get_today_published
 from llm import enhance_post_with_llm, USE_LLM, GITHUB_TOKEN, select_best_items_for_publishing
 from scheduler import get_morning_summary, get_evening_digest, get_audio_digest_script, now_moscow, FORCE_AUDIO_DIGEST, SALUTESPEECH_VOICE, MOSCOW_TZ
@@ -25,6 +25,18 @@ logger.info(f"USE_LLM = {USE_LLM}")
 logger.info(f"GITHUB_TOKEN configured = {bool(GITHUB_TOKEN)}")
 logger.info(f"FORCE_AUDIO_DIGEST = {FORCE_AUDIO_DIGEST}")
 logger.info(f"SALUTESPEECH_VOICE = {SALUTESPEECH_VOICE}")
+
+
+def append_source_line(message: str, link: str) -> str:
+    """Always append source URL at the end of post message.
+    
+    Works for both LLM and fallback paths to ensure link is always present.
+    Uses plain URL (not HTML anchor) for reliability.
+    """
+    message = (message or "").rstrip()
+    if not link:
+        return message + "\n\n⚠️ Источник: ссылка недоступна"
+    return message + f"\n\nИсточник:\n{link}"
 
 def send_message(token, chat_id, text, format: str = "html"):
     url = f"https://platform-api.max.ru/messages?chat_id={chat_id}"
@@ -171,7 +183,7 @@ def run_regular_publisher():
     new_posts = 0
     
     for item in selected:
-        link = item.get('link', '')
+        link = get_item_url(item)
         
         raw_text = item.get('raw_text', '')
         logger.info(f"Processing item: id={item.get('id')}, raw_text_len={len(raw_text)}")
@@ -191,6 +203,8 @@ def run_regular_publisher():
                 logger.warning(f"Final enhance failed: id={item['id']}, using fallback")
         else:
             formatted_message = format_news(item)
+        
+        formatted_message = append_source_line(formatted_message, link)
         
         success = send_message(token, channel_id, formatted_message)
         
