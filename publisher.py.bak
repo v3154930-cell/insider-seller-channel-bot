@@ -195,7 +195,7 @@ def run_regular_publisher():
             logger.info("Final enhance started")
             enhanced = enhance_post_with_llm(item)
             if enhanced:
-                formatted_message = format_news(item, enhanced_text=enhanced)
+                formatted_message = enhanced
                 enhance_success = True
                 logger.info(f"Final enhance ok: id={item['id']}")
             else:

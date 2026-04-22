@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "D:\LLM code\insider-seller-channel-bot\staging\preview_staging.py", line 25, in <module>
+    from formatters import format_news, get_source_link, detect_link_type, filter_non_forum_links
+ImportError: cannot import name 'get_source_link' from 'formatters' (D:\LLM code\insider-seller-channel-bot\formatters.py)

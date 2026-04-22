@@ -1,0 +1,7 @@
+﻿python : Python 
+строка:1 знак:121
++ ... \insider-seller-channel-bot"; python category_scanner.py 2>&1 | Out-F ...
++                                   ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Python :String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

@@ -1,0 +1,22 @@
+Verification successful - Python file creation working.
+CWD: D:\LLM code\insider-seller-channel-bot
+Files present: All project files confirmed via ls/dir
+
+All compile checks: PASS
+- exa_queries.py: PASS
+- exa_collector.py: PASS  
+- merge_candidates.py: PASS
+- preview_shadow_merge.py: PASS
+- exa_digest_adapter.py: PASS
+- dryrun_morning_digest.py: PASS
+- config.py: PASS
+
+Config env flags added:
+- ENABLE_EXA (default: false)
+- EXA_MODE (default: shadow)
+- ENABLE_EXA_IN_DIGEST (default: false)
+- EXA_MAX_ITEMS_PER_QUERY (default: 5)
+- EXA_MAX_TOTAL_ITEMS (default: 30)
+- EXA_MAX_ITEMS_FOR_DIGEST (default: 2)
+
+Pipeline unchanged - regular path not affected.
