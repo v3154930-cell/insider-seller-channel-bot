@@ -1,0 +1,186 @@
+import logging
+import re
+import html
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+
+import requests
+
+logger = logging.getLogger(__name__)
+
+
+def normalize_channel_id(channel_id):
+    if channel_id is None:
+        return ""
+    return str(channel_id).strip()
+
+
+def save_link(url, title=None):
+    return url
+
+
+def append_source_line(text, item_or_source=None, url=None):
+    text = text or ""
+
+    source = ""
+    link = ""
+
+    if isinstance(item_or_source, dict):
+        source = item_or_source.get("source") or item_or_source.get("marketplace") or ""
+        link = item_or_source.get("url") or item_or_source.get("link") or ""
+    else:
+        source = item_or_source or ""
+        link = url or ""
+
+    source = str(source or "").strip()
+    link = str(link or "").strip()
+
+    if not source and not link:
+        return text
+
+    lines = []
+    if source:
+        lines.append(f"Источник: {source}")
+    if link:
+        lines.append(link)
+
+    return text.rstrip() + "\n\n" + "\n".join(lines)
+
+
+
+def clean_url(url: str) -> str:
+    url = str(url or "").strip()
+    if not url:
+        return url
+
+    try:
+        parts = urlsplit(url)
+        query = [
+            (k, v)
+            for k, v in parse_qsl(parts.query, keep_blank_values=True)
+            if not k.lower().startswith("utm_")
+        ]
+        return urlunsplit((
+            parts.scheme,
+            parts.netloc,
+            parts.path,
+            urlencode(query),
+            parts.fragment
+        ))
+    except Exception:
+        return url
+
+
+def clean_outgoing_text(text: str) -> str:
+    text = html.unescape(text or "")
+
+    # Гарантируем жирное выделение ключевых строк для MAX HTML.
+    lines = text.splitlines()
+    non_empty = [i for i, line in enumerate(lines) if line.strip()]
+
+    if non_empty:
+        first_i = non_empty[0]
+        first = lines[first_i].strip()
+
+        # Источник канала: TG:crmmarketplace -> <b>📦 TG:crmmarketplace</b>
+        if first.startswith("TG:") or first.startswith("📦 TG:"):
+            clean_source = first.replace("📦 ", "", 1)
+            if not clean_source.lower().startswith("<b>"):
+                lines[first_i] = f"<b>📦 {clean_source}</b>"
+
+            # Следующая непустая строка после TG — заголовок.
+            for idx in non_empty[1:]:
+                title = lines[idx].strip()
+                if (
+                    title
+                    and not title.lower().startswith("<b>")
+                    and not title.startswith("http://")
+                    and not title.startswith("https://")
+                    and not title.startswith("Источник:")
+                    and "Что это значит для селлера" not in title
+                ):
+                    lines[idx] = f"<b>{title}</b>"
+                    break
+
+    text = "\n".join(lines)
+
+    # Жирним только подпись, сам вывод после двоеточия остается обычным.
+    text = re.sub(
+        r"(?:<b>)?\s*🎯\s*Что это значит для селлера:\s*(?:</b>)?",
+        "<b>🎯 Что это значит для селлера:</b> ",
+        text,
+        flags=re.IGNORECASE
+    )
+
+    # MAX понимает HTML, поэтому сохраняем только безопасные теги жирного.
+    text = re.sub(r"<br\s*/?>", "\n", text, flags=re.IGNORECASE)
+
+    text = re.sub(r"<\s*(b|strong)\s*>", "___B_OPEN___", text, flags=re.IGNORECASE)
+    text = re.sub(r"<\s*/\s*(b|strong)\s*>", "___B_CLOSE___", text, flags=re.IGNORECASE)
+
+    # Остальные HTML-теги убираем, чтобы не ломать отправку.
+    text = re.sub(r"<[^>]+>", "", text)
+
+    text = text.replace("___B_OPEN___", "<b>")
+    text = text.replace("___B_CLOSE___", "</b>")
+
+    # Чистим ссылки от utm-меток.
+    def repl(match):
+        return clean_url(match.group(0))
+
+    text = re.sub(r"https?://\S+", repl, text)
+
+    # Убираем лишние пробелы перед переносами и слишком много пустых строк.
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{4,}", "\n\n\n", text)
+
+    return text.strip()
+
+def send_message(token, channel_id, text):
+    token = str(token or "").strip()
+    channel_id = normalize_channel_id(channel_id)
+    text = text or ""
+
+    if not token:
+        raise RuntimeError("MAX_BOT_TOKEN is empty")
+
+    if not channel_id:
+        raise RuntimeError("CHANNEL_ID is empty")
+
+    try:
+        chat_id_value = int(channel_id)
+    except Exception:
+        chat_id_value = channel_id
+
+    url = "https://platform-api.max.ru/messages"
+
+    headers = {
+        "Authorization": token,
+        "Content-Type": "application/json"
+    }
+
+    params = {
+        "chat_id": chat_id_value
+    }
+
+    text = clean_outgoing_text(text)
+
+    payload = {
+        "text": text,
+        "format": "html"
+    }
+
+    resp = requests.post(
+        url,
+        params=params,
+        json=payload,
+        headers=headers,
+        timeout=30
+    )
+
+    if resp.status_code >= 400:
+        raise RuntimeError(
+            f"MAX send_message failed: HTTP {resp.status_code}: {resp.text[:1000]}"
+        )
+
+    logger.info("MAX message sent. channel_id=%s", channel_id)
+    return True

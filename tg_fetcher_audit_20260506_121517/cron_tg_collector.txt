@@ -1,0 +1,1 @@
+7,37 * * * * /opt/newsbot_v2/run_collector_v2.sh

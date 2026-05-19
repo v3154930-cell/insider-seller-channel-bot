@@ -1,0 +1,144 @@
+import re
+import html
+import logging
+from datetime import datetime, timezone
+from typing import List, Dict
+from urllib.parse import urljoin
+
+import requests
+from bs4 import BeautifulSoup
+
+logger = logging.getLogger(__name__)
+
+DEFAULT_CHANNELS = [
+    # Сюда будем добавлять проверенные публичные Telegram-каналы.
+    # Формат: "channel_username", без @
+]
+
+
+def clean_text(text: str) -> str:
+    text = html.unescape(text or "")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def post_title(text: str, max_len: int = 140) -> str:
+    text = clean_text(text)
+    if not text:
+        return "Telegram post"
+    if len(text) <= max_len:
+        return text
+    return text[:max_len].rstrip() + "..."
+
+
+def fetch_tg_channel_public(channel: str, limit: int = 10) -> List[Dict]:
+    """
+    Читает публичную страницу https://t.me/s/<channel>.
+    Не требует Telegram API, Telethon, api_id/api_hash.
+    Работает только для публичных каналов, доступных через t.me/s.
+    """
+    channel = channel.strip().lstrip("@")
+    if not channel:
+        return []
+
+    url = f"https://t.me/s/{channel}"
+
+    headers = {
+        "User-Agent": (
+            "Mozilla/5.0 (X11; Linux x86_64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0 Safari/537.36"
+        )
+    }
+
+    resp = requests.get(url, headers=headers, timeout=30)
+
+    if resp.status_code >= 400:
+        logger.warning("Telegram source %s failed: HTTP %s", channel, resp.status_code)
+        return []
+
+    soup = BeautifulSoup(resp.text, "lxml")
+    posts = []
+
+    for msg in soup.select(".tgme_widget_message"):
+        msg_id = msg.get("data-post") or ""
+        text_el = msg.select_one(".tgme_widget_message_text")
+        time_el = msg.select_one("time")
+
+        text = clean_text(text_el.get_text(" ", strip=True) if text_el else "")
+        if not text:
+            continue
+
+        link = ""
+        if msg_id:
+            link = f"https://t.me/{msg_id}"
+
+        published_at = ""
+        if time_el and time_el.get("datetime"):
+            published_at = time_el.get("datetime")
+
+        posts.append({
+            "title": post_title(text),
+            "description": text,
+            "link": link,
+            "url": link,
+            "source": f"TG:{channel}",
+            "published_at": published_at,
+            "created_at": datetime.now(timezone.utc).isoformat(),
+            "category": "telegram",
+            "importance": "normal",
+        })
+
+        if len(posts) >= limit:
+            break
+
+    return posts
+
+
+def fetch_telegram_sources(channels=None, limit_per_channel: int = 10) -> List[Dict]:
+    channels = channels or DEFAULT_CHANNELS
+    all_posts = []
+
+    for channel in channels:
+        try:
+            posts = fetch_tg_channel_public(channel, limit=limit_per_channel)
+            logger.info("TG [%s]: %s posts", channel, len(posts))
+            all_posts.extend(posts)
+        except Exception as e:
+            logger.warning("TG [%s] failed: %s", channel, e)
+
+    return all_posts
+
+
+def main():
+    import sys
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(levelname)s - %(message)s"
+    )
+
+    channels = [x.strip().lstrip("@") for x in sys.argv[1:] if x.strip()]
+
+    if not channels:
+        print("Usage:")
+        print("  python telegram_sources_v2.py channel1 channel2")
+        print()
+        print("Example:")
+        print("  python telegram_sources_v2.py marketplaceguru sellerden")
+        return
+
+    posts = fetch_telegram_sources(channels, limit_per_channel=5)
+
+    print(f"FOUND POSTS: {len(posts)}")
+    for i, p in enumerate(posts, 1):
+        print("=" * 80)
+        print(i)
+        print("source:", p.get("source"))
+        print("title:", p.get("title"))
+        print("link:", p.get("link"))
+        print("text:", p.get("description")[:500])
+
+
+if __name__ == "__main__":
+    main()

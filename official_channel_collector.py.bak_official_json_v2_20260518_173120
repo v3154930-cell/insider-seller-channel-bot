@@ -1,0 +1,293 @@
+import hashlib
+import html
+import re
+import sqlite3
+import urllib.request
+from datetime import datetime, timezone
+from pathlib import Path
+
+NEWS_DB = Path("/opt/newsbot_v2/news_queue.db")
+RAG_DB = Path("/opt/newsbot_v2/data/rag_store.db")
+
+SOURCES = [
+    {
+        "source_name": "OFFICIAL: Ozon Marketplace TG",
+        "username": "ozonmarketplace",
+        "marketplace": "ozon",
+        "url": "https://t.me/s/ozonmarketplace",
+        "notes": "Official Telegram channel for Ozon sellers. Used as official_signal/high only, not tariff source of truth.",
+    },
+    {
+        "source_name": "OFFICIAL: WB Partners TG",
+        "username": "wbsellerofficial",
+        "marketplace": "wildberries",
+        "url": "https://t.me/s/wbsellerofficial",
+        "notes": "Official Telegram channel for Wildberries entrepreneurs. Used as official_signal/high only.",
+    },
+    {
+        "source_name": "OFFICIAL: WB API Notifications TG",
+        "username": "wb_api_notifications",
+        "marketplace": "wildberries",
+        "url": "https://t.me/s/wb_api_notifications",
+        "notes": "Official Wildberries developer/API notification channel. Used as official_signal/high only.",
+    },
+    {
+        "source_name": "OFFICIAL: Yandex Market Sellers TG",
+        "username": "market_marketplace",
+        "marketplace": "yandex_market",
+        "url": "https://t.me/s/market_marketplace",
+        "notes": "Official Yandex Market seller news channel. Used as official_signal/high only.",
+    },
+    {
+        "source_name": "OFFICIAL: Yandex Market API TG",
+        "username": "yandex_market_api",
+        "marketplace": "yandex_market",
+        "url": "https://t.me/s/yandex_market_api",
+        "notes": "Yandex Market API news channel. Used as official_signal/high only.",
+    },
+]
+
+
+def clean_html(value: str) -> str:
+    value = value or ""
+    value = re.sub(r"<br\s*/?>", "\n", value, flags=re.I)
+    value = re.sub(r"</p\s*>", "\n", value, flags=re.I)
+    value = re.sub(r"<[^>]+>", "", value)
+    value = html.unescape(value)
+    value = value.replace("\xa0", " ")
+    value = re.sub(r"[ \t]+\n", "\n", value)
+    value = re.sub(r"\n{3,}", "\n\n", value)
+    value = re.sub(r"[ \t]{2,}", " ", value)
+    return value.strip()
+
+
+def title_from_text(text: str) -> str:
+    text = " ".join((text or "").split())
+    return text[:180] if text else ""
+
+
+def fetch_html(url: str) -> str:
+    req = urllib.request.Request(
+        url,
+        headers={
+            "User-Agent": "Mozilla/5.0 InsiderSellerBot/1.0",
+            "Accept": "text/html,application/xhtml+xml",
+        },
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        return resp.read().decode("utf-8", errors="replace")
+
+
+def parse_posts(page_html: str, username: str):
+    # Telegram public channel page: blocks with data-post="channel/123"
+    pattern = re.compile(
+        r'<div class="tgme_widget_message[^"]*"[^>]*data-post="' + re.escape(username) + r'/(\d+)"[\s\S]*?(?=<div class="tgme_widget_message[^"]*"[^>]*data-post="|\Z)',
+        re.S,
+    )
+
+    posts = []
+
+    for match in pattern.finditer(page_html):
+        post_id = match.group(1)
+        block = match.group(0)
+
+        text_match = re.search(
+            r'<div class="tgme_widget_message_text[^"]*"[^>]*>([\s\S]*?)</div>',
+            block,
+            re.S,
+        )
+
+        if not text_match:
+            continue
+
+        text = clean_html(text_match.group(1))
+        if not text:
+            continue
+
+        time_match = re.search(r'<time datetime="([^"]+)"', block)
+        published_at = time_match.group(1) if time_match else ""
+
+        posts.append({
+            "post_id": post_id,
+            "text": text,
+            "title": title_from_text(text),
+            "published_at": published_at,
+            "link": f"https://t.me/{username}/{post_id}",
+        })
+
+    return posts
+
+
+def ensure_news_tables(cur):
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS official_channel_posts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        source_name TEXT NOT NULL,
+        username TEXT NOT NULL,
+        marketplace TEXT,
+        source_type TEXT DEFAULT 'official_channel',
+        rag_layer TEXT DEFAULT 'official_signal',
+        trust_level TEXT DEFAULT 'high',
+        post_id TEXT NOT NULL,
+        title TEXT,
+        raw_text TEXT,
+        link TEXT,
+        published_at TEXT,
+        collected_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        content_hash TEXT,
+        status TEXT DEFAULT 'new',
+        UNIQUE(username, post_id)
+    )
+    """)
+
+    cur.execute("""
+    CREATE INDEX IF NOT EXISTS idx_official_channel_posts_marketplace
+    ON official_channel_posts(marketplace)
+    """)
+
+    cur.execute("""
+    CREATE INDEX IF NOT EXISTS idx_official_channel_posts_collected_at
+    ON official_channel_posts(collected_at)
+    """)
+
+
+def register_rag_sources():
+    if not RAG_DB.exists():
+        print("RAG DB not found, skip rag_sources registration:", RAG_DB)
+        return
+
+    conn = sqlite3.connect(RAG_DB)
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS rag_sources (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        source_type TEXT NOT NULL,
+        marketplace TEXT,
+        rag_layer TEXT NOT NULL,
+        trust_level TEXT NOT NULL DEFAULT 'medium',
+        url TEXT,
+        enabled INTEGER NOT NULL DEFAULT 1,
+        notes TEXT,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+        updated_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    for src in SOURCES:
+        row = cur.execute(
+            "SELECT id FROM rag_sources WHERE name = ?",
+            (src["source_name"],),
+        ).fetchone()
+
+        if row:
+            cur.execute("""
+                UPDATE rag_sources
+                SET source_type = 'official_channel',
+                    marketplace = ?,
+                    rag_layer = 'official_signal',
+                    trust_level = 'high',
+                    url = ?,
+                    enabled = 1,
+                    notes = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (src["marketplace"], src["url"], src["notes"], row[0]))
+        else:
+            cur.execute("""
+                INSERT INTO rag_sources (
+                    name, source_type, marketplace, rag_layer, trust_level, url, enabled, notes
+                )
+                VALUES (?, 'official_channel', ?, 'official_signal', 'high', ?, 1, ?)
+            """, (src["source_name"], src["marketplace"], src["url"], src["notes"]))
+
+    conn.commit()
+
+    print("registered official_channel sources in rag_sources:")
+    for row in cur.execute("""
+        SELECT id, source_type, marketplace, rag_layer, trust_level, enabled, name, url
+        FROM rag_sources
+        WHERE source_type = 'official_channel'
+        ORDER BY marketplace, name
+    """):
+        print(row)
+
+    conn.close()
+
+
+def main():
+    conn = sqlite3.connect(NEWS_DB)
+    cur = conn.cursor()
+
+    ensure_news_tables(cur)
+
+    total_inserted = 0
+    total_seen = 0
+
+    for src in SOURCES:
+        print()
+        print("SOURCE:", src["source_name"], src["url"])
+
+        try:
+            page = fetch_html(src["url"])
+            posts = parse_posts(page, src["username"])
+        except Exception as e:
+            print("FAILED:", repr(e))
+            continue
+
+        print("posts parsed:", len(posts))
+        total_seen += len(posts)
+
+        for post in posts:
+            content_hash = hashlib.sha256(
+                (src["source_name"] + post["post_id"] + post["text"]).encode("utf-8")
+            ).hexdigest()
+
+            cur.execute("""
+                INSERT OR IGNORE INTO official_channel_posts (
+                    source_name,
+                    username,
+                    marketplace,
+                    source_type,
+                    rag_layer,
+                    trust_level,
+                    post_id,
+                    title,
+                    raw_text,
+                    link,
+                    published_at,
+                    collected_at,
+                    content_hash,
+                    status
+                )
+                VALUES (?, ?, ?, 'official_channel', 'official_signal', 'high', ?, ?, ?, ?, ?, ?, ?, 'new')
+            """, (
+                src["source_name"],
+                src["username"],
+                src["marketplace"],
+                post["post_id"],
+                post["title"],
+                post["text"],
+                post["link"],
+                post["published_at"],
+                datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                content_hash,
+            ))
+
+            if cur.rowcount:
+                total_inserted += 1
+
+    conn.commit()
+    conn.close()
+
+    register_rag_sources()
+
+    print()
+    print("official_channel_collector done")
+    print("posts seen:", total_seen)
+    print("posts inserted:", total_inserted)
+
+
+if __name__ == "__main__":
+    main()

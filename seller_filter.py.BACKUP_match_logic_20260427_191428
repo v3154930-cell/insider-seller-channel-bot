@@ -1,0 +1,102 @@
+import json
+from pathlib import Path
+from typing import Dict, Any
+
+
+RULES_PATH = Path(__file__).parent / "config" / "seller_filter_rules.json"
+
+
+def norm(value: Any) -> str:
+    return str(value or "").lower().replace("ё", "е")
+
+
+def item_text(item: Dict[str, Any]) -> str:
+    return " ".join([
+        norm(item.get("title")),
+        norm(item.get("raw_text")),
+        norm(item.get("description")),
+        norm(item.get("summary")),
+        norm(item.get("source")),
+        norm(item.get("link")),
+    ])
+
+
+def load_rules() -> Dict[str, list]:
+    try:
+        return json.loads(RULES_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        return {
+            "hard_drop": [],
+            "publish_strong": [],
+            "digest_medium": [],
+            "weak_ignore": []
+        }
+
+
+def find_matches(text: str, phrases: list) -> list:
+    result = []
+    for phrase in phrases:
+        p = norm(phrase).strip()
+        if p and p in text:
+            result.append(phrase)
+    return result
+
+
+def evaluate_item(item: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Dry-run seller filter.
+
+    Decisions:
+    - drop: obvious spam/noise
+    - publish: strong seller impact
+    - digest: useful but not enough for separate post
+    - ignore: weak/non-actionable
+    """
+    rules = load_rules()
+    text = item_text(item)
+
+    hard = find_matches(text, rules.get("hard_drop", []))
+    if hard:
+        return {
+            "decision": "drop",
+            "seller_relevance_score": 0,
+            "actionability_score": 0,
+            "reason": "hard_drop: " + ", ".join(hard[:5])
+        }
+
+    weak = find_matches(text, rules.get("weak_ignore", []))
+    strong = find_matches(text, rules.get("publish_strong", []))
+    medium = find_matches(text, rules.get("digest_medium", []))
+
+    if strong:
+        score = min(10, 4 + len(strong) + min(len(medium), 2))
+        return {
+            "decision": "publish",
+            "seller_relevance_score": score,
+            "actionability_score": min(10, score),
+            "reason": "publish_strong: " + ", ".join(strong[:5])
+        }
+
+    if medium and not weak:
+        score = min(5, 1 + len(medium))
+        return {
+            "decision": "digest",
+            "seller_relevance_score": score,
+            "actionability_score": max(1, min(3, score)),
+            "reason": "digest_medium: " + ", ".join(medium[:5])
+        }
+
+    if weak:
+        return {
+            "decision": "ignore",
+            "seller_relevance_score": 0,
+            "actionability_score": 0,
+            "reason": "weak_ignore: " + ", ".join(weak[:5])
+        }
+
+    return {
+        "decision": "ignore",
+        "seller_relevance_score": 0,
+        "actionability_score": 0,
+        "reason": "no_rule_match"
+    }

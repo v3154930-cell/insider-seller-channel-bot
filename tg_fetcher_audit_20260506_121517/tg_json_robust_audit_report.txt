@@ -1,0 +1,149 @@
+TG_JSON_URLS count: 1
+
+========================================================================================================================
+1. https://raw.githubusercontent.com/v3154930-cell/newsbot-tg-fetcher/main/tg_posts.json
+========================================================================================================================
+HTTP: 200
+content-type: text/plain; charset=utf-8
+bytes: 105732
+json_type: dict
+dict_keys: ['generated_at', 'count', 'items']
+items_total: 50
+
+--- by source ---
+   10 | TG:mpgo_ru
+   10 | TG:oborotru
+   10 | TG:marketplace_biz
+   10 | TG:Apetecom
+   10 | TG:crmmarketplace
+
+--- by channel ---
+   10 | mpgo_ru
+   10 | oborotru
+   10 | marketplace_biz
+   10 | Apetecom
+   10 | crmmarketplace
+
+--- first 20 items ---
+01. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-28T15:19:37+00:00
+    title: Посетили Императорский фарфоровый завод в Санкт-Петербурге с коллегами из Яндекс Маркета Императорский фарфоровый завод (ИФЗ) однозначно из...
+    link: https://t.me/mpgo_ru/7931
+02. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-29T08:03:22+00:00
+    title: Бизнес жалуется на отсутствие прибыли Половина микробизнеса (до 20 млн рублей выручки) работает без прибыли, пишет РБК. Об этом свидетельств...
+    link: https://t.me/mpgo_ru/7940
+03. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-29T10:46:24+00:00
+    title: Новости площадок 🔵 Ozon запустил ИИ-ассистента для селлеров в личном кабинете «Умный ассистент» анализирует данные магазина, дает персональн...
+    link: https://t.me/mpgo_ru/7941
+04. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-29T13:48:55+00:00
+    title: ФНС составила портрет компании-неплательщика Налоговая служба на основе данных проверок составила портрет типичной организации-неплательщика...
+    link: https://t.me/mpgo_ru/7942
+05. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-29T15:45:26+00:00
+    title: Покупательница нашла в отзывах детальный «разбор» упаковки орехов. Что думаете, селлеры, реальный отзыв или заказной?) Голосуем ❤️ — реальны...
+    link: https://t.me/mpgo_ru/7943
+06. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-30T07:36:44+00:00
+    title: 🟣 Wildberries снова задерживает выплаты селлерам Селлеры Wildberries вновь столкнулись с задержками выплат, но причины изменились. Продавцы...
+    link: https://t.me/mpgo_ru/7944
+07. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-30T09:42:32+00:00
+    title: Новости площадок 🟣 Доставка товаров в ПВЗ Wildberries из РИВ ГОШ стала доступна по всей РФ Ранее проект работал в пилотном режиме в Санкт-Пе...
+    link: https://t.me/mpgo_ru/7945
+08. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-30T10:48:19+00:00
+    title: Собственная сеть А7 в 100+ странах — это маршрут, который не встанет на границе Китай, Индия, ОАЭ, Европа, ЕАЭС, Африка — с А7 деньги идут н...
+    link: https://t.me/mpgo_ru/7946
+09. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-30T13:31:56+00:00
+    title: 🟣 Wildberries выплатил Makita 9,6 млн рублей компенсации Японский производитель электроинструментов Makita получил 9,6 млн руб. от Wildberri...
+    link: https://t.me/mpgo_ru/7947
+10. source=TG:mpgo_ru channel=mpgo_ru published=2026-04-30T14:40:09+00:00
+    title: СПОТ не будет применяться к транзитным товарам Торгово-промышленная палата России (ТПП) попросила налоговую разъяснить, как будет работать С...
+    link: https://t.me/mpgo_ru/7948
+11. source=TG:oborotru channel=oborotru published=2026-04-30T12:32:54+00:00
+    title: "Союзмультфильм", Hobby World и еще 11 компаний официально объявили войну китайским продавцам "копий" своих товаров на российских маркетплей...
+    link: https://t.me/oborotru/11631
+12. source=TG:oborotru channel=oborotru published=2026-04-30T12:32:55+00:00
+    title: Я в шоке. Деньги, выведенные 20.04.2026 г. не поступили до сих пор! Это еще мартовская выручка. Ответ поддержки обескураживает: "Wildberries...
+    link: https://t.me/oborotru/11632
+13. source=TG:oborotru channel=oborotru published=2026-04-30T14:32:47+00:00
+    title: В России введен ГОСТ для ПВЗ, Wildberries уже недоволен. Официально утвержден обновленный национальный стандарт, регулирующий деятельность о...
+    link: https://t.me/oborotru/11633
+14. source=TG:oborotru channel=oborotru published=2026-05-04T06:32:33+00:00
+    title: Как производителю запустить современный сайт, сохранив визуальную связь с брендом. Кейс Radiotehnika — ведущий производитель аудиотехники с...
+    link: https://t.me/oborotru/11634
+15. source=TG:oborotru channel=oborotru published=2026-05-04T08:28:06+00:00
+    title: Яндекс Маркет ввел бесплатное хранение сезонного ассортимента с 1 мая. Каких товаров это касается? Мера будет действовать до июля и сначала...
+    link: https://t.me/oborotru/11635
+16. source=TG:oborotru channel=oborotru published=2026-05-04T09:58:16+00:00
+    title: 17% за все? На каких условиях селлеры продают мед, кофе, соусы и печенье через маркетплейс "М.Видео" В последние дни апреля на площадке стал...
+    link: https://t.me/oborotru/11639
+17. source=TG:oborotru channel=oborotru published=2026-05-04T10:05:52+00:00
+    title: Почему Ozon и Wildberries приостановили отгрузки товаров армянских селлеров в Россию? 30 апреля фиолетовый маркетплейс начал постепенно скры...
+    link: https://t.me/oborotru/11640
+18. source=TG:oborotru channel=oborotru published=2026-05-04T10:32:47+00:00
+    title: 30 апреля 2026г многие продавцы на маркетплейсе OZON столкнулись с неожиданной ситуацией: в личных кабинетах были автоматически отключены вс...
+    link: https://t.me/oborotru/11641
+19. source=TG:oborotru channel=oborotru published=
+    title: На заводе Tesla Gigafactory Nevada выпустили первый электрогрузовик Semi. У этой машины будет два варианта комплектации: 🚍 Standard Range с...
+    link: https://t.me/oborotru/11643
+20. source=TG:oborotru channel=oborotru published=2026-05-04T12:32:10+00:00
+    title: Выручка "Почты России" приближается к 230 миллиардам рублей. За счет чего она растет на 0,1% в год? На самом деле, рынок традиционных почтов...
+    link: https://t.me/oborotru/11644
+
+--- last 20 items ---
+01. source=TG:Apetecom channel=Apetecom published=2026-04-22T08:24:10+00:00
+    title: 📣 Вчера провели встречу резидентов АПЭТ с командой Ozon Fresh Коллеги из Ozon поделились подробной информацией о работе Ozon Fresh и его тек...
+    link: https://t.me/Apetecom/1229
+02. source=TG:Apetecom channel=Apetecom published=2026-04-22T14:00:50+00:00
+    title: 🛒 Новости АПЭТ: Важные шаги для поддержки МСП в электронной коммерции Сегодня в рамках круглого стола в Деловой России председатель Президиу...
+    link: https://t.me/Apetecom/1230
+03. source=TG:Apetecom channel=Apetecom published=2026-04-23T11:32:55+00:00
+    title: Электронная торговля против полного НДС на импорт Ассоциация представителей электронной торговли (АПЭТ) обратилась к премьер‑министру Михаил...
+    link: https://t.me/Apetecom/1231
+04. source=TG:Apetecom channel=Apetecom published=2026-04-24T09:53:36+00:00
+    title: Маркетплейсы. Новая экономика электронной торговли: ИИ, тестирование и управление спросом 📆 28 апреля, в рамках форума «Дни ритейла на Неве»...
+    link: https://t.me/Apetecom/1232
+05. source=TG:Apetecom channel=Apetecom published=2026-04-24T12:19:33+00:00
+    title: Дорогие подписчики, нужна ваша поддержка 📣 Сейчас у нас есть возможность сделать канал еще полезнее для вас: публиковать истории, делиться б...
+    link: https://t.me/Apetecom/1233
+06. source=TG:Apetecom channel=Apetecom published=2026-04-27T10:44:10+00:00
+    title: 📆 30 апреля в 11:00 по МСК проведём полезный вебинар для производителей, поставщиков и компаний, которые хотят подтвердить статус российской...
+    link: https://t.me/Apetecom/1234
+07. source=TG:Apetecom channel=Apetecom published=2026-04-27T14:27:28+00:00
+    title: Маркетплейсы. Новая экономика электронной торговли: ИИ, тестирование и управление спросом 📆 28 апреля, в рамках форума «Дни ритейла на Неве»...
+    link: https://t.me/Apetecom/1235
+08. source=TG:Apetecom channel=Apetecom published=2026-04-28T07:20:05+00:00
+    title: Коллеги, запускаем опрос по сертификации ⬇️
+    link: https://t.me/Apetecom/1238
+09. source=TG:Apetecom channel=Apetecom published=2026-04-29T08:33:18+00:00
+    title: Для наших резидентов предлагаем эффективный инструмент, позволяющий существенно снизить налоговые расходы. С нами вы сможете получить Резиде...
+    link: https://t.me/Apetecom/1240
+10. source=TG:Apetecom channel=Apetecom published=2026-04-30T05:26:02+00:00
+    title: 📆 30 апреля в 11:00 по МСК проведём полезный вебинар для производителей, поставщиков и компаний, которые хотят подтвердить статус российской...
+    link: https://t.me/Apetecom/1241
+11. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-13T08:46:38+00:00
+    title: 💳 ОЗОН Новые правила заполнения платёжных документов С 1 апреля вступил в силу новый приказ Минфина, который меняет правила оформления платё...
+    link: https://t.me/crmmarketplace/2760
+12. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-13T12:43:47+00:00
+    title: ОЗОН 🏪 FBO: запустили новые склады в трёх регионах Открыли по одному складу в кластере «Москва, МО и Дальние регионы», «Новосибирск» и «Крас...
+    link: https://t.me/crmmarketplace/2761
+13. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-14T12:01:33+00:00
+    title: На Wildberries теперь можно найти товар сразу по фото и тексту . Wildberries тестирует обновленный поиск по фото в мобильном приложении марк...
+    link: https://t.me/crmmarketplace/2762
+14. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-16T07:53:42+00:00
+    title: ⚡️ Ozon перестал работать с VPN WB пока выдает предупреждение с просьбой отключить VPN, а у части пользователей тоже уже не работает. Прилож...
+    link: https://t.me/crmmarketplace/2763
+15. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-17T15:43:55+00:00
+    title: ❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...
+    link: https://t.me/crmmarketplace/2764
+16. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-20T07:09:07+00:00
+    title: ЯМ вывоз возвратов из сортцентров только по электронной заявке — с 28 апреля 🔵 Для вывоза возвратов вам больше не нужно привозить документы...
+    link: https://t.me/crmmarketplace/2765
+17. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-20T10:21:01+00:00
+    title: WB ввёл платную доставку для сверхгабаритных товаров. С 17 апреля покупатели оплачивают курьерскую доставку всех СГТ-товаров без исключения:...
+    link: https://t.me/crmmarketplace/2766
+18. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-21T07:20:13+00:00
+    title: Эквайринг на WB реально вырос с 2% в январе до 4+% в марте от цены реализации. Проверьте свои цифры. Где найти отчет? Кабинет → Финансы → Фи...
+    link: https://t.me/crmmarketplace/2767
+19. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-21T10:24:01+00:00
+    title: ✨ ОЗОН Расширили программу лояльности 15 апреля усилили программу лояльности «Звёздные товары»: в ней появились 140 дней льготного периода п...
+    link: https://t.me/crmmarketplace/2768
+20. source=TG:crmmarketplace channel=crmmarketplace published=2026-04-22T08:07:01+00:00
+    title: Купер подключился к онлайн-заказам и доставке товаров из сети супермаркетов SPAR и Eurospar в Москве и Московской области. Таким образом Куп...
+    link: https://t.me/crmmarketplace/2769

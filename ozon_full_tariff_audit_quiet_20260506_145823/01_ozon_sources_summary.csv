@@ -1,0 +1,3 @@
+﻿fee_type,source_file,source_note,rows_count,categories_count,product_types_count,min_valid_from,max_valid_from,min_fee,max_fee
+marketplace_service_rate,20260426_141844_marketplace-services-rates-01-04-2026.xlsx,"Ozon marketplace services rates, standard tariff table from 01.04.2026",44128,11026,10478,2026-04-01,2026-04-01,0.5,68
+commission_only,Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx,"Ozon Select table, not standard Ozon table",40326,635,13068,2025-10-22,2025-10-22,5,12

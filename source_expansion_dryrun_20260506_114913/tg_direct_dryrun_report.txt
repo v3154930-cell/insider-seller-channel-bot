@@ -1,0 +1,82 @@
+TG DIRECT DRY RUN
+DB: /opt/newsbot_v2/news_queue.db
+existing sources in news: CNews, Oborot.ru, RBC, Retail.ru, TG:Apetecom, TG:crmmarketplace, TG:marketplace_biz, TG:mpgo_ru, TG:oborotru
+
+========================================================================================================================
+CHANNEL: marketplace_biz
+------------------------------------------------------------------------------------------------------------------------
+FETCH_ERROR: ConnectTimeout(MaxRetryError("HTTPSConnectionPool(host='t.me', port=443): Max retries exceeded with url: /s/marketplace_biz (Caused by ConnectTimeoutError(<HTTPSConnection(host='t.me', port=443) at 0x742a30b2a510>, 'Connection to t.me timed out. (connect timeout=8)'))"))
+========================================================================================================================
+CHANNEL: mpgo_ru
+------------------------------------------------------------------------------------------------------------------------
+FETCH_ERROR: ConnectTimeout(MaxRetryError("HTTPSConnectionPool(host='t.me', port=443): Max retries exceeded with url: /s/mpgo_ru (Caused by ConnectTimeoutError(<HTTPSConnection(host='t.me', port=443) at 0x742a30b2b4a0>, 'Connection to t.me timed out. (connect timeout=8)'))"))
+========================================================================================================================
+CHANNEL: oborotru
+------------------------------------------------------------------------------------------------------------------------
+FETCH_ERROR: ConnectTimeout(MaxRetryError("HTTPSConnectionPool(host='t.me', port=443): Max retries exceeded with url: /s/oborotru (Caused by ConnectTimeoutError(<HTTPSConnection(host='t.me', port=443) at 0x742a30b2bc50>, 'Connection to t.me timed out. (connect timeout=8)'))"))
+========================================================================================================================
+CHANNEL: crmmarketplace
+------------------------------------------------------------------------------------------------------------------------
+posts fetched: 8
+01. kw_score=3 seller_filter=ignore rel=0 act=0
+    title: 💳 ОЗОН Новые правила заполнения платёжных документов С 1 апреля вступил в силу новый приказ Минфина, который меняет правила оформления платё...
+    link: https://t.me/crmmarketplace/2760
+    reason: no_rule_match
+02. kw_score=3 seller_filter=digest rel=2 act=2
+    title: ОЗОН 🏪 FBO: запустили новые склады в трёх регионах Открыли по одному складу в кластере «Москва, МО и Дальние регионы», «Новосибирск» и «Крас...
+    link: https://t.me/crmmarketplace/2761
+    reason: digest_medium: склады
+03. kw_score=-100 seller_filter=ignore rel=0 act=0
+    title: На Wildberries теперь можно найти товар сразу по фото и тексту . Wildberries тестирует обновленный поиск по фото в мобильном приложении марк...
+    link: https://t.me/crmmarketplace/2762
+    reason: no_rule_match
+04. kw_score=2 seller_filter=ignore rel=0 act=0
+    title: ⚡️ Ozon перестал работать с VPN WB пока выдает предупреждение с просьбой отключить VPN, а у части пользователей тоже уже не работает. Прилож...
+    link: https://t.me/crmmarketplace/2763
+    reason: no_rule_match
+05. kw_score=9 seller_filter=publish rel=10 act=10
+    title: ❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...
+    link: https://t.me/crmmarketplace/2764
+    reason: publish_strong: тарифы, фас, сроки выплат, возврат, маркировка
+06. kw_score=1 seller_filter=publish rel=6 act=6
+    title: ЯМ вывоз возвратов из сортцентров только по электронной заявке — с 28 апреля 🔵 Для вывоза возвратов вам больше не нужно привозить документы...
+    link: https://t.me/crmmarketplace/2765
+    reason: publish_strong: возврат, возвраты
+07. kw_score=2 seller_filter=ignore rel=0 act=0
+    title: WB ввёл платную доставку для сверхгабаритных товаров. С 17 апреля покупатели оплачивают курьерскую доставку всех СГТ-товаров без исключения:...
+    link: https://t.me/crmmarketplace/2766
+    reason: no_rule_match
+08. kw_score=1 seller_filter=ignore rel=0 act=0
+    title: Эквайринг на WB реально вырос с 2% в январе до 4+% в марте от цены реализации. Проверьте свои цифры. Где найти отчет? Кабинет → Финансы → Фи...
+    link: https://t.me/crmmarketplace/2767
+    reason: no_rule_match
+========================================================================================================================
+CHANNEL: Apetecom
+------------------------------------------------------------------------------------------------------------------------
+posts fetched: 8
+01. kw_score=1 seller_filter=ignore rel=0 act=0
+    title: 📣 Вчера провели встречу резидентов АПЭТ с командой Ozon Fresh Коллеги из Ozon поделились подробной информацией о работе Ozon Fresh и его тек...
+    link: https://t.me/Apetecom/1229
+    reason: no_rule_match
+02. kw_score=2 seller_filter=digest rel=2 act=2
+    title: 🛒 Новости АПЭТ: Важные шаги для поддержки МСП в электронной коммерции Сегодня в рамках круглого стола в Деловой России председатель Президиу...
+    link: https://t.me/Apetecom/1230
+    reason: digest_medium: маркетплейсы
+03. kw_score=6 seller_filter=publish rel=7 act=7
+    title: Электронная торговля против полного НДС на импорт Ассоциация представителей электронной торговли (АПЭТ) обратилась к премьер‑министру Михаил...
+    link: https://t.me/Apetecom/1231
+    reason: publish_strong: ндс
+04. kw_score=3 seller_filter=digest rel=2 act=2
+    title: Маркетплейсы. Новая экономика электронной торговли: ИИ, тестирование и управление спросом 📆 28 апреля, в рамках форума «Дни ритейла на Неве»...
+    link: https://t.me/Apetecom/1232
+    reason: digest_medium: маркетплейсы
+05. kw_score=3 seller_filter=ignore rel=0 act=0
+    title: Дорогие подписчики, нужна ваша поддержка 📣 Сейчас у нас есть возможность сделать канал еще полезнее для вас: публиковать истории, делиться б...
+    link: https://t.me/Apetecom/1233
+    reason: no_rule_match
+06. kw_score=0 seller_filter=ignore rel=0 act=0
+    title: 📆 30 апреля в 11:00 по МСК проведём полезный вебинар для производителей, поставщиков и компаний, которые хотят подтвердить статус российской...
+    link: https://t.me/Apetecom/1234
+    reason: no_rule_match
+07. kw_score=3 seller_filter=digest rel=2 act=2
+    title: Маркетплейсы. Новая экономика электронной торговли: ИИ, тестирование и управление спросом 📆 28 апреля, в рамках форума «Дни ритейла на Неве»...

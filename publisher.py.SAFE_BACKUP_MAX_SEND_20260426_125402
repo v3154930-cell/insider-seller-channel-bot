@@ -1,0 +1,163 @@
+import os
+import json
+import html
+import requests
+
+
+def normalize_channel_id(channel_id):
+    """
+    MAX/Telegram-like channel id helper.
+    Возвращаем как строку, чтобы не ломать отрицательные id и @channel.
+    """
+    if channel_id is None:
+        return ""
+    return str(channel_id).strip()
+
+
+def save_link(url, title=None):
+    """
+    Совместимая заглушка для старого publisher.
+    Раньше могла сохранять ссылку в БД/лог.
+    Сейчас безопасно возвращает исходный url.
+    """
+    return url
+
+
+def append_source_line(text, source=None, url=None):
+    """
+    Добавляет строку источника к тексту новости/дайджеста.
+    """
+    text = text or ""
+
+    source_text = ""
+    if source:
+        source_text = str(source).strip()
+
+    url_text = ""
+    if url:
+        url_text = str(url).strip()
+
+    if not source_text and not url_text:
+        return text
+
+    if source_text and url_text:
+        line = f"\n\nИсточник: {source_text}\n{url_text}"
+    elif source_text:
+        line = f"\n\nИсточник: {source_text}"
+    else:
+        line = f"\n\nИсточник: {url_text}"
+
+    return text.rstrip() + line
+
+
+def format_news(item):
+    """
+    Базовое форматирование одной новости.
+    Поддерживает dict из news_queue/news.
+    """
+    if item is None:
+        return ""
+
+    if not isinstance(item, dict):
+        return str(item)
+
+    title = item.get("title") or item.get("headline") or "Новость"
+    summary = (
+        item.get("summary")
+        or item.get("text")
+        or item.get("body")
+        or item.get("description")
+        or ""
+    )
+    source = item.get("source") or item.get("marketplace") or ""
+    url = item.get("url") or item.get("link") or ""
+
+    parts = [f"📰 {title}"]
+
+    if summary:
+        parts.append(str(summary))
+
+    text = "\n\n".join(parts)
+
+    if source or url:
+        text = append_source_line(text, source=source, url=url)
+
+    return text
+
+
+def _get_bot_config():
+    """
+    Берём настройки из .env.
+    Поддерживаем несколько возможных имён, чтобы не зависеть от старого файла.
+    """
+    token = (
+        os.getenv("MAX_BOT_TOKEN")
+        or os.getenv("BOT_TOKEN")
+        or os.getenv("TELEGRAM_BOT_TOKEN")
+        or os.getenv("TG_BOT_TOKEN")
+    )
+
+    channel_id = (
+        os.getenv("MAX_CHANNEL_ID")
+        or os.getenv("CHANNEL_ID")
+        or os.getenv("TELEGRAM_CHANNEL_ID")
+        or os.getenv("TG_CHANNEL_ID")
+    )
+
+    api_base = (
+        os.getenv("MAX_API_BASE")
+        or os.getenv("BOT_API_BASE")
+        or os.getenv("TELEGRAM_API_BASE")
+        or "https://api.telegram.org"
+    )
+
+    return token, normalize_channel_id(channel_id), api_base.rstrip("/")
+
+
+def send_message(text, channel_id=None, parse_mode=None):
+    """
+    Отправляет сообщение в канал/чат.
+
+    По умолчанию использует Telegram-compatible endpoint:
+    https://api.telegram.org/bot<TOKEN>/sendMessage
+
+    Если у MAX другой API endpoint задан в .env через MAX_API_BASE/BOT_API_BASE,
+    функция использует его.
+    """
+    token, default_channel_id, api_base = _get_bot_config()
+    chat_id = normalize_channel_id(channel_id) or default_channel_id
+
+    if not token:
+        raise RuntimeError(
+            "Не найден токен бота в .env. Ожидаю MAX_BOT_TOKEN, BOT_TOKEN, "
+            "TELEGRAM_BOT_TOKEN или TG_BOT_TOKEN."
+        )
+
+    if not chat_id:
+        raise RuntimeError(
+            "Не найден id канала/чата в .env. Ожидаю MAX_CHANNEL_ID, CHANNEL_ID, "
+            "TELEGRAM_CHANNEL_ID или TG_CHANNEL_ID."
+        )
+
+    url = f"{api_base}/bot{token}/sendMessage"
+
+    payload = {
+        "chat_id": chat_id,
+        "text": text or "",
+        "disable_web_page_preview": False,
+    }
+
+    if parse_mode:
+        payload["parse_mode"] = parse_mode
+
+    resp = requests.post(url, json=payload, timeout=30)
+
+    if resp.status_code >= 400:
+        raise RuntimeError(
+            f"send_message failed: HTTP {resp.status_code}: {resp.text[:1000]}"
+        )
+
+    try:
+        return resp.json()
+    except Exception:
+        return {"ok": True, "raw": resp.text}

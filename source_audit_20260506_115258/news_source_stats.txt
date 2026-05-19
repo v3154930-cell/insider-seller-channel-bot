@@ -1,0 +1,19 @@
+news rows: 121
+
+   23 | published= 23 | digest_used= 17 | publish  | TG:marketplace_biz
+   14 | published= 14 | digest_used= 10 | publish  | TG:mpgo_ru
+   12 | published=  0 | digest_used=  6 | digest   | Oborot.ru
+   11 | published= 11 | digest_used= 10 | publish  | Oborot.ru
+   10 | published= 10 | digest_used=  8 | publish  | TG:oborotru
+    7 | published=  7 | digest_used=  2 | publish  | TG:crmmarketplace
+    7 | published=  0 | digest_used=  4 | digest   | TG:marketplace_biz
+    7 | published=  0 | digest_used=  2 | digest   | TG:oborotru
+    5 | published=  0 | digest_used=  3 | digest   | TG:crmmarketplace
+    4 | published=  0 | digest_used=  3 | digest   | RBC
+    4 | published=  0 | digest_used=  2 | digest   | Retail.ru
+    4 | published=  0 | digest_used=  3 | digest   | TG:Apetecom
+    3 | published=  3 | digest_used=  3 | publish  | Retail.ru
+    3 | published=  3 | digest_used=  1 | publish  | TG:Apetecom
+    3 | published=  0 | digest_used=  1 | digest   | TG:mpgo_ru
+    2 | published=  0 | digest_used=  1 | digest   | CNews
+    2 | published=  2 | digest_used=  1 | publish  | CNews

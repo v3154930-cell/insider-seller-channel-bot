@@ -1,0 +1,165 @@
+import os
+import logging
+from typing import Dict, Any, List
+
+from db import init_db, add_to_queue_batch, get_all_pending_count
+from parsers import get_all_news
+from scoring import score_items
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("collector_v2")
+
+
+SELLER_KEYWORDS = [
+    "ozon", "озон",
+    "wildberries", "вайлдберриз", "wb",
+    "яндекс маркет", "yandex market",
+    "маркетплейс", "маркетплейсы",
+    "селлер", "селлеры",
+    "продавец", "продавцы",
+    "комиссия", "комиссии",
+    "тариф", "тарифы",
+    "оферта", "оферты",
+    "штраф", "штрафы",
+    "возврат", "возвраты",
+    "логистика", "фулфилмент", "склад",
+    "fbo", "fbs", "dbs",
+    "карточка товара", "личный кабинет продавца",
+    "маркировка", "честный знак",
+    "пвз", "пункт выдачи",
+    "кабинет продавца",
+    "e-commerce", "ecommerce", "интернет-торговля", "онлайн-торговля",
+]
+
+BLOCK_KEYWORDS = [
+    "porsche", "bugatti", "порше", "бугатти",
+    "пашинян", "биатлон", "футбол", "хоккей",
+    "теннис", "уефа", "uefa",
+    "министр обороны", "замминистра обороны",
+    "иванов", "agi", "аги",
+    "маск", "openai", "альтман",
+]
+
+
+def normalize_text(value: Any) -> str:
+    return str(value or "").lower().replace("ё", "е")
+
+
+def item_text(item: Dict[str, Any]) -> str:
+    return " ".join([
+        normalize_text(item.get("title")),
+        normalize_text(item.get("description")),
+        normalize_text(item.get("summary")),
+        normalize_text(item.get("raw_text")),
+        normalize_text(item.get("source")),
+        normalize_text(item.get("link")),
+    ])
+
+
+def seller_score(item: Dict[str, Any]) -> int:
+    text = item_text(item)
+
+    if any(word in text for word in BLOCK_KEYWORDS):
+        return -100
+
+    return sum(1 for word in SELLER_KEYWORDS if word in text)
+
+
+def normalize_item_for_queue(item: Dict[str, Any]) -> Dict[str, Any]:
+    title = item.get("title") or ""
+    description = item.get("description") or item.get("summary") or item.get("raw_text") or ""
+
+    return {
+        "title": title,
+        "description": description,
+        "summary": item.get("summary") or description,
+        "raw_text": item.get("raw_text") or description,
+        "link": item.get("link") or "",
+        "source": item.get("source") or "unknown",
+        "category": item.get("category") or "marketplace",
+        "score": item.get("score", 0),
+        "image_url": item.get("image_url") or item.get("image") or "",
+    }
+
+
+def main():
+    logger.info("=== Collector v2 started ===")
+
+    # Жёстко запрещаем LLM внутри collector.
+    os.environ["USE_LLM"] = "false"
+    os.environ["SELLER_FILTER_MODE"] = "keyword"
+
+    init_db()
+
+    hours = int(os.getenv("COLLECTOR_HOURS", "24"))
+
+    news = get_all_news(hours=hours)
+    logger.info("Fetched raw news: %s", len(news))
+
+    if not news:
+        logger.warning("No news fetched")
+        return
+
+    try:
+        news = score_items(news)
+        logger.info("Scored news: %s", len(news))
+    except Exception as e:
+        logger.warning("Scoring failed, continuing without scoring: %s", e)
+
+    selected = []
+    seller_decisions = {}
+
+    for item in news:
+        score = seller_score(item)
+        title = str(item.get("title", ""))[:120]
+
+        logger.info("candidate score=%s title=%s", score, title)
+
+        if score >= 2:
+            q_item = normalize_item_for_queue(item)
+            q_item["seller_score"] = score
+
+            link = q_item.get("link") or ""
+
+            if score >= 4:
+                decision = "publish"
+                actionability = min(score, 10)
+            else:
+                decision = "digest"
+                actionability = max(1, min(score, 10))
+
+            if link:
+                seller_decisions[link] = {
+                    "decision": decision,
+                    "seller_relevance_score": min(score, 10),
+                    "actionability_score": actionability,
+                    "reason": f"keyword_score={score}",
+                }
+
+            selected.append(q_item)
+
+    logger.info("Selected seller-relevant news: %s", len(selected))
+    logger.info(
+        "Seller decisions: publish=%s digest=%s",
+        sum(1 for v in seller_decisions.values() if v.get("decision") == "publish"),
+        sum(1 for v in seller_decisions.values() if v.get("decision") == "digest"),
+    )
+
+    if not selected:
+        logger.warning("No seller-relevant news selected. Queue unchanged.")
+        return
+
+    inserted = add_to_queue_batch(selected, seller_decisions=seller_decisions)
+    logger.info("Inserted to queue: %s", inserted)
+
+    pending = get_all_pending_count()
+    logger.info("Pending after collector v2: %s", pending)
+
+    logger.info("=== Collector v2 finished ===")
+
+
+if __name__ == "__main__":
+    main()

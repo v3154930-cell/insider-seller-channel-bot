@@ -1,0 +1,260 @@
+/opt/newsbot_v2/import_tg_posts_from_github.py:11:    "TG_POSTS_JSON_URL",
+/opt/newsbot_v2/import_tg_posts_from_github.py:12:    "https://raw.githubusercontent.com/v3154930-cell/newsbot-tg-fetcher/main/tg_posts.json"
+/opt/newsbot_v2/import_tg_posts_from_github.py:15:LOCAL_JSON = "/opt/newsbot_v2/data/tg_posts.json"
+/opt/newsbot_v2/publisher.py.BACKUP_full_article_callback_20260428_220337:85:        # Источник канала: TG:crmmarketplace -> <b>📦 TG:crmmarketplace</b>
+/opt/newsbot_v2/init_rag_sources.py:90:        "TG marketplace_biz",
+/opt/newsbot_v2/init_rag_sources.py:99:        "TG mpgo_ru",
+/opt/newsbot_v2/init_rag_sources.py:108:        "TG crmmarketplace",
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:1:TG_JSON_URLS count: 1
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:4:1 https://raw.githubusercontent.com/v3154930-cell/newsbot-tg-fetcher/main/tg_posts.json
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:6:sources: {'TG:mpgo_ru': 10, 'TG:oborotru': 10}
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:7:- TG:mpgo_ru | Посетили Императорский фарфоровый завод в Санкт-Петербурге с коллегами из Яндекс Маркета Императорский фарфоровый завод (ИФЗ) однозначно из...
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:8:- TG:mpgo_ru | Бизнес жалуется на отсутствие прибыли Половина микробизнеса (до 20 млн рублей выручки) работает без прибыли, пишет РБК. Об этом свидетельств...
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:9:- TG:mpgo_ru | Новости площадок 🔵 Ozon запустил ИИ-ассистента для селлеров в личном кабинете «Умный ассистент» анализирует данные магазина, дает персональн...
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:10:- TG:mpgo_ru | ФНС составила портрет компании-неплательщика Налоговая служба на основе данных проверок составила портрет типичной организации-неплательщика...
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.txt:11:- TG:mpgo_ru | Покупательница нашла в отзывах детальный «разбор» упаковки орехов. Что думаете, селлеры, реальный отзыв или заказной?) Голосуем ❤️ — реальны...
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_v1.py:21:    "marketplace_biz",
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_v1.py:22:    "mpgo_ru",
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_v1.py:24:    "crmmarketplace",
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_v1.py:25:    "Apetecom",
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:3:existing sources in news: CNews, Oborot.ru, RBC, Retail.ru, TG:Apetecom, TG:crmmarketplace, TG:marketplace_biz, TG:mpgo_ru, TG:oborotru
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:6:CHANNEL: marketplace_biz
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:8:FETCH_ERROR: ConnectTimeout(MaxRetryError("HTTPSConnectionPool(host='t.me', port=443): Max retries exceeded with url: /s/marketplace_biz (Caused by ConnectTimeoutError(<HTTPSConnection(host='t.me', port=443) at 0x742a30b2a510>, 'Connection to t.me timed out. (connect timeout=8)'))"))
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:10:CHANNEL: mpgo_ru
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:12:FETCH_ERROR: ConnectTimeout(MaxRetryError("HTTPSConnectionPool(host='t.me', port=443): Max retries exceeded with url: /s/mpgo_ru (Caused by ConnectTimeoutError(<HTTPSConnection(host='t.me', port=443) at 0x742a30b2b4a0>, 'Connection to t.me timed out. (connect timeout=8)'))"))
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:18:CHANNEL: crmmarketplace
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:23:    link: https://t.me/crmmarketplace/2760
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:27:    link: https://t.me/crmmarketplace/2761
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:31:    link: https://t.me/crmmarketplace/2762
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:35:    link: https://t.me/crmmarketplace/2763
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:39:    link: https://t.me/crmmarketplace/2764
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:43:    link: https://t.me/crmmarketplace/2765
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:47:    link: https://t.me/crmmarketplace/2766
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:51:    link: https://t.me/crmmarketplace/2767
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:54:CHANNEL: Apetecom
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:59:    link: https://t.me/Apetecom/1229
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:63:    link: https://t.me/Apetecom/1230
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:67:    link: https://t.me/Apetecom/1231
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:71:    link: https://t.me/Apetecom/1232
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:75:    link: https://t.me/Apetecom/1233
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_direct_dryrun_report.txt:79:    link: https://t.me/Apetecom/1234
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.py:12:urls = [x.strip() for x in os.getenv("TG_JSON_URLS", "").split(",") if x.strip()]
+/opt/newsbot_v2/source_expansion_dryrun_20260506_114913/tg_json_current_summary.py:14:print("TG_JSON_URLS count:", len(urls))
+/opt/newsbot_v2/publisher.py:156:        # Источник канала: TG:crmmarketplace -> <b>📦 TG:crmmarketplace</b>
+/opt/newsbot_v2/publisher.py.BACKUP_HELPER_BUTTON_20260426_175921:84:        # Источник канала: TG:crmmarketplace -> <b>📦 TG:crmmarketplace</b>
+/opt/newsbot_v2/.env.backup_before_no_turso_20260426_133934:23:TG_JSON_URLS=https://raw.githubusercontent.com/v3154930-cell/newsbot-tg-fetcher/main/tg_posts.json
+/opt/newsbot_v2/logs/daily_pipeline.log:221:(156, 26901, 'ozon', 'payments', 64, 'С факторингом от Ozon и бухгалтерией опять что-то не сходится После прошлого поста про Точку начали писать в личку. И там уже не один случай...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:228:(105, 26621, 'ozon', 'payments', 76, 'У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда маркетплейс предложил «...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:229:(104, 26622, 'unknown', 'offer_terms', 100, 'ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат продавцам. Причина простая: де...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:230:(103, 26627, 'wildberries', 'tariffs_fees', 62, 'WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто оформление страницы, а отдельн...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:231:(102, 26628, 'ozon', 'tariffs_fees', 100, 'Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про забытый в корзине товар мож...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:232:(101, 26630, 'multiple', 'offer_terms', 100, '❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:233:(100, 26631, 'wildberries', 'payments', 62, 'WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в поиске и на главной. На пер...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:234:(99, 26633, 'unknown', 'tariffs_fees', 100, 'Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о платформенной экономике: маркетпл...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:235:(98, 26634, 'multiple', 'offer_terms', 64, 'МСП Подмосковья смогут получить субсидии на затраты на маркетплейсах В Московской области стартовал прием заявок на получение субсидий по пр...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:236:(97, 26635, 'unknown', 'offer_terms', 98, '«Цены на маркетплейсах вырастут». Пошла подготовка? В «Известиях» вышел материал про то, что усиление контроля за маркетплейсами может приве...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:237:(96, 26636, 'wildberries', 'penalties_returns', 54, 'WB тестирует «не требует проверки» — и снова за счёт селлера Появилась новая отметка — «не требует проверки» . Для покупателя это значит про...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:238:(95, 26637, 'wildberries', 'payments', 66, '#КейсАПЭТ Про деньги, c которыми многие уже попращались Часто слышим одну и ту же историю: Ну да, есть расхождения. Где-то утери, где-то лог...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:239:(94, 26639, 'ozon', 'offer_terms', 100, '💳 ОЗОН Новые правила заполнения платёжных документов С 1 апреля вступил в силу новый приказ Минфина, который меняет правила оформления платё...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:240:(93, 26640, 'yandex_market', 'penalties_returns', 52, 'Яндекс Маркет пересобрал кабинет продавца — теперь всё важное в одном окне Маркет выкатил новую «Сводку». Если раньше за показателями и зада...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:249:(104, 26622, 'unknown', 'regulatory_signal', 'offer_terms', 100, 'ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат продавцам. Причина простая: де...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:250:(102, 26628, 'ozon', 'rule_change', 'tariffs_fees', 100, 'Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про забытый в корзине товар мож...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:251:(101, 26630, 'multiple', 'regulatory_signal', 'offer_terms', 100, '❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:252:(99, 26633, 'unknown', 'regulatory_signal', 'tariffs_fees', 100, 'Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о платформенной экономике: маркетпл...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:253:(94, 26639, 'ozon', 'regulatory_signal', 'offer_terms', 100, '💳 ОЗОН Новые правила заполнения платёжных документов С 1 апреля вступил в силу новый приказ Минфина, который меняет правила оформления платё...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:254:(92, 26641, 'ozon', 'rule_change', 'offer_terms', 66, '🛒 Кейс АПЭТ : Товарный знак есть, бейджа нет: кейс “.ру” Проблема Селлер столкнулся с невозможностью получить бейдж «Оригинал» на Озон У бре...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:255:(103, 26627, 'wildberries', 'rule_change', 'tariffs_fees', 62, 'WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто оформление страницы, а отдельн...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:256:(96, 26636, 'wildberries', 'rule_change', 'penalties_returns', 54, 'WB тестирует «не требует проверки» — и снова за счёт селлера Появилась новая отметка — «не требует проверки» . Для покупателя это значит про...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:259:(156, 26901, 'ozon', 'business_signal', 'payments', 64, 'С факторингом от Ozon и бухгалтерией опять что-то не сходится После прошлого поста про Точку начали писать в личку. И там уже не один случай...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:266:(105, 26621, 'ozon', 'business_signal', 'payments', 76, 'У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда маркетплейс предложил «...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:267:(100, 26631, 'wildberries', 'business_signal', 'payments', 62, 'WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в поиске и на главной. На пер...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:268:(98, 26634, 'multiple', 'business_signal', 'offer_terms', 64, 'МСП Подмосковья смогут получить субсидии на затраты на маркетплейсах В Московской области стартовал прием заявок на получение субсидий по пр...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:269:(97, 26635, 'unknown', 'business_signal', 'offer_terms', 98, '«Цены на маркетплейсах вырастут». Пошла подготовка? В «Известиях» вышел материал про то, что усиление контроля за маркетплейсами может приве...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:270:(95, 26637, 'wildberries', 'business_signal', 'payments', 66, '#КейсАПЭТ Про деньги, c которыми многие уже попращались Часто слышим одну и ту же историю: Ну да, есть расхождения. Где-то утери, где-то лог...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:271:(93, 26640, 'yandex_market', 'business_signal', 'penalties_returns', 52, 'Яндекс Маркет пересобрал кабинет продавца — теперь всё важное в одном окне Маркет выкатил новую «Сводку». Если раньше за показателями и зада...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:272:(91, 26642, 'wildberries', 'business_signal', 'tariffs_fees', 64, '«Wildberries для бизнеса»: крупное обновление B2B-платформы На конференции КИТ директор B2B-направления Олег Винжегин и руководитель развити...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:315:   Источник: TG:Apetecom
+/opt/newsbot_v2/logs/daily_pipeline.log:316:   Ссылка: https://t.me/Apetecom/1219
+/opt/newsbot_v2/logs/daily_pipeline.log:326:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:327:   Ссылка: https://t.me/marketplace_biz/8565
+/opt/newsbot_v2/logs/daily_pipeline.log:335:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:336:   Ссылка: https://t.me/mpgo_ru/7904
+/opt/newsbot_v2/logs/daily_pipeline.log:344:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:345:   Ссылка: https://t.me/crmmarketplace/2764
+/opt/newsbot_v2/logs/daily_pipeline.log:353:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:354:   Ссылка: https://t.me/mpgo_ru/7905
+/opt/newsbot_v2/logs/daily_pipeline.log:362:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:363:   Ссылка: https://t.me/crmmarketplace/2760
+/opt/newsbot_v2/logs/daily_pipeline.log:371:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:372:   Ссылка: https://t.me/marketplace_biz/8558
+/opt/newsbot_v2/logs/daily_pipeline.log:380:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:381:   Ссылка: https://t.me/marketplace_biz/8562
+/opt/newsbot_v2/logs/daily_pipeline.log:456:(183, 27152, 'yandex_market', 'penalties_returns', 62, '🟡 Яндекс Маркет обновил сводку в личном кабинете Теперь все важные показатели доступны на одном экране, поэтому продавцам станет легче работ...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:457:(182, 27156, 'wildberries', 'offer_terms', 96, 'Wildberries обновил оферту для продавцов Документ вступит в силу 29 апреля. Важные изменения: • Добавили правило о добросовестном использова...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:458:(181, 27172, 'unknown', 'tariffs_fees', 42, 'Подмосковью компенсируют до 50% расходов на маркетплейсах В Московской области запустили программу: бизнесу вернут до 50% затрат на комиссии...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:459:(180, 27174, 'wildberries', 'offer_terms', 62, 'WB обновил оферту. Что поменялось WB выкатил новую версию оферты. Изменений много, но если коротко — расширяют контроль и добавляют новые то...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:460:(179, 27192, 'wildberries', 'offer_terms', 52, 'С 25 мая российские и китайские селлеры будут работать по единым условиям на Wildberries. Wildberries внедряет единые условия работы для про...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:461:(156, 26901, 'ozon', 'payments', 64, 'С факторингом от Ozon и бухгалтерией опять что-то не сходится После прошлого поста про Точку начали писать в личку. И там уже не один случай...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:468:(105, 26621, 'ozon', 'payments', 76, 'У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда маркетплейс предложил «...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:469:(104, 26622, 'unknown', 'offer_terms', 100, 'ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат продавцам. Причина простая: де...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:470:(103, 26627, 'wildberries', 'tariffs_fees', 62, 'WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто оформление страницы, а отдельн...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:471:(102, 26628, 'ozon', 'tariffs_fees', 100, 'Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про забытый в корзине товар мож...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:472:(101, 26630, 'multiple', 'offer_terms', 100, '❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:473:(100, 26631, 'wildberries', 'payments', 62, 'WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в поиске и на главной. На пер...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:474:(99, 26633, 'unknown', 'tariffs_fees', 100, 'Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о платформенной экономике: маркетпл...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:475:(98, 26634, 'multiple', 'offer_terms', 64, 'МСП Подмосковья смогут получить субсидии на затраты на маркетплейсах В Московской области стартовал прием заявок на получение субсидий по пр...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:484:(104, 26622, 'unknown', 'regulatory_signal', 'offer_terms', 100, 'ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат продавцам. Причина простая: де...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:485:(102, 26628, 'ozon', 'rule_change', 'tariffs_fees', 100, 'Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про забытый в корзине товар мож...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:486:(101, 26630, 'multiple', 'regulatory_signal', 'offer_terms', 100, '❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:487:(99, 26633, 'unknown', 'regulatory_signal', 'tariffs_fees', 100, 'Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о платформенной экономике: маркетпл...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:488:(94, 26639, 'ozon', 'regulatory_signal', 'offer_terms', 100, '💳 ОЗОН Новые правила заполнения платёжных документов С 1 апреля вступил в силу новый приказ Минфина, который меняет правила оформления платё...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:489:(182, 27156, 'wildberries', 'regulatory_signal', 'offer_terms', 96, 'Wildberries обновил оферту для продавцов Документ вступит в силу 29 апреля. Важные изменения: • Добавили правило о добросовестном использова...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:490:(92, 26641, 'ozon', 'rule_change', 'offer_terms', 66, '🛒 Кейс АПЭТ : Товарный знак есть, бейджа нет: кейс “.ру” Проблема Селлер столкнулся с невозможностью получить бейдж «Оригинал» на Озон У бре...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:491:(180, 27174, 'wildberries', 'rule_change', 'offer_terms', 62, 'WB обновил оферту. Что поменялось WB выкатил новую версию оферты. Изменений много, но если коротко — расширяют контроль и добавляют новые то...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:492:(103, 26627, 'wildberries', 'rule_change', 'tariffs_fees', 62, 'WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто оформление страницы, а отдельн...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:493:(96, 26636, 'wildberries', 'rule_change', 'penalties_returns', 54, 'WB тестирует «не требует проверки» — и снова за счёт селлера Появилась новая отметка — «не требует проверки» . Для покупателя это значит про...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:494:(179, 27192, 'wildberries', 'rule_change', 'offer_terms', 52, 'С 25 мая российские и китайские селлеры будут работать по единым условиям на Wildberries. Wildberries внедряет единые условия работы для про...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:495:(181, 27172, 'unknown', 'rule_change', 'tariffs_fees', 42, 'Подмосковью компенсируют до 50% расходов на маркетплейсах В Московской области запустили программу: бизнесу вернут до 50% затрат на комиссии...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:498:(183, 27152, 'yandex_market', 'business_signal', 'penalties_returns', 62, '🟡 Яндекс Маркет обновил сводку в личном кабинете Теперь все важные показатели доступны на одном экране, поэтому продавцам станет легче работ...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:499:(156, 26901, 'ozon', 'business_signal', 'payments', 64, 'С факторингом от Ozon и бухгалтерией опять что-то не сходится После прошлого поста про Точку начали писать в личку. И там уже не один случай...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:506:(105, 26621, 'ozon', 'business_signal', 'payments', 76, 'У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда маркетплейс предложил «...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:507:(100, 26631, 'wildberries', 'business_signal', 'payments', 62, 'WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в поиске и на главной. На пер...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:508:(98, 26634, 'multiple', 'business_signal', 'offer_terms', 64, 'МСП Подмосковья смогут получить субсидии на затраты на маркетплейсах В Московской области стартовал прием заявок на получение субсидий по пр...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:509:(97, 26635, 'unknown', 'business_signal', 'offer_terms', 98, '«Цены на маркетплейсах вырастут». Пошла подготовка? В «Известиях» вышел материал про то, что усиление контроля за маркетплейсами может приве...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:510:(95, 26637, 'wildberries', 'business_signal', 'payments', 66, '#КейсАПЭТ Про деньги, c которыми многие уже попращались Часто слышим одну и ту же историю: Ну да, есть расхождения. Где-то утери, где-то лог...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:511:(93, 26640, 'yandex_market', 'business_signal', 'penalties_returns', 52, 'Яндекс Маркет пересобрал кабинет продавца — теперь всё важное в одном окне Маркет выкатил новую «Сводку». Если раньше за показателями и зада...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:512:(91, 26642, 'wildberries', 'business_signal', 'tariffs_fees', 64, '«Wildberries для бизнеса»: крупное обновление B2B-платформы На конференции КИТ директор B2B-направления Олег Винжегин и руководитель развити...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:559:   Источник: TG:Apetecom
+/opt/newsbot_v2/logs/daily_pipeline.log:560:   Ссылка: https://t.me/Apetecom/1219
+/opt/newsbot_v2/logs/daily_pipeline.log:570:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:571:   Ссылка: https://t.me/marketplace_biz/8565
+/opt/newsbot_v2/logs/daily_pipeline.log:579:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:580:   Ссылка: https://t.me/mpgo_ru/7904
+/opt/newsbot_v2/logs/daily_pipeline.log:588:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:589:   Ссылка: https://t.me/crmmarketplace/2764
+/opt/newsbot_v2/logs/daily_pipeline.log:597:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:598:   Ссылка: https://t.me/mpgo_ru/7905
+/opt/newsbot_v2/logs/daily_pipeline.log:606:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:607:   Ссылка: https://t.me/crmmarketplace/2760
+/opt/newsbot_v2/logs/daily_pipeline.log:615:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:616:   Ссылка: https://t.me/mpgo_ru/7910
+/opt/newsbot_v2/logs/daily_pipeline.log:624:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:625:   Ссылка: https://t.me/marketplace_biz/8564
+/opt/newsbot_v2/logs/daily_pipeline.log:633:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:634:   Ссылка: https://t.me/marketplace_biz/8558
+/opt/newsbot_v2/logs/daily_pipeline.log:642:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:643:   Ссылка: https://t.me/marketplace_biz/8562
+/opt/newsbot_v2/logs/daily_pipeline.log:651:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:652:   Ссылка: https://t.me/crmmarketplace/2758
+/opt/newsbot_v2/logs/daily_pipeline.log:660:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:661:   Ссылка: https://t.me/marketplace_biz/8561
+/opt/newsbot_v2/logs/daily_pipeline.log:737:(214, 28180, 'unknown', 'tariffs_fees', 54, 'Налоги падают на спецрежимах: минус 22% за квартал Минфин на «Васильевских чтениях» 23 апреля озвучил цифру: поступления от бизнеса и самоза...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:740:(211, 28475, 'unknown', 'penalties_returns', 52, 'Закрываем лишний кабинет на 🤪 без лишних вопросов. Есть квоты на ближайший пул. Ситуация: у вас или у знакомого селлера висит мёртвый кабине...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:742:(209, 28654, 'ozon', 'tariffs_fees', 74, 'Ozon выходит в Туркменистан. И сразу — тарифы Ozon запустился в Туркменистане и с 1 мая вводит отдельные тарифы на логистику по FBO и FBS. Д...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:743:(208, 28671, 'ozon', 'tariffs_fees', 52, 'Люди уже начали догадываться о том, как маркетплейсы их обирают. Они умеют сравнивать и считать. Каково же их удивление, когда в магазине у...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:745:(183, 27152, 'yandex_market', 'penalties_returns', 62, '🟡 Яндекс Маркет обновил сводку в личном кабинете Теперь все важные показатели доступны на одном экране, поэтому продавцам станет легче работ...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:746:(182, 27156, 'wildberries', 'offer_terms', 96, 'Wildberries обновил оферту для продавцов Документ вступит в силу 29 апреля. Важные изменения: • Добавили правило о добросовестном использова...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:747:(181, 27172, 'unknown', 'tariffs_fees', 42, 'Подмосковью компенсируют до 50% расходов на маркетплейсах В Московской области запустили программу: бизнесу вернут до 50% затрат на комиссии...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:748:(180, 27174, 'wildberries', 'offer_terms', 62, 'WB обновил оферту. Что поменялось WB выкатил новую версию оферты. Изменений много, но если коротко — расширяют контроль и добавляют новые то...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:749:(179, 27192, 'wildberries', 'offer_terms', 52, 'С 25 мая российские и китайские селлеры будут работать по единым условиям на Wildberries. Wildberries внедряет единые условия работы для про...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:750:(156, 26901, 'ozon', 'payments', 64, 'С факторингом от Ozon и бухгалтерией опять что-то не сходится После прошлого поста про Точку начали писать в личку. И там уже не один случай...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:764:(104, 26622, 'unknown', 'regulatory_signal', 'offer_terms', 100, 'ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат продавцам. Причина простая: де...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:765:(102, 26628, 'ozon', 'rule_change', 'tariffs_fees', 100, 'Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про забытый в корзине товар мож...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:766:(101, 26630, 'multiple', 'regulatory_signal', 'offer_terms', 100, '❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:767:(99, 26633, 'unknown', 'regulatory_signal', 'tariffs_fees', 100, 'Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о платформенной экономике: маркетпл...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:768:(94, 26639, 'ozon', 'regulatory_signal', 'offer_terms', 100, '💳 ОЗОН Новые правила заполнения платёжных документов С 1 апреля вступил в силу новый приказ Минфина, который меняет правила оформления платё...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:769:(182, 27156, 'wildberries', 'regulatory_signal', 'offer_terms', 96, 'Wildberries обновил оферту для продавцов Документ вступит в силу 29 апреля. Важные изменения: • Добавили правило о добросовестном использова...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:772:(209, 28654, 'ozon', 'rule_change', 'tariffs_fees', 74, 'Ozon выходит в Туркменистан. И сразу — тарифы Ozon запустился в Туркменистане и с 1 мая вводит отдельные тарифы на логистику по FBO и FBS. Д...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:773:(92, 26641, 'ozon', 'rule_change', 'offer_terms', 66, '🛒 Кейс АПЭТ : Товарный знак есть, бейджа нет: кейс “.ру” Проблема Селлер столкнулся с невозможностью получить бейдж «Оригинал» на Озон У бре...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:774:(180, 27174, 'wildberries', 'rule_change', 'offer_terms', 62, 'WB обновил оферту. Что поменялось WB выкатил новую версию оферты. Изменений много, но если коротко — расширяют контроль и добавляют новые то...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:775:(103, 26627, 'wildberries', 'rule_change', 'tariffs_fees', 62, 'WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто оформление страницы, а отдельн...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:776:(214, 28180, 'unknown', 'regulatory_signal', 'tariffs_fees', 54, 'Налоги падают на спецрежимах: минус 22% за квартал Минфин на «Васильевских чтениях» 23 апреля озвучил цифру: поступления от бизнеса и самоза...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:777:(96, 26636, 'wildberries', 'rule_change', 'penalties_returns', 54, 'WB тестирует «не требует проверки» — и снова за счёт селлера Появилась новая отметка — «не требует проверки» . Для покупателя это значит про...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:778:(179, 27192, 'wildberries', 'rule_change', 'offer_terms', 52, 'С 25 мая российские и китайские селлеры будут работать по единым условиям на Wildberries. Wildberries внедряет единые условия работы для про...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:779:(181, 27172, 'unknown', 'rule_change', 'tariffs_fees', 42, 'Подмосковью компенсируют до 50% расходов на маркетплейсах В Московской области запустили программу: бизнесу вернут до 50% затрат на комиссии...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:784:(211, 28475, 'unknown', 'business_signal', 'penalties_returns', 52, 'Закрываем лишний кабинет на 🤪 без лишних вопросов. Есть квоты на ближайший пул. Ситуация: у вас или у знакомого селлера висит мёртвый кабине...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:785:(208, 28671, 'ozon', 'business_signal', 'tariffs_fees', 52, 'Люди уже начали догадываться о том, как маркетплейсы их обирают. Они умеют сравнивать и считать. Каково же их удивление, когда в магазине у...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:787:(183, 27152, 'yandex_market', 'business_signal', 'penalties_returns', 62, '🟡 Яндекс Маркет обновил сводку в личном кабинете Теперь все важные показатели доступны на одном экране, поэтому продавцам станет легче работ...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:788:(156, 26901, 'ozon', 'business_signal', 'payments', 64, 'С факторингом от Ozon и бухгалтерией опять что-то не сходится После прошлого поста про Точку начали писать в личку. И там уже не один случай...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:795:(105, 26621, 'ozon', 'business_signal', 'payments', 76, 'У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда маркетплейс предложил «...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:796:(100, 26631, 'wildberries', 'business_signal', 'payments', 62, 'WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в поиске и на главной. На пер...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:797:(98, 26634, 'multiple', 'business_signal', 'offer_terms', 64, 'МСП Подмосковья смогут получить субсидии на затраты на маркетплейсах В Московской области стартовал прием заявок на получение субсидий по пр...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:798:(97, 26635, 'unknown', 'business_signal', 'offer_terms', 98, '«Цены на маркетплейсах вырастут». Пошла подготовка? В «Известиях» вышел материал про то, что усиление контроля за маркетплейсами может приве...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:799:(95, 26637, 'wildberries', 'business_signal', 'payments', 66, '#КейсАПЭТ Про деньги, c которыми многие уже попращались Часто слышим одну и ту же историю: Ну да, есть расхождения. Где-то утери, где-то лог...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:800:(93, 26640, 'yandex_market', 'business_signal', 'penalties_returns', 52, 'Яндекс Маркет пересобрал кабинет продавца — теперь всё важное в одном окне Маркет выкатил новую «Сводку». Если раньше за показателями и зада...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:801:(91, 26642, 'wildberries', 'business_signal', 'tariffs_fees', 64, '«Wildberries для бизнеса»: крупное обновление B2B-платформы На конференции КИТ директор B2B-направления Олег Винжегин и руководитель развити...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:851:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:852:   Ссылка: https://t.me/marketplace_biz/8575
+/opt/newsbot_v2/logs/daily_pipeline.log:861:   Источник: TG:Apetecom
+/opt/newsbot_v2/logs/daily_pipeline.log:862:   Ссылка: https://t.me/Apetecom/1219
+/opt/newsbot_v2/logs/daily_pipeline.log:872:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:873:   Ссылка: https://t.me/marketplace_biz/8565
+/opt/newsbot_v2/logs/daily_pipeline.log:881:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:882:   Ссылка: https://t.me/mpgo_ru/7904
+/opt/newsbot_v2/logs/daily_pipeline.log:890:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:891:   Ссылка: https://t.me/crmmarketplace/2764
+/opt/newsbot_v2/logs/daily_pipeline.log:899:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:900:   Ссылка: https://t.me/mpgo_ru/7905
+/opt/newsbot_v2/logs/daily_pipeline.log:908:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:909:   Ссылка: https://t.me/crmmarketplace/2760
+/opt/newsbot_v2/logs/daily_pipeline.log:917:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:918:   Ссылка: https://t.me/mpgo_ru/7910
+/opt/newsbot_v2/logs/daily_pipeline.log:944:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:945:   Ссылка: https://t.me/marketplace_biz/8564
+/opt/newsbot_v2/logs/daily_pipeline.log:953:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:954:   Ссылка: https://t.me/marketplace_biz/8558
+/opt/newsbot_v2/logs/daily_pipeline.log:962:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:963:   Ссылка: https://t.me/marketplace_biz/8572
+/opt/newsbot_v2/logs/daily_pipeline.log:971:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:972:   Ссылка: https://t.me/marketplace_biz/8562
+/opt/newsbot_v2/logs/daily_pipeline.log:980:   Источник: TG:crmmarketplace
+/opt/newsbot_v2/logs/daily_pipeline.log:981:   Ссылка: https://t.me/crmmarketplace/2758
+/opt/newsbot_v2/logs/daily_pipeline.log:989:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:990:   Ссылка: https://t.me/marketplace_biz/8561
+/opt/newsbot_v2/logs/daily_pipeline.log:1068:(251, 29886, 'ozon', 'penalties_returns', 76, 'Глупость, жадность, безалаберность. За последний месяц у себя на складах Озон нашел кучу потеряшек из старых поставок. Даже не 2025 г., а го...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1069:(250, 29907, 'ozon', 'offer_terms', 52, '🛒 Кейс АПЭТ Иногда проблемы со сроками годности возникают не потому, что товар реально «просрочен», а из-за нюансов оформления. В этом кейсе...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:1072:(247, 30221, 'unknown', 'offer_terms', 100, 'Почему на маркетплейсах постоянно что-то ломается Мне часто пишут: зачем ты постоянно разбираешь частные кейсы и косяки, если в целом всё ра...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1073:(246, 30442, 'multiple', 'offer_terms', 100, 'Новости площадок 🟣 Wildberries: курьеры вовремя доставляют заказы на фоне снегопада Резких изменений в средних сроках доставки товаров из-за...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1074:(245, 30594, 'ozon', 'offer_terms', 100, 'Новости индустрии 🟠 Для МСП упростили правила получения льгот по страховым взносам В ст. 427 НК РФ внесли поправки, которые разрешают МСП су...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1075:(244, 30598, 'ozon', 'documents_compliance', 42, 'В Казани открылся очередной магазин с товарами с маркетплейсов Открылся очередной магазин с товарами с маркетплейсов. В этот раз в Казани. Т...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1076:(243, 30607, 'unknown', 'law_regulator', 52, 'ФАС выступила против Национальной модели торговли Минпромторга ФАС не поддерживает Национальную модель торговли, которую разрабатывает Минпр...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1078:(214, 28180, 'unknown', 'tariffs_fees', 54, 'Налоги падают на спецрежимах: минус 22% за квартал Минфин на «Васильевских чтениях» 23 апреля озвучил цифру: поступления от бизнеса и самоза...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1081:(211, 28475, 'unknown', 'penalties_returns', 52, 'Закрываем лишний кабинет на 🤪 без лишних вопросов. Есть квоты на ближайший пул. Ситуация: у вас или у знакомого селлера висит мёртвый кабине...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:1083:(209, 28654, 'ozon', 'tariffs_fees', 74, 'Ozon выходит в Туркменистан. И сразу — тарифы Ozon запустился в Туркменистане и с 1 мая вводит отдельные тарифы на логистику по FBO и FBS. Д...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1084:(208, 28671, 'ozon', 'tariffs_fees', 52, 'Люди уже начали догадываться о том, как маркетплейсы их обирают. Они умеют сравнивать и считать. Каково же их удивление, когда в магазине у...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1086:(183, 27152, 'yandex_market', 'penalties_returns', 62, '🟡 Яндекс Маркет обновил сводку в личном кабинете Теперь все важные показатели доступны на одном экране, поэтому продавцам станет легче работ...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1095:(247, 30221, 'unknown', 'rule_change', 'offer_terms', 100, 'Почему на маркетплейсах постоянно что-то ломается Мне часто пишут: зачем ты постоянно разбираешь частные кейсы и косяки, если в целом всё ра...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1096:(246, 30442, 'multiple', 'rule_change', 'offer_terms', 100, 'Новости площадок 🟣 Wildberries: курьеры вовремя доставляют заказы на фоне снегопада Резких изменений в средних сроках доставки товаров из-за...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1097:(245, 30594, 'ozon', 'rule_change', 'offer_terms', 100, 'Новости индустрии 🟠 Для МСП упростили правила получения льгот по страховым взносам В ст. 427 НК РФ внесли поправки, которые разрешают МСП су...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1098:(104, 26622, 'unknown', 'regulatory_signal', 'offer_terms', 100, 'ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат продавцам. Причина простая: де...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1099:(102, 26628, 'ozon', 'rule_change', 'tariffs_fees', 100, 'Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про забытый в корзине товар мож...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1100:(101, 26630, 'multiple', 'regulatory_signal', 'offer_terms', 100, '❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и потребовала устранить нар...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:1101:(99, 26633, 'unknown', 'regulatory_signal', 'tariffs_fees', 100, 'Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о платформенной экономике: маркетпл...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1102:(94, 26639, 'ozon', 'regulatory_signal', 'offer_terms', 100, '💳 ОЗОН Новые правила заполнения платёжных документов С 1 апреля вступил в силу новый приказ Минфина, который меняет правила оформления платё...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:1103:(182, 27156, 'wildberries', 'regulatory_signal', 'offer_terms', 96, 'Wildberries обновил оферту для продавцов Документ вступит в силу 29 апреля. Важные изменения: • Добавили правило о добросовестном использова...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1106:(209, 28654, 'ozon', 'rule_change', 'tariffs_fees', 74, 'Ozon выходит в Туркменистан. И сразу — тарифы Ozon запустился в Туркменистане и с 1 мая вводит отдельные тарифы на логистику по FBO и FBS. Д...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1107:(92, 26641, 'ozon', 'rule_change', 'offer_terms', 66, '🛒 Кейс АПЭТ : Товарный знак есть, бейджа нет: кейс “.ру” Проблема Селлер столкнулся с невозможностью получить бейдж «Оригинал» на Озон У бре...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:1108:(180, 27174, 'wildberries', 'rule_change', 'offer_terms', 62, 'WB обновил оферту. Что поменялось WB выкатил новую версию оферты. Изменений много, но если коротко — расширяют контроль и добавляют новые то...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1109:(103, 26627, 'wildberries', 'rule_change', 'tariffs_fees', 62, 'WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто оформление страницы, а отдельн...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1111:(214, 28180, 'unknown', 'regulatory_signal', 'tariffs_fees', 54, 'Налоги падают на спецрежимах: минус 22% за квартал Минфин на «Васильевских чтениях» 23 апреля озвучил цифру: поступления от бизнеса и самоза...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1112:(96, 26636, 'wildberries', 'rule_change', 'penalties_returns', 54, 'WB тестирует «не требует проверки» — и снова за счёт селлера Появилась новая отметка — «не требует проверки» . Для покупателя это значит про...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1113:(243, 30607, 'unknown', 'regulatory_signal', 'law_regulator', 52, 'ФАС выступила против Национальной модели торговли Минпромторга ФАС не поддерживает Национальную модель торговли, которую разрабатывает Минпр...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1114:(179, 27192, 'wildberries', 'rule_change', 'offer_terms', 52, 'С 25 мая российские и китайские селлеры будут работать по единым условиям на Wildberries. Wildberries внедряет единые условия работы для про...', 'TG:crmmarketplace')
+/opt/newsbot_v2/logs/daily_pipeline.log:1115:(181, 27172, 'unknown', 'rule_change', 'tariffs_fees', 42, 'Подмосковью компенсируют до 50% расходов на маркетплейсах В Московской области запустили программу: бизнесу вернут до 50% затрат на комиссии...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1119:(251, 29886, 'ozon', 'business_signal', 'penalties_returns', 76, 'Глупость, жадность, безалаберность. За последний месяц у себя на складах Озон нашел кучу потеряшек из старых поставок. Даже не 2025 г., а го...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1120:(250, 29907, 'ozon', 'business_signal', 'offer_terms', 52, '🛒 Кейс АПЭТ Иногда проблемы со сроками годности возникают не потому, что товар реально «просрочен», а из-за нюансов оформления. В этом кейсе...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:1122:(244, 30598, 'ozon', 'business_signal', 'documents_compliance', 42, 'В Казани открылся очередной магазин с товарами с маркетплейсов Открылся очередной магазин с товарами с маркетплейсов. В этот раз в Казани. Т...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1125:(211, 28475, 'unknown', 'business_signal', 'penalties_returns', 52, 'Закрываем лишний кабинет на 🤪 без лишних вопросов. Есть квоты на ближайший пул. Ситуация: у вас или у знакомого селлера висит мёртвый кабине...', 'TG:Apetecom')
+/opt/newsbot_v2/logs/daily_pipeline.log:1126:(208, 28671, 'ozon', 'business_signal', 'tariffs_fees', 52, 'Люди уже начали догадываться о том, как маркетплейсы их обирают. Они умеют сравнивать и считать. Каково же их удивление, когда в магазине у...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1128:(183, 27152, 'yandex_market', 'business_signal', 'penalties_returns', 62, '🟡 Яндекс Маркет обновил сводку в личном кабинете Теперь все важные показатели доступны на одном экране, поэтому продавцам станет легче работ...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1129:(156, 26901, 'ozon', 'business_signal', 'payments', 64, 'С факторингом от Ozon и бухгалтерией опять что-то не сходится После прошлого поста про Точку начали писать в личку. И там уже не один случай...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1136:(105, 26621, 'ozon', 'business_signal', 'payments', 76, 'У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда маркетплейс предложил «...', 'TG:mpgo_ru')
+/opt/newsbot_v2/logs/daily_pipeline.log:1137:(100, 26631, 'wildberries', 'business_signal', 'payments', 62, 'WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в поиске и на главной. На пер...', 'TG:marketplace_biz')
+/opt/newsbot_v2/logs/daily_pipeline.log:1192:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:1193:   Ссылка: https://t.me/marketplace_biz/8575
+/opt/newsbot_v2/logs/daily_pipeline.log:1202:   Источник: TG:Apetecom
+/opt/newsbot_v2/logs/daily_pipeline.log:1203:   Ссылка: https://t.me/Apetecom/1219
+/opt/newsbot_v2/logs/daily_pipeline.log:1223:   Источник: TG:marketplace_biz
+/opt/newsbot_v2/logs/daily_pipeline.log:1224:   Ссылка: https://t.me/marketplace_biz/8578
+/opt/newsbot_v2/logs/daily_pipeline.log:1232:   Источник: TG:mpgo_ru
+/opt/newsbot_v2/logs/daily_pipeline.log:1233:   Ссылка: https://t.me/mpgo_ru/7923

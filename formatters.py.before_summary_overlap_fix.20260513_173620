@@ -1,0 +1,302 @@
+import re
+import html
+from filters import extract_amounts
+
+def get_topic_emoji(title, description):
+    """Определяет эмодзи по теме"""
+    text = f"{title} {description}".lower()
+    if any(w in text for w in ['комисс', 'тариф', 'процент', 'налог']):
+        return "💰"
+    elif any(w in text for w in ['логистик', 'доставк', 'склад']):
+        return "🚚"
+    elif any(w in text for w in ['штраф', 'блокировк']):
+        return "⚠️"
+    elif any(w in text for w in ['закон', 'фз', 'фас']):
+        return "⚖️"
+    elif any(w in text for w in ['кейс', 'история', 'успех']):
+        return "💡"
+    else:
+        return "📦"
+
+def get_hashtags(title, description, source):
+    """Генерирует хештеги"""
+    text = f"{title} {description}".lower()
+    tags = []
+    
+    if 'озон' in text or 'ozon' in text:
+        tags.extend(['озон', 'ozon', 'маркетплейсы'])
+    elif 'wildberries' in text or 'wb' in text:
+        tags.extend(['wildberries', 'вилдберриз', 'маркетплейсы'])
+    elif 'яндекс' in text:
+        tags.extend(['яндекс', 'маркетплейсы'])
+    else:
+        tags.append('маркетплейсы')
+    
+    if any(w in text for w in ['комиссия', 'тариф']):
+        tags.append('комиссии')
+    if any(w in text for w in ['логистика', 'доставка']):
+        tags.append('логистика')
+    if any(w in text for w in ['суд', 'арбитраж']):
+        tags.append('арбитраж')
+    
+    return ' '.join(['#' + t for t in tags[:3]])
+
+def get_summary(text, limit=200):
+    """Создаёт краткий пересказ"""
+    if not text:
+        return ''
+    clean = re.sub(r'<[^>]+>', '', text)
+    clean = re.sub(r'\s+', ' ', clean).strip()
+    if len(clean) > limit:
+        return clean[:limit-3] + '...'
+    return clean
+
+
+# SELLER MEANING V2
+# Fallback для одиночных публикаций, если LLM-enhance не сработал.
+# seller_decision остаётся техническим маршрутом publish/digest/drop,
+# а смысл для селлера формируется отдельно по теме новости.
+
+def _fmt_norm(value):
+    return str(value or "").lower().replace("ё", "е")
+
+
+def _fmt_clean_spaces(value):
+    value = re.sub(r"<[^>]+>", " ", str(value or ""))
+    value = html.unescape(value)
+    value = value.replace("\xa0", " ")
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def clean_post_title(title, body=""):
+    t = _fmt_clean_spaces(title)
+    b = _fmt_clean_spaces(body)
+
+    if not t and b:
+        t = b
+
+    # Типовые склейки из TG/RSS.
+    fixes = [
+        (r"(Business)(Lamoda)", r"\1. \2"),
+        (r"(товара)\s+(Ozon|Озон)\s+(проводит|тестирует)", r"\1. \2 \3"),
+        (r"(товара)\s+(Wildberries|Вайлдберриз)\s+(сообщил|повысит|запускает)", r"\1. \2 \3"),
+        (r"(сайте)\s+(WB|Wildberries|Вайлдберриз)\s+(сообщил|запустил)", r"\1. \2 \3"),
+    ]
+
+    for pattern, repl in fixes:
+        t = re.sub(pattern, repl, t)
+
+    # Если заголовок содержит заголовок + начало текста, режем по первому нормальному предложению.
+    for sep in [". ", "! ", "? "]:
+        pos = t.find(sep)
+        if 35 <= pos <= 115:
+            t = t[:pos + 1].strip()
+            break
+
+    if len(t) > 115:
+        cut = t[:115].rstrip()
+        pos = cut.rfind(" ")
+        if pos > 65:
+            cut = cut[:pos]
+        t = cut.rstrip(" ,;:-—") + "…"
+
+    return t or "Новость для селлеров"
+
+
+def safe_post_summary(title, body, limit=420):
+    title_clean = _fmt_clean_spaces(title)
+    body_clean = _fmt_clean_spaces(body)
+
+    if not body_clean:
+        return ""
+
+    # Убираем повтор заголовка в начале тела.
+    if title_clean and body_clean.lower().startswith(title_clean.lower()[:80]):
+        body_clean = body_clean[len(title_clean):].strip(" .—:-")
+
+    body_clean = re.sub(r"\s+", " ", body_clean).strip()
+
+    if len(body_clean) <= limit:
+        return body_clean
+
+    cut = body_clean[:limit].rstrip()
+    pos = max(cut.rfind(". "), cut.rfind("! "), cut.rfind("? "))
+    if pos >= 160:
+        return cut[:pos + 1].strip()
+
+    pos = cut.rfind(" ")
+    if pos >= 160:
+        return cut[:pos].rstrip(" ,;:-—") + "…"
+
+    return cut.rstrip(" ,;:-—") + "…"
+
+
+def seller_meaning_by_topic(title, body="", source=""):
+    text = _fmt_norm(f"{title} {body} {source}")
+
+    if "ухожу с маркетплейса" in text or "запрещеннограм" in text:
+        return (
+            "это не просто частная история, а сигнал о давлении на экономику продаж. "
+            "Если товар завис, реклама не окупается, а комиссия и логистика съедают маржу, "
+            "нужен план распродажи остатков, пересчёт слабых SKU и проверка альтернативных каналов сбыта."
+        )
+
+    if "инфляц" in text and "маркетплейс" in text:
+        return (
+            "маркетплейсы выглядят для покупателя как канал более мягкого роста цен. "
+            "Резкое повышение цены может быстрее ударить по конверсии, поэтому важно сверять цену с рынком и маржой."
+        )
+
+    if ("отзыв" in text or "рейтинг" in text) and ("вид товара" in text or "склейк" in text or "вариант" in text):
+        return (
+            "рейтинг и отзывы могут начать сильнее влиять на отдельные варианты товара. "
+            "Проверьте слабые цвета, размеры и SKU внутри склейки, чтобы один проблемный вариант не портил продажи."
+        )
+
+    if "авито" in text and "платн" in text and "возврат" in text:
+        return (
+            "возвраты становятся управляемым платным фильтром. "
+            "Проверьте, как новая логика влияет на выкуп, спорные возвраты и экономику доставки."
+        )
+
+    if ("возврат" in text or "обратн" in text or "остатк" in text) and ("тариф" in text or "логист" in text or "склад" in text):
+        return (
+            "это прямой риск для маржи и зависших остатков. "
+            "Проверьте стоимость возврата, сроки вывоза, товары с низкой прибылью и позиции, которые выгоднее распродать заранее."
+        )
+
+    if "тариф" in text or "комисси" in text or "эквайринг" in text:
+        return (
+            "изменение бьёт по юнит-экономике. "
+            "Пересчитайте товары с минимальной маржей и проверьте, какие категории могут уйти в минус после удержаний."
+        )
+
+    if "ндс" in text or "налог" in text or "минпромторг" in text:
+        return (
+            "это будущий налоговый риск. "
+            "Такие изменения стоит заранее закладывать в цену, ассортимент и план закупок по низкомаржинальным товарам."
+        )
+
+    if "скидк" in text and ("минэк" in text or "маркетплейс" in text):
+        return (
+            "скидки всё чаще становятся предметом внимания регуляторов. "
+            "Проверьте, не съедают ли акции маржу и не создают ли претензии по фактической цене товара."
+        )
+
+    if "пвз" in text or "пункт выдачи" in text:
+        return (
+            "это операционный риск на стыке выдачи, возвратов и ответственности за товар. "
+            "Проверьте спорные операции, сроки хранения, возвраты и фиксацию движения товара."
+        )
+
+    if "маркировк" in text or "честный знак" in text:
+        return (
+            "ошибка здесь может стать не маркетинговой, а регуляторной проблемой. "
+            "Проверьте карточки, документы, коды маркировки и сценарии перепродажи товара."
+        )
+
+    if "api" in text or "метод" in text or "кабинет" in text or "ассистент" in text or "аналитик" in text:
+        return (
+            "это влияет на операционку и отчётность. "
+            "Проверьте интеграции, выгрузки, остатки и отчёты, чтобы автоматизация не считала по старым данным."
+        )
+
+    if "выручк" in text or "прибыл" in text:
+        return (
+            "смотрите не только на оборот, но и на чистую маржу. "
+            "Рост выручки без контроля рекламы, логистики и оборачиваемости может не дать реальной прибыли."
+        )
+
+    return (
+        "проверьте, есть ли прямое влияние на цену, остатки, выплаты, возвраты или ежедневные операции. "
+        "Если прямого влияния нет, новость лучше взять в наблюдение, а расчёты не менять."
+    )
+
+# END SELLER MEANING V2
+
+def get_insight(title, description):
+    """Извлекает главный вывод"""
+    text = f"{title} {description}"
+    
+    amounts = extract_amounts(text)
+    if amounts:
+        return f"Взыскано: {amounts[0]}"
+    
+    text_lower = text.lower()
+    if 'повыш' in text_lower or 'увели' in text_lower:
+        return 'Важное изменение для продавцов'
+    elif 'сниз' in text_lower or 'уменьш' in text_lower:
+        return 'Положительное изменение'
+    elif 'блокир' in text_lower or 'бан' in text_lower:
+        return 'Риск для аккаунта'
+    elif 'штраф' in text_lower:
+        return 'Штрафные санкции'
+    elif 'нов' in text_lower or 'запуст' in text_lower:
+        return 'Новая возможность'
+    else:
+        return 'Важная информация для селлеров'
+
+def format_news(item, enhanced_text=None):
+    """Форматирует новость — HTML для MAX. Fallback без LLM."""
+    source = item.get('source', 'Новость')
+    title = item.get('title', '') or ''
+    body = (
+        item.get('raw_text')
+        or item.get('description')
+        or item.get('processed_text')
+        or item.get('short_text')
+        or ''
+    )
+
+    clean_title = clean_post_title(title, body)
+
+    if enhanced_text:
+        short_text = _fmt_clean_spaces(enhanced_text)
+    else:
+        short_text = safe_post_summary(title, body, limit=430)
+
+    meaning = seller_meaning_by_topic(title, body, source)
+
+    # Ссылку НЕ добавляем здесь: publisher_v2 потом вызывает append_source_line().
+    post = f"""<b>📦 {source}</b>
+
+<b>{clean_title}</b>
+
+{short_text}
+
+<b>🎯 Что это значит для селлера:</b> {meaning}"""
+
+    return post.strip()
+
+
+def get_item_url(item):
+    """Get news URL with fallback."""
+    return item.get("url") or item.get("link") or ""
+
+
+def detect_link_type(item) -> str:
+    """Classify URL type: official, forum, or media."""
+    url = get_item_url(item)
+    if not url:
+        return "media"
+    url_lower = url.lower()
+    official_domains = ['seller.ozon', 'portal.wildberries', 'business.ozon']
+    forum_domains = ['telega.in', 'teletype.in', 'forum.seller']
+    if any(d in url_lower for d in official_domains):
+        return "official"
+    if any(d in url_lower for d in forum_domains):
+        return "forum"
+    return "media"
+
+
+def get_source_link(item) -> tuple:
+    """Get best source link with type."""
+    link = item.get("url") or item.get("link") or ""
+    link_type = detect_link_type(item)
+    return link, link_type
+
+
+def filter_non_forum_links(items):
+    """Filter non-forum links - basic implementation."""
+    return items

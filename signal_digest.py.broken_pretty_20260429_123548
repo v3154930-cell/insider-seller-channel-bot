@@ -1,0 +1,389 @@
+import argparse
+import html
+import os
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+from urllib import request, parse
+import json
+
+DB_PATH = Path("/opt/newsbot_v2/news_queue.db")
+ENV_PATH = Path("/opt/newsbot_v2/.env")
+
+CHECKED_MARKETPLACES = ["Ozon", "Wildberries", "Яндекс Маркет"]
+
+NOISE_PATTERNS = [
+    "конкурс", "розыгрыш", "мерч", "вебинар", "подкаст", "обучение",
+    "акция", "акции", "промо", "распродажа", "пвз что надо",
+    "витрина магазина", "витрину магазина", "витрины магазина",
+    "продаёт витрину", "продает витрину", "баннер", "мерч"
+]
+
+IMPORTANT_TYPES = {
+    "tariff": "тарифы / комиссии",
+    "offer": "оферта / условия",
+    "logistics": "логистика",
+    "returns": "возвраты",
+    "storage": "хранение / размещение",
+    "payouts": "выплаты / взаиморасчёты",
+    "penalties": "штрафы / удержания",
+    "api": "API / кабинет продавца",
+    "marking": "маркировка",
+    "regulator": "регуляторика",
+}
+
+MP_LABELS = {
+    "ozon": "Ozon",
+    "wildberries": "Wildberries",
+    "yandex_market": "Яндекс Маркет",
+    "multiple": "несколько площадок",
+    "unknown": "не определено",
+}
+
+
+def load_env():
+    if not ENV_PATH.exists():
+        return
+    for line in ENV_PATH.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        k, v = line.split("=", 1)
+        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+
+def is_noise(title: str) -> bool:
+    t = (title or "").lower().replace("ё", "е")
+    return any(p in t for p in NOISE_PATTERNS)
+
+
+STRICT_DROP_PATTERNS = [
+    "брошенн", "корзин", "платный инструмент", "ии-ассистент",
+    "сводк", "кабинет продавца", "в одном окне", "график ключевых",
+    "конкурс", "пвз что надо", "витрин", "акци", "промо",
+    "цены на маркетплейсах вырастут", "пошла подготовка",
+    "товары на маркетплейсах подорожают",
+    "подорожают из-за закона",
+]
+
+
+def is_publishable_reliable_signal(item: dict) -> bool:
+    """
+    Строгий режим для публикации в MAX-канал.
+    Публикуем только:
+    1) сильные регуляторные сигналы по маркетплейсам;
+    2) реальные обновления оферты/условий с датой вступления;
+    3) реальные изменения тарифов/комиссий.
+    Не публикуем интерфейсные обновления, банковскую аналитику, частные кейсы,
+    прогнозные статьи и маркетинговые инструменты.
+    """
+    title = (item.get("title") or "").lower().replace("ё", "е")
+    signal_types = set(item.get("signal_types") or [item.get("signal_type")])
+
+    if any(p in title for p in STRICT_DROP_PATTERNS):
+        return False
+
+    # Сильный регуляторный сигнал: ФАС + предупреждение/требование к маркетплейсам.
+    if "фас" in title and (
+        "выдала предупреждения маркетплейсам" in title
+        or "предупреждения маркетплейсам" in title
+        or "потребовала сократить сроки выплат" in title
+        or "потребовал сократить сроки выплат" in title
+        or ("предупреж" in title and "маркетплейс" in title)
+    ):
+        return True
+
+    # Обновление оферты: только если явно сказано "обновил/обновила оферту"
+    # и есть дата/вступление в силу.
+    if (
+        ("обновил оферту" in title or "обновила оферту" in title or "обновили оферту" in title)
+        and ("вступит в силу" in title or "вступает в силу" in title or "с " in title)
+    ):
+        return True
+
+    # Тарифы/комиссии: только явное изменение тарифов/комиссий, не маркетинговая витрина.
+    if ("tariff" in signal_types or "тариф" in title or "комисси" in title) and (
+        "изменил тариф" in title
+        or "изменили тариф" in title
+        or "изменение тариф" in title
+        or "новые тарифы" in title
+        or "повышение комиссии" in title
+        or "снижение комиссии" in title
+        or "комиссии измен" in title
+    ):
+        return True
+
+    return False
+
+
+def event_dedupe_key(item: dict) -> str:
+    title = (item.get("title") or "").lower().replace("ё", "е")
+
+    if "фас" in title and ("выплат" in title or "срок" in title or "предупреж" in title):
+        return "fas_marketplace_payouts_conditions"
+
+    if "фас" in title and ("ozon" in title or "wildberries" in title or "маркетплейс" in title):
+        return "fas_marketplace_conditions"
+
+    return f"news:{item.get('news_id')}"
+
+
+def get_recent_signals(limit=20):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    rows = cur.execute("""
+        SELECT
+            id,
+            news_id,
+            source,
+            marketplace,
+            signal_type,
+            signal_level,
+            title,
+            link,
+            published_at,
+            detected_at,
+            status,
+            reason
+        FROM tariff_signals
+        WHERE status = 'new'
+          AND signal_level IN ('high', 'medium')
+        ORDER BY
+            CASE signal_level WHEN 'high' THEN 0 ELSE 1 END,
+            id DESC
+        LIMIT ?
+    """, (limit * 5,)).fetchall()
+
+    conn.close()
+
+    grouped = {}
+
+    for r in rows:
+        item = dict(r)
+        title = item.get("title") or ""
+
+        if is_noise(title):
+            continue
+
+        news_id = item.get("news_id")
+        if news_id not in grouped:
+            item["signal_types"] = set([item.get("signal_type")])
+            grouped[news_id] = item
+        else:
+            grouped[news_id]["signal_types"].add(item.get("signal_type"))
+
+            # Если один из дублей high, вся карточка high.
+            if item.get("signal_level") == "high":
+                grouped[news_id]["signal_level"] = "high"
+
+            # Если у дублей нашёлся более конкретный marketplace, сохраняем его.
+            if grouped[news_id].get("marketplace") in ("unknown", None, "") and item.get("marketplace"):
+                grouped[news_id]["marketplace"] = item.get("marketplace")
+
+    clean = list(grouped.values())
+
+    for item in clean:
+        item["signal_types"] = sorted([s for s in item.get("signal_types", set()) if s])
+
+    # Надёжный фильтр публикации: оставляем только то, что достойно вечернего монитора.
+    clean = [item for item in clean if is_publishable_reliable_signal(item)]
+
+    # Дедупликация событий: одна тема ФАС может прийти из нескольких TG-источников.
+    deduped = []
+    seen_events = set()
+    for item in clean:
+        key = event_dedupe_key(item)
+        if key in seen_events:
+            continue
+        seen_events.add(key)
+        deduped.append(item)
+
+    priority = {
+        "high": 0,
+        "medium": 1,
+    }
+
+    deduped.sort(key=lambda x: (priority.get(x.get("signal_level"), 9), -int(x.get("id") or 0)))
+
+    return deduped[:limit]
+
+
+def marketplace_icon(marketplace: str) -> str:
+    return {
+        "ozon": "🔵",
+        "wildberries": "🟣",
+        "yandex_market": "🟡",
+        "multiple": "🛒",
+        "unknown": "⚖️",
+    }.get(marketplace or "unknown", "▫️")
+
+
+def compact_signal_name(item: dict) -> str:
+    title = (item.get("title") or "").lower().replace("ё", "е")
+    mp = item.get("marketplace")
+
+    if "фас" in title:
+        if "выплат" in title:
+            return "ФАС / выплаты селлерам"
+        return "ФАС / условия маркетплейсов"
+
+    if "оферт" in title:
+        return "обновление оферты"
+
+    if "тариф" in title or "комисси" in title:
+        return "тарифы / комиссии"
+
+    if "выплат" in title:
+        return "выплаты / взаиморасчёты"
+
+    if mp == "ozon":
+        return "сигнал Ozon"
+    if mp == "wildberries":
+        return "сигнал Wildberries"
+    if mp == "yandex_market":
+        return "сигнал Яндекс Маркета"
+
+    return "сигнал к проверке"
+
+
+def clean_signal_title(title: str) -> str:
+    title = (title or "").strip()
+    title = title.replace("...", "…")
+    title = title.replace(" .", ".")
+    title = title.replace(" ,", ",")
+    title = title.replace(" :", ":")
+    title = " ".join(title.split())
+
+    # Убираем длинные хвосты, чтобы пост выглядел как редакционный.
+    cuts = [
+        " Причина простая:",
+        " Важные изменения:",
+        " Что изменилось:",
+        " По факту:",
+    ]
+
+    for c in cuts:
+        if c in title:
+            title = title.split(c)[0].strip()
+
+    if len(title) > 230:
+        title = title[:227].rstrip() + "…"
+
+    return title
+
+
+def action_line(item: dict) -> str:
+    mp = item.get("marketplace")
+    title = (item.get("title") or "").lower().replace("ё", "е")
+
+    if "фас" in title:
+        return "Проверить официальные сообщения ФАС и реакцию площадок."
+
+    if mp == "ozon":
+        return "Проверить официальный Excel / слой marketplace_service_rate."
+
+    if mp == "wildberries":
+        return "Сверить с официальной офертой WB и рабочим DB-слоем."
+
+    if mp == "yandex_market":
+        return "Сверить с официальной справкой/API/DB-слоем Яндекс Маркета."
+
+    return "Проверить официальный источник перед изменением расчётов."
+
+
+def build_digest(signals):
+    today = datetime.now().strftime("%d.%m.%Y")
+
+    lines = []
+    lines.append("🔎 <b>Вечерний монитор изменений</b>")
+    lines.append(f"<b>Условия, тарифы и оферты маркетплейсов · {today}</b>")
+    lines.append("")
+
+    if not signals:
+        lines.append("✅ <b>Надёжных изменений за день не обнаружено.</b>")
+        lines.append("")
+        lines.append("Проверены направления:")
+        for mp in CHECKED_MARKETPLACES:
+            lines.append(f"• {html.escape(mp)}")
+        lines.append("")
+        lines.append("Новостные и TG-сигналы без подтверждения официальным источником не считаются изменением тарифов.")
+        return "
+".join(lines)
+
+    lines.append("⚠️ <b>Найдены сигналы, которые требуют проверки:</b>")
+    lines.append("")
+
+    for i, s in enumerate(signals[:5], 1):
+        mp_key = s.get("marketplace") or "unknown"
+        mp = MP_LABELS.get(mp_key, mp_key)
+        icon = marketplace_icon(mp_key)
+        sig = compact_signal_name(s)
+        level = "высокий" if s.get("signal_level") == "high" else "средний"
+
+        title = html.escape(clean_signal_title(s.get("title") or ""))
+        source = html.escape(s.get("source") or "источник не указан")
+        link = html.escape(s.get("link") or "")
+
+        lines.append(f"{icon} <b>{i}. {html.escape(mp)} · {html.escape(sig)}</b>")
+        lines.append(f"Уровень: {html.escape(level)}")
+        lines.append(f"Суть: {title}")
+        lines.append(f"Что сделать: {html.escape(action_line(s))}")
+        lines.append(f"Источник: {source}")
+
+        if link:
+            lines.append(f"Ссылка: {link}")
+
+        lines.append("")
+
+    lines.append("—")
+    lines.append("ℹ️ <b>Важно:</b> сигнал сам по себе не меняет расчёт Seller Helper.")
+    lines.append("Числовые тарифы обновляются только после проверки официального источника: Excel/API/DB-слоя clean_commissions.")
+
+    return "
+".join(lines)
+
+
+def send_to_max(text: str):
+    load_env()
+
+    token = os.getenv("MAX_BOT_TOKEN")
+    channel_id = os.getenv("CHANNEL_ID") or os.getenv("MAX_CHANNEL_ID")
+
+    if not token or not channel_id:
+        raise RuntimeError("MAX_BOT_TOKEN or CHANNEL_ID/MAX_CHANNEL_ID not found in environment")
+
+    from publisher import send_message
+
+    result = send_message(
+        token,
+        channel_id,
+        text,
+        add_helper_button=False,
+        full_article_news_id=None,
+        add_full_article_button=False,
+    )
+
+    print("publisher.send_message result:", result)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--publish", action="store_true", help="Send digest to MAX channel")
+    parser.add_argument("--limit", type=int, default=20)
+    args = parser.parse_args()
+
+    signals = get_recent_signals(limit=args.limit)
+    text = build_digest(signals)
+
+    print(text)
+
+    if args.publish:
+        print()
+        print("=== publishing to MAX ===")
+        send_to_max(text)
+
+
+if __name__ == "__main__":
+    main()

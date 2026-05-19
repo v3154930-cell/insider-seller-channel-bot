@@ -1,0 +1,34 @@
+[
+  {
+    "name": ".github",
+    "path": ".github",
+    "sha": "19ce0bd357c96c84a17b664994d6c8940cfc2732",
+    "size": 0,
+    "url": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/contents/.github?ref=main",
+    "html_url": "https://github.com/v3154930-cell/newsbot-tg-fetcher/tree/main/.github",
+    "git_url": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/git/trees/19ce0bd357c96c84a17b664994d6c8940cfc2732",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/contents/.github?ref=main",
+      "git": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/git/trees/19ce0bd357c96c84a17b664994d6c8940cfc2732",
+      "html": "https://github.com/v3154930-cell/newsbot-tg-fetcher/tree/main/.github"
+    }
+  },
+  {
+    "name": "tg_posts.json",
+    "path": "tg_posts.json",
+    "sha": "0a1d8cd363e5ded00d0f79ee1782d90ed03efe24",
+    "size": 105732,
+    "url": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/contents/tg_posts.json?ref=main",
+    "html_url": "https://github.com/v3154930-cell/newsbot-tg-fetcher/blob/main/tg_posts.json",
+    "git_url": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/git/blobs/0a1d8cd363e5ded00d0f79ee1782d90ed03efe24",
+    "download_url": "https://raw.githubusercontent.com/v3154930-cell/newsbot-tg-fetcher/main/tg_posts.json",
+    "type": "file",
+    "_links": {
+      "self": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/contents/tg_posts.json?ref=main",
+      "git": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/git/blobs/0a1d8cd363e5ded00d0f79ee1782d90ed03efe24",
+      "html": "https://github.com/v3154930-cell/newsbot-tg-fetcher/blob/main/tg_posts.json"
+    }
+  }
+]

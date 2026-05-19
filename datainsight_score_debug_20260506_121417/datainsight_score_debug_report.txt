@@ -1,0 +1,99 @@
+feed entries: 10
+
+========================================================================================================================
+RAW ITEM 1
+title: eGrocery бюллетень, февраль 2026
+link: https://datainsight.ru/DI_eGrocery_february_2026
+published: Wed, 29 Apr 2026 09:01:33 +0000
+summary_len: 8082
+collector_seller_score: 1
+seller_filter: {'decision': 'publish', 'seller_relevance_score': 5, 'actionability_score': 5, 'reason': 'publish_strong: ндс'}
+========================================================================================================================
+RAW ITEM 2
+title: eGrocery бюллетень, март 2026
+link: https://datainsight.ru/DI_eGrocery_march_2026
+published: Fri, 24 Apr 2026 13:02:44 +0000
+summary_len: 8149
+collector_seller_score: 1
+seller_filter: {'decision': 'publish', 'seller_relevance_score': 5, 'actionability_score': 5, 'reason': 'publish_strong: ндс'}
+========================================================================================================================
+RAW ITEM 3
+title: Использование склейки офлайн-действий с онлайн-рекламой (О2О данные)
+link: https://datainsight.ru/consolidationO2Odata
+published: Tue, 21 Apr 2026 11:20:07 +0000
+summary_len: 11809
+collector_seller_score: 0
+seller_filter: {'decision': 'publish', 'seller_relevance_score': 6, 'actionability_score': 6, 'reason': 'publish_strong: удержание, удержания'}
+========================================================================================================================
+RAW ITEM 4
+title: Компас рынка ePharma
+link: https://datainsight.ru/PharmCompass_2026
+published: Mon, 20 Apr 2026 14:46:57 +0000
+summary_len: 6038
+collector_seller_score: 0
+seller_filter: {'decision': 'ignore', 'seller_relevance_score': 0, 'actionability_score': 0, 'reason': 'no_rule_match'}
+========================================================================================================================
+RAW ITEM 5
+title: ePharma-бюллетень: интернет-аптеки в России, февраль 2026
+link: https://datainsight.ru/ePharma_bulletin_february_2026
+published: Tue, 14 Apr 2026 14:58:54 +0000
+summary_len: 7253
+collector_seller_score: 2
+seller_filter: {'decision': 'publish', 'seller_relevance_score': 5, 'actionability_score': 5, 'reason': 'publish_strong: ндс'}
+========================================================================================================================
+RAW ITEM 6
+title: Итоги церемонии награждения E-commerce Index Top-100 за 2025 год
+link: https://datainsight.ru/winners-top100-2026
+published: Thu, 02 Apr 2026 16:04:26 +0000
+summary_len: 6547
+collector_seller_score: 6
+seller_filter: {'decision': 'digest', 'seller_relevance_score': 2, 'actionability_score': 2, 'reason': 'digest_medium: маркетплейсы'}
+========================================================================================================================
+RAW ITEM 7
+title: Интернет-торговля в России 2026
+link: https://datainsight.ru/DI_eCommerce_2026
+published: Mon, 30 Mar 2026 07:33:59 +0000
+summary_len: 11917
+collector_seller_score: 7
+seller_filter: {'decision': 'digest', 'seller_relevance_score': 2, 'actionability_score': 2, 'reason': 'digest_medium: маркетплейсы'}
+========================================================================================================================
+RAW ITEM 8
+title: Рынок маркетплейсов: динамика и ориентиры на 2026
+link: https://datainsight.ru/DI_FV_SiM_2026
+published: Thu, 19 Mar 2026 09:16:44 +0000
+summary_len: 5434
+collector_seller_score: 6
+seller_filter: {'decision': 'digest', 'seller_relevance_score': 3, 'actionability_score': 3, 'reason': 'digest_medium: маркетплейсы, электронная торговля'}
+========================================================================================================================
+RAW ITEM 9
+title: Последняя миля eCommerce 2025: объем и каналы
+link: https://datainsight.ru/Russian_online_shopping_market_with_delivery_2025
+published: Tue, 17 Mar 2026 13:21:06 +0000
+summary_len: 6750
+collector_seller_score: 7
+seller_filter: {'decision': 'publish', 'seller_relevance_score': 7, 'actionability_score': 7, 'reason': 'publish_strong: ндс'}
+========================================================================================================================
+RAW ITEM 10
+title: ePharma-бюллетень: интернет-аптеки в России, январь 2026
+link: https://datainsight.ru/DI_ePharma_bulletin_january_2026
+published: Wed, 11 Mar 2026 09:22:24 +0000
+summary_len: 8137
+collector_seller_score: 3
+seller_filter: {'decision': 'publish', 'seller_relevance_score': 5, 'actionability_score': 5, 'reason': 'publish_strong: ндс'}
+
+========================================================================================================================
+BEFORE score_items: 10
+AFTER score_items: 0
+
+========================================================================================================================
+DIRECT ROUTING WITHOUT score_items, FOR UNDERSTANDING ONLY
+1. kw=1 route=digest | eGrocery бюллетень, февраль 2026
+2. kw=1 route=digest | eGrocery бюллетень, март 2026
+3. kw=0 route=drop | Использование склейки офлайн-действий с онлайн-рекламой (О2О данные)
+4. kw=0 route=drop | Компас рынка ePharma
+5. kw=2 route=digest | ePharma-бюллетень: интернет-аптеки в России, февраль 2026
+6. kw=6 route=publish | Итоги церемонии награждения E-commerce Index Top-100 за 2025 год
+7. kw=7 route=publish | Интернет-торговля в России 2026
+8. kw=6 route=publish | Рынок маркетплейсов: динамика и ориентиры на 2026
+9. kw=7 route=publish | Последняя миля eCommerce 2025: объем и каналы
+10. kw=3 route=publish | ePharma-бюллетень: интернет-аптеки в России, январь 2026

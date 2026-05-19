@@ -1,0 +1,967 @@
+import os
+import shutil
+import subprocess
+import hashlib
+from pathlib import Path
+from datetime import datetime, date, timedelta
+
+from fastapi import FastAPI, UploadFile, File, Form, Request, HTTPException
+from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
+
+from db import init_db, _fetch_all
+import sqlite3
+
+BASE_DIR = Path("/opt/newsbot_v2")
+INBOX_DIR = BASE_DIR / "rules_docs" / "inbox"
+LOG_DIR = BASE_DIR / "logs"
+
+ALLOWED_MARKETPLACES = {
+    "ozon": "Ozon",
+    "wildberries": "Wildberries",
+    "yandex_market": "Яндекс Маркет",
+    "unknown": "Не определено",
+}
+
+ALLOWED_EXTENSIONS = {".xlsx", ".csv", ".pdf", ".txt"}
+
+ADMIN_TOKEN = os.getenv("ADMIN_TOKEN", "")
+ADMIN_PORT = int(os.getenv("ADMIN_PORT") or "8088")
+
+app = FastAPI(title="Newsbot Admin")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+def require_token(request: Request):
+    token = request.query_params.get("token") or ""
+    if not ADMIN_TOKEN or token != ADMIN_TOKEN:
+        raise HTTPException(status_code=403, detail="Forbidden")
+
+
+def shell_run(cmd, timeout=300):
+    result = subprocess.run(
+        cmd,
+        cwd=str(BASE_DIR),
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=timeout,
+    )
+    return result.stdout
+
+
+def shell_start_background(cmd, log_file):
+    log_path = LOG_DIR / log_file
+    full_cmd = f"cd {BASE_DIR} && nohup {cmd} >> {log_path} 2>&1 & echo $!"
+    result = subprocess.run(
+        full_cmd,
+        cwd=str(BASE_DIR),
+        shell=True,
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        timeout=10,
+    )
+    return result.stdout.strip(), str(log_path)
+
+
+def ensure_dirs():
+    for key in ALLOWED_MARKETPLACES:
+        (INBOX_DIR / key).mkdir(parents=True, exist_ok=True)
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+
+
+
+def mask_secret(value):
+    if not value:
+        return "нет"
+    if len(value) <= 8:
+        return "задан"
+    return value[:4] + "..." + value[-4:]
+
+
+def key_expiry_info(prefix):
+    key_name = f"{prefix}_API_KEY"
+    if prefix == "OZON":
+        exists = bool(os.getenv("OZON_API_KEY")) and bool(os.getenv("OZON_CLIENT_ID"))
+    else:
+        exists = bool(os.getenv(key_name))
+
+    issued_raw = os.getenv(f"{prefix}_API_KEY_ISSUED_AT", "")
+    valid_days_raw = os.getenv(f"{prefix}_API_KEY_VALID_DAYS", "")
+
+    result = {
+        "exists": exists,
+        "issued_at": issued_raw or "не указано",
+        "valid_days": valid_days_raw or "не указано",
+        "expires_at": "не указано",
+        "days_left": "не указано",
+        "status": "ключ не задан",
+    }
+
+    if not exists:
+        return result
+
+    result["status"] = "ключ задан"
+
+    try:
+        issued = datetime.strptime(issued_raw, "%Y-%m-%d").date()
+        valid_days = int(valid_days_raw)
+        expires = issued + timedelta(days=valid_days)
+        days_left = (expires - date.today()).days
+
+        result["expires_at"] = expires.isoformat()
+        result["days_left"] = str(days_left)
+
+        if days_left < 0:
+            result["status"] = "истёк"
+        elif days_left <= 14:
+            result["status"] = "скоро истечёт"
+        else:
+            result["status"] = "активен"
+
+    except Exception:
+        pass
+
+    return result
+
+
+def api_keys_status():
+    return {
+        "wb": key_expiry_info("WB"),
+        "ozon": key_expiry_info("OZON"),
+        "yandex": {
+            "exists": bool(os.getenv("YANDEX_MARKET_TOKEN")),
+            "issued_at": "не указано",
+            "valid_days": "не указано",
+            "expires_at": "не указано",
+            "days_left": "не указано",
+            "status": "ключ задан" if os.getenv("YANDEX_MARKET_TOKEN") else "ключ не задан",
+        }
+    }
+
+
+def update_env_values(values):
+    env_path = BASE_DIR / ".env"
+    lines = env_path.read_text().splitlines()
+
+    keys = set(values.keys())
+    out = []
+
+    for line in lines:
+        if "=" in line:
+            name = line.split("=", 1)[0]
+            if name in keys:
+                continue
+        out.append(line)
+
+    for key, value in values.items():
+        if value is not None and str(value).strip() != "":
+            out.append(f"{key}={str(value).strip()}")
+
+    env_path.write_text("\n".join(out) + "\n")
+
+def get_counts():
+    init_db()
+
+    result = {
+        "rules_documents": 0,
+        "rules_signals": 0,
+        "rules_checks": 0,
+        "confirmed_by_docs": 0,
+        "signal_only": 0,
+    }
+
+    queries = {
+        "rules_documents": "SELECT COUNT(*) FROM rules_documents",
+        "rules_signals": "SELECT COUNT(*) FROM rules_signals",
+        "rules_checks": "SELECT COUNT(*) FROM rules_checks",
+        "confirmed_by_docs": "SELECT COUNT(*) FROM rules_checks WHERE confirmation_level='confirmed_by_docs'",
+        "signal_only": "SELECT COUNT(*) FROM rules_checks WHERE confirmation_level='signal_only'",
+    }
+
+    for key, query in queries.items():
+        try:
+            rows = _fetch_all(query)
+            result[key] = rows[0][0]
+        except Exception:
+            result[key] = 0
+
+    return result
+
+
+
+def _admin_table_exists(cur, table_name):
+    row = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        (table_name,),
+    ).fetchone()
+    return row is not None
+
+
+def _admin_h(value):
+    value = "" if value is None else str(value)
+    return (
+        value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
+
+
+def _admin_h(value):
+    import html as _html
+    if value is None or str(value).strip() == "":
+        return "не указано"
+    return _html.escape(str(value))
+
+
+def _admin_badge(text, status="warn"):
+    import html as _html
+
+    colors = {
+        "ok": ("#15803d", "#dcfce7", "#bbf7d0"),
+        "warn": ("#b45309", "#fef3c7", "#fde68a"),
+        "bad": ("#b91c1c", "#fee2e2", "#fecaca"),
+    }
+    fg, bg, border = colors.get(status, colors["warn"])
+
+    return (
+        f"<span style='display:inline-block;padding:6px 10px;"
+        f"border-radius:999px;font-weight:700;color:{fg};"
+        f"background:{bg};border:1px solid {border};'>"
+        f"{_html.escape(str(text))}</span>"
+    )
+
+
+def _admin_days_since(date_value):
+    from datetime import datetime, date
+
+    if not date_value:
+        return None
+
+    s = str(date_value).strip()
+    if not s:
+        return None
+
+    # Берём только YYYY-MM-DD, даже если дата пришла как ISO datetime.
+    s = s[:10]
+
+    try:
+        d = datetime.strptime(s, "%Y-%m-%d").date()
+        return (date.today() - d).days
+    except Exception:
+        return None
+
+
+def _admin_mp_label(mp):
+    labels = {
+        "ozon": "Ozon",
+        "wildberries": "Wildberries",
+        "wb": "Wildberries",
+        "yandex_market": "Яндекс Маркет",
+        "yandex": "Яндекс Маркет",
+        "multiple": "Несколько площадок",
+        "unknown": "Не определено",
+    }
+    return labels.get(str(mp or "").strip(), str(mp or "не указано"))
+
+
+def _admin_table_exists(cur, table):
+    row = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=? LIMIT 1",
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+def get_official_sources_freshness():
+    import sqlite3
+    from pathlib import Path
+    from datetime import date
+
+    news_db = Path("/opt/newsbot_v2/news_queue.db")
+    tariffs_db = Path("/opt/newsbot_v2/data/unified_tariffs.db")
+
+    result = {
+        "ozon_status": "bad",
+        "ozon_status_label": "Ozon: боевой источник не найден",
+        "ozon_reason": "Админка не нашла стандартный официальный файл Ozon для расчётов.",
+        "ozon_source_file": None,
+        "ozon_source_status": None,
+        "ozon_source_role": None,
+        "ozon_source_note": None,
+        "ozon_valid_from": None,
+        "ozon_tariff_age_days": None,
+        "ozon_rows": 0,
+        "ozon_loaded_at": None,
+        "ozon_days_since_loaded": None,
+        "ozon_signals_after_source": 0,
+        "ozon_last_signal_at": None,
+        "ozon_select_note": "не найден / не используется как боевой источник",
+        "official_today": [],
+        "errors": [],
+    }
+
+    # 1. Боевой Ozon-файл и строки комиссий из unified_tariffs.db.
+    try:
+        con = sqlite3.connect(str(tariffs_db))
+        con.row_factory = sqlite3.Row
+        cur = con.cursor()
+
+        row = cur.execute("""
+            SELECT
+                q.source_file,
+                q.source_status,
+                q.source_role,
+                q.source_note,
+                q.comment,
+                q.created_at AS quality_created_at,
+                MAX(c.valid_from) AS valid_from,
+                COUNT(c.id) AS rows_count
+            FROM tariff_source_quality q
+            LEFT JOIN clean_commissions c
+              ON c.marketplace = q.marketplace
+             AND c.source_file = q.source_file
+             AND c.fee_type = 'marketplace_service_rate'
+            WHERE q.marketplace = 'ozon'
+              AND q.source_status = 'usable'
+              AND q.source_role = 'standard_marketplace_service_rate'
+            GROUP BY
+                q.source_file,
+                q.source_status,
+                q.source_role,
+                q.source_note,
+                q.comment,
+                q.created_at
+            ORDER BY MAX(c.valid_from) DESC, q.created_at DESC
+            LIMIT 1
+        """).fetchone()
+
+        if row:
+            result["ozon_source_file"] = row["source_file"]
+            result["ozon_source_status"] = row["source_status"]
+            result["ozon_source_role"] = row["source_role"]
+            result["ozon_source_note"] = row["source_note"] or row["comment"]
+            result["ozon_valid_from"] = row["valid_from"]
+            result["ozon_rows"] = int(row["rows_count"] or 0)
+            result["ozon_tariff_age_days"] = _admin_days_since(row["valid_from"])
+
+        select_row = cur.execute("""
+            SELECT COUNT(*) AS cnt
+            FROM tariff_source_quality
+            WHERE marketplace = 'ozon'
+              AND lower(source_file) LIKE '%select%'
+        """).fetchone()
+
+        if select_row and int(select_row["cnt"] or 0) > 0:
+            result["ozon_select_note"] = "найден в базе, но должен оставаться test_only / не использовать как боевой источник"
+
+        con.close()
+
+    except Exception as e:
+        result["errors"].append(f"Ошибка чтения тарифной базы Ozon: {e}")
+
+    # 2. Дата загрузки файла, Ozon-сигналы после загрузки, официальный слой сегодня.
+    try:
+        con = sqlite3.connect(str(news_db))
+        con.row_factory = sqlite3.Row
+        cur = con.cursor()
+
+        source_file = result.get("ozon_source_file")
+
+        if source_file and _admin_table_exists(cur, "rules_imported_files"):
+            loaded = cur.execute("""
+                SELECT MAX(imported_at) AS imported_at
+                FROM rules_imported_files
+                WHERE file_path LIKE ?
+            """, (f"%{source_file}%",)).fetchone()
+
+            if loaded and loaded["imported_at"]:
+                result["ozon_loaded_at"] = loaded["imported_at"]
+                result["ozon_days_since_loaded"] = _admin_days_since(loaded["imported_at"])
+
+        check_from = result.get("ozon_loaded_at") or result.get("ozon_valid_from")
+
+        if check_from and _admin_table_exists(cur, "tariff_signals"):
+            sig = cur.execute("""
+                SELECT COUNT(*) AS cnt, MAX(detected_at) AS last_signal_at
+                FROM tariff_signals
+                WHERE lower(COALESCE(marketplace, '')) = 'ozon'
+                  AND detected_at >= ?
+            """, (check_from,)).fetchone()
+
+            if sig:
+                result["ozon_signals_after_source"] = int(sig["cnt"] or 0)
+                result["ozon_last_signal_at"] = sig["last_signal_at"]
+
+        if _admin_table_exists(cur, "rules_documents"):
+            today = date.today().strftime("%Y-%m-%d")
+            rows = cur.execute("""
+                SELECT
+                    marketplace,
+                    document_name,
+                    COUNT(*) AS rows_loaded,
+                    COUNT(DISTINCT section) AS sections_loaded,
+                    MIN(loaded_at) AS first_loaded,
+                    MAX(loaded_at) AS last_loaded,
+                    MAX(source_url) AS source_url
+                FROM rules_documents
+                WHERE substr(loaded_at, 1, 10) = ?
+                GROUP BY marketplace, document_name
+                ORDER BY rows_loaded DESC
+                LIMIT 10
+            """, (today,)).fetchall()
+
+            result["official_today"] = [dict(r) for r in rows]
+
+        con.close()
+
+    except Exception as e:
+        result["errors"].append(f"Ошибка чтения новостной/официальной базы: {e}")
+
+    # 3. Человеческий статус.
+    if result["errors"]:
+        result["ozon_status"] = "bad"
+        result["ozon_status_label"] = "Ozon: ошибка чтения источников"
+        result["ozon_reason"] = "Админка не смогла полностью проверить тарифную или новостную базу."
+    elif not result["ozon_source_file"] or result["ozon_rows"] <= 0:
+        result["ozon_status"] = "bad"
+        result["ozon_status_label"] = "Ozon: боевой файл не найден"
+        result["ozon_reason"] = "Нет пригодного standard_marketplace_service_rate-файла Ozon в тарифной базе."
+    elif "select" in str(result["ozon_source_file"]).lower():
+        result["ozon_status"] = "bad"
+        result["ozon_status_label"] = "Ozon: риск использования Select"
+        result["ozon_reason"] = "Боевой источник похож на Ozon Select. Для расчётов нужен standard marketplace service rate."
+    elif result["ozon_signals_after_source"] > 0:
+        result["ozon_status"] = "warn"
+        result["ozon_status_label"] = "Ozon: требуется ручная проверка"
+        result["ozon_reason"] = (
+            "После последней загрузки официального файла Ozon найдены Ozon-сигналы "
+            "в новостном/сигнальном мониторе. Это не доказывает изменение тарифа, "
+            "но администратору нужно проверить, не вышла ли новая официальная таблица или PDF."
+        )
+    elif result["ozon_tariff_age_days"] is not None and result["ozon_tariff_age_days"] >= 30:
+        result["ozon_status"] = "warn"
+        result["ozon_status_label"] = "Ozon: файл действует больше 30 дней"
+        result["ozon_reason"] = (
+            "Официальный тарифный файл найден, но дата начала действия тарифа уже старая. "
+            "Нужно периодически сверять документы Ozon вручную."
+        )
+    else:
+        result["ozon_status"] = "ok"
+        result["ozon_status_label"] = "Ozon: источник свежий"
+        result["ozon_reason"] = "Боевой файл Ozon найден, Select не используется, новых Ozon-сигналов после загрузки не найдено."
+
+    return result
+
+
+def render_official_sources_card():
+    s = get_official_sources_freshness()
+
+    source_status_ru = {
+        "usable": "можно использовать",
+        "test_only": "только тест / не боевой источник",
+        "deprecated": "устарел",
+        None: "не указано",
+    }.get(s.get("ozon_source_status"), s.get("ozon_source_status") or "не указано")
+
+    source_role_ru = {
+        "standard_marketplace_service_rate": "стандартные комиссии Ozon / marketplace_service_rate",
+        "commission_reference": "справочник комиссий",
+        None: "не указано",
+    }.get(s.get("ozon_source_role"), s.get("ozon_source_role") or "не указано")
+
+    official_today_rows = []
+    for item in s.get("official_today", []):
+        official_today_rows.append(
+            "<tr>"
+            f"<td>{_admin_h(_admin_mp_label(item.get('marketplace')))}</td>"
+            f"<td>{_admin_h(item.get('document_name'))}</td>"
+            f"<td>{_admin_h(item.get('rows_loaded'))}</td>"
+            f"<td>{_admin_h(item.get('sections_loaded'))}</td>"
+            f"<td>{_admin_h(item.get('last_loaded'))}</td>"
+            "</tr>"
+        )
+
+    if official_today_rows:
+        official_today_html = (
+            "<table>"
+            "<tr><th>Площадка</th><th>Документ</th><th>Строк</th><th>Секций</th><th>Последняя загрузка</th></tr>"
+            + "".join(official_today_rows)
+            + "</table>"
+        )
+    else:
+        official_today_html = "<p class='muted'>Сегодня новых загрузок официальных документов и тарифных строк не обнаружено.</p>"
+
+    errors_html = ""
+    if s.get("errors"):
+        errors_html = (
+            "<p style='color:#b91c1c;font-weight:700;'>Ошибки проверки:</p><ul>"
+            + "".join(f"<li>{_admin_h(e)}</li>" for e in s["errors"])
+            + "</ul>"
+        )
+
+    return f"""
+    <div class="card">
+      <h2>Свежесть официальных источников</h2>
+
+      <p>{_admin_badge(s["ozon_status_label"], s["ozon_status"])}</p>
+
+      <p>
+        <b>Почему такой статус:</b><br>
+        {_admin_h(s["ozon_reason"])}
+      </p>
+
+      <p class="muted">
+        Откуда берётся вывод: боевой файл Ozon проверяется в
+        <code>unified_tariffs.db → tariff_source_quality + clean_commissions</code>;
+        дата загрузки — в <code>news_queue.db → rules_imported_files</code>;
+        Ozon-сигналы после загрузки — в <code>news_queue.db → tariff_signals</code>.
+      </p>
+
+      <table>
+        <tr><th>Показатель</th><th>Значение</th></tr>
+        <tr><td>Боевой файл Ozon</td><td>{_admin_h(s["ozon_source_file"])}</td></tr>
+        <tr><td>Статус источника</td><td>{_admin_h(source_status_ru)}</td></tr>
+        <tr><td>Роль источника</td><td>{_admin_h(source_role_ru)}</td></tr>
+        <tr><td>Дата начала действия тарифа</td><td>{_admin_h(s["ozon_valid_from"])}</td></tr>
+        <tr><td>Дней с даты начала действия тарифа</td><td>{_admin_h(s["ozon_tariff_age_days"])}</td></tr>
+        <tr><td>Дата последней загрузки файла в систему</td><td>{_admin_h(s["ozon_loaded_at"])}</td></tr>
+        <tr><td>Дней с последней загрузки файла</td><td>{_admin_h(s["ozon_days_since_loaded"])}</td></tr>
+        <tr><td>Строк marketplace_service_rate</td><td>{_admin_h(s["ozon_rows"])}</td></tr>
+        <tr><td>Ozon-сигналы после последней загрузки</td><td>{_admin_h(s["ozon_signals_after_source"])}</td></tr>
+        <tr><td>Последний Ozon-сигнал</td><td>{_admin_h(s["ozon_last_signal_at"])}</td></tr>
+        <tr><td>Ozon Select</td><td>{_admin_h(s["ozon_select_note"])}</td></tr>
+      </table>
+
+      <h3>Что проверить / подгрузить по Ozon вручную</h3>
+      <ol>
+        <li><b>marketplace-services-rates-*.xlsx</b> — основной боевой файл комиссий / marketplace_service_rate.</li>
+        <li><b>Полный список комиссий и тарифов.pdf</b> — логистика, возвраты, хранение/размещение, штрафы, выплаты, допуслуги.</li>
+        <li><b>return tariffs*.xlsx</b> — тарифы возвратов, если Ozon публикует отдельный Excel.</li>
+        <li><b>commission*.xlsx</b> — только если это актуальный официальный файл Ozon, а не Select.</li>
+        <li><b>Оферта / договор / условия Ozon</b> — юридический слой: правила работы, обязанности, ограничения.</li>
+        <li><b>Отдельные Excel/PDF по логистике, хранению, утилизации, ПВЗ, FBO/FBS/realFBS</b> — если Ozon выпустил новые версии.</li>
+      </ol>
+
+      <p class="muted">
+        WB и Яндекс могут обновляться через API/официальные страницы. Ozon требует ручной проверки официальных Excel/PDF,
+        поэтому по нему отдельный административный светофор.
+      </p>
+
+      <h3>Официальный слой сегодня</h3>
+      {official_today_html}
+
+      {errors_html}
+    </div>
+    """
+
+
+
+
+@app.get("/", response_class=HTMLResponse)
+async def index(request: Request):
+    require_token(request)
+    ensure_dirs()
+
+    counts = get_counts()
+    api_status = api_keys_status()
+    files = list_files()
+    imports = last_rows("rules_imported_files", 10)
+    checks = last_rows("rules_checks", 10)
+    official_sources_card = render_official_sources_card()
+
+    token = request.query_params.get("token")
+
+    html = f"""
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <title>Newsbot Admin</title>
+  <style>
+    body {{
+      font-family: Arial, sans-serif;
+      background: #f6f7f9;
+      color: #222;
+      margin: 0;
+      padding: 28px;
+    }}
+    .wrap {{
+      max-width: 1180px;
+      margin: 0 auto;
+    }}
+    h1 {{
+      margin-top: 0;
+      font-size: 28px;
+    }}
+    .grid {{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+    }}
+    .card {{
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.06);
+      margin-bottom: 18px;
+    }}
+    label {{
+      display: block;
+      margin: 12px 0 6px;
+      font-weight: 600;
+    }}
+    input, select, button {{
+      font-size: 15px;
+      padding: 10px;
+      border-radius: 10px;
+      border: 1px solid #d0d5dd;
+    }}
+    button {{
+      background: #111827;
+      color: white;
+      cursor: pointer;
+      border: none;
+      margin-top: 12px;
+    }}
+    button.secondary {{
+      background: #374151;
+    }}
+    table {{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }}
+    th, td {{
+      border-bottom: 1px solid #eee;
+      padding: 8px;
+      text-align: left;
+      vertical-align: top;
+    }}
+    .muted {{
+      color: #666;
+      font-size: 13px;
+    }}
+    .ok {{
+      color: #067647;
+      font-weight: 700;
+    }}
+    .warn {{
+      color: #b54708;
+      font-weight: 700;
+    }}
+    pre {{
+      white-space: pre-wrap;
+      background: #111827;
+      color: #e5e7eb;
+      padding: 14px;
+      border-radius: 12px;
+      max-height: 420px;
+      overflow: auto;
+    }}
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Newsbot Admin</h1>
+  <p class="muted">Админка для загрузки документов маркетплейсов и запуска сверки сигналов.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Загрузка документа</h2>
+      <form action="/upload?token={token}" method="post" enctype="multipart/form-data">
+        <label>Маркетплейс</label>
+        <select name="marketplace">
+          <option value="ozon">Ozon</option>
+          <option value="wildberries">Wildberries</option>
+          <option value="yandex_market">Яндекс Маркет</option>
+          <option value="unknown">Не определено</option>
+        </select>
+
+        <label>Файл</label>
+        <input type="file" name="file" required>
+
+        <br>
+        <button type="submit">Загрузить файл</button>
+      </form>
+      <p class="muted">Поддерживаются: .xlsx, .csv, .pdf, .txt</p>
+    </div>
+
+    <div class="card">
+      <h2>Действия</h2>
+      <form action="/run-import?token={token}" method="post">
+        <button type="submit">Импортировать новые документы</button>
+      </form>
+
+      <form action="/run-check?token={token}" method="post">
+        <button class="secondary" type="submit">Запустить сверку сигналов</button>
+      </form>
+
+      <form action="/run-full?token={token}" method="post">
+        <button class="secondary" type="submit">Импорт + сверка + preview</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Статус базы</h2>
+    <table>
+      <tr><th>Показатель</th><th>Значение</th></tr>
+      <tr><td>Документов в базе rules_documents</td><td>{counts["rules_documents"]}</td></tr>
+      <tr><td>Сигналов rules_signals</td><td>{counts["rules_signals"]}</td></tr>
+      <tr><td>Проверок rules_checks</td><td>{counts["rules_checks"]}</td></tr>
+      <tr><td>Подтверждено документами</td><td class="ok">{counts["confirmed_by_docs"]}</td></tr>
+      <tr><td>Только сигнал, без подтверждения</td><td class="warn">{counts["signal_only"]}</td></tr>
+    </table>
+  </div>
+
+  {official_sources_card}
+
+  <div class="card">
+    <h2>API-ключи и сроки действия</h2>
+    <table>
+      <tr><th>Сервис</th><th>Статус</th><th>Дата выпуска</th><th>Действует дней</th><th>Истекает</th><th>Осталось дней</th></tr>
+      <tr>
+        <td>Wildberries</td>
+        <td>{api_status["wb"]["status"]}</td>
+        <td>{api_status["wb"]["issued_at"]}</td>
+        <td>{api_status["wb"]["valid_days"]}</td>
+        <td>{api_status["wb"]["expires_at"]}</td>
+        <td>{api_status["wb"]["days_left"]}</td>
+      </tr>
+      <tr>
+        <td>Ozon</td>
+        <td>{api_status["ozon"]["status"]}</td>
+        <td>{api_status["ozon"]["issued_at"]}</td>
+        <td>{api_status["ozon"]["valid_days"]}</td>
+        <td>{api_status["ozon"]["expires_at"]}</td>
+        <td>{api_status["ozon"]["days_left"]}</td>
+      </tr>
+      <tr>
+        <td>Яндекс Маркет</td>
+        <td>{api_status["yandex"]["status"]}</td>
+        <td>{api_status["yandex"]["issued_at"]}</td>
+        <td>{api_status["yandex"]["valid_days"]}</td>
+        <td>{api_status["yandex"]["expires_at"]}</td>
+        <td>{api_status["yandex"]["days_left"]}</td>
+      </tr>
+    </table>
+
+    <h3>Обновить ключ</h3>
+    <form action="/update-api-key?token={token}" method="post">
+      <label>Сервис</label>
+      <select name="service">
+        <option value="wb">Wildberries</option>
+        <option value="ozon">Ozon</option>
+        <option value="yandex">Яндекс Маркет</option>
+      </select>
+
+      <label>Новый API-ключ / токен</label>
+      <input type="password" name="api_key" placeholder="Вставить новый ключ">
+
+      <label>Ozon Client ID, только для Ozon</label>
+      <input type="text" name="client_id" placeholder="Ozon Client ID, если обновляешь Ozon">
+
+      <label>Дата выпуска ключа</label>
+      <input type="date" name="issued_at" value="2026-04-21">
+
+      <label>Срок действия, дней</label>
+      <input type="number" name="valid_days" value="180">
+
+      <br>
+      <button type="submit">Обновить ключ</button>
+    </form>
+    <p class="muted">Ключи не отображаются в админке. Здесь показывается только статус и срок действия.</p>
+  </div>
+
+  <div class="card">
+    <h2>Файлы в inbox</h2>
+    <table>
+      <tr><th>Маркетплейс</th><th>Файл</th><th>Размер</th><th>Дата</th></tr>
+      {''.join(f"<tr><td>{x['marketplace_label']}</td><td>{x['name']}</td><td>{x['size']}</td><td>{x['mtime']}</td></tr>" for x in files)}
+    </table>
+  </div>
+
+  <div class="grid">
+    <div class="card">
+      <h2>Последние импорты</h2>
+      <table>
+        <tr><th>Файл</th><th>Строк</th><th>Дата</th></tr>
+        {''.join(f"<tr><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td></tr>" for r in imports)}
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Последние сверки</h2>
+      <table>
+        <tr><th>Статус</th><th>Score</th><th>Маркетплейс</th><th>Сигнал</th></tr>
+        {''.join(f"<tr><td>{r[0]}</td><td>{r[1]}</td><td>{r[2]}</td><td>{str(r[3])[:120]}</td></tr>" for r in checks)}
+      </table>
+    </div>
+  </div>
+</div>
+</body>
+</html>
+"""
+    return HTMLResponse(html)
+
+
+
+def sha256_file(path: Path):
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def duplicate_exists(target_dir: Path, candidate_path: Path):
+    candidate_hash = sha256_file(candidate_path)
+
+    for existing in target_dir.glob("*"):
+        if not existing.is_file():
+            continue
+        try:
+            if sha256_file(existing) == candidate_hash:
+                return True, existing.name
+        except Exception:
+            continue
+
+    return False, None
+
+
+@app.post("/upload")
+async def upload(request: Request, marketplace: str = Form(...), file: UploadFile = File(...)):
+    require_token(request)
+    ensure_dirs()
+
+    if marketplace not in ALLOWED_MARKETPLACES:
+        raise HTTPException(status_code=400, detail="Unknown marketplace")
+
+    original_name = Path(file.filename or "uploaded_file").name
+    ext = Path(original_name).suffix.lower()
+
+    if ext not in ALLOWED_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported file extension: {ext}")
+
+    target_dir = INBOX_DIR / marketplace
+    target_dir.mkdir(parents=True, exist_ok=True)
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    safe_name = original_name.replace("/", "_").replace("\\", "_")
+    target_path = target_dir / f"{timestamp}_{safe_name}"
+    tmp_path = target_dir / f".tmp_{timestamp}_{safe_name}"
+
+    with tmp_path.open("wb") as out:
+        shutil.copyfileobj(file.file, out)
+
+    is_duplicate, existing_name = duplicate_exists(target_dir, tmp_path)
+
+    if is_duplicate:
+        tmp_path.unlink(missing_ok=True)
+    else:
+        tmp_path.rename(target_path)
+
+    token = request.query_params.get("token")
+    return RedirectResponse(url=f"/?token={token}", status_code=303)
+
+
+
+@app.post("/update-api-key")
+async def update_api_key(
+    request: Request,
+    service: str = Form(...),
+    api_key: str = Form(""),
+    client_id: str = Form(""),
+    issued_at: str = Form(""),
+    valid_days: str = Form("180"),
+):
+    require_token(request)
+    token = request.query_params.get("token")
+
+    values = {}
+
+    if service == "wb":
+        values["WB_API_KEY"] = api_key
+        values["WB_API_KEY_ISSUED_AT"] = issued_at
+        values["WB_API_KEY_VALID_DAYS"] = valid_days
+
+    elif service == "ozon":
+        values["OZON_API_KEY"] = api_key
+        if client_id.strip():
+            values["OZON_CLIENT_ID"] = client_id
+        values["OZON_API_KEY_ISSUED_AT"] = issued_at
+        values["OZON_API_KEY_VALID_DAYS"] = valid_days
+
+    elif service == "yandex":
+        values["YANDEX_MARKET_TOKEN"] = api_key
+
+    else:
+        raise HTTPException(status_code=400, detail="Unknown service")
+
+    update_env_values(values)
+
+    return RedirectResponse(url=f"/?token={token}", status_code=303)
+
+
+@app.post("/run-import", response_class=HTMLResponse)
+async def run_import(request: Request):
+    require_token(request)
+    token = request.query_params.get("token")
+    pid, log_path = shell_start_background(
+        "/opt/newsbot_v2/venv/bin/python /opt/newsbot_v2/import_rules_docs_bulk_v2.py",
+        "rules_import.log"
+    )
+    return HTMLResponse(f"""
+        <h1>Импорт документов запущен в фоне</h1>
+        <p>PID: <b>{pid}</b></p>
+        <p>Лог: <code>{log_path}</code></p>
+        <p>Проверь прогресс командой:</p>
+        <pre>tail -f {log_path}</pre>
+        <p><a href='/?token={token}'>Назад в админку</a></p>
+    """)
+
+
+@app.post("/run-check", response_class=HTMLResponse)
+async def run_check(request: Request):
+    require_token(request)
+    token = request.query_params.get("token")
+    output = shell_run("/opt/newsbot_v2/venv/bin/python /opt/newsbot_v2/rules_auto_check_v2.py")
+    return HTMLResponse(f"<h1>Сверка сигналов</h1><pre>{output}</pre><p><a href='/?token={token}'>Назад</a></p>")
+
+
+@app.post("/run-full", response_class=HTMLResponse)
+async def run_full(request: Request):
+    require_token(request)
+    token = request.query_params.get("token")
+
+    cmd = (
+        "/opt/newsbot_v2/venv/bin/python /opt/newsbot_v2/import_rules_docs_bulk_v2.py && "
+        "/opt/newsbot_v2/venv/bin/python /opt/newsbot_v2/rules_monitor_v2.py && "
+        "/opt/newsbot_v2/venv/bin/python /opt/newsbot_v2/classify_rules_signals_v2.py && "
+        "/opt/newsbot_v2/venv/bin/python /opt/newsbot_v2/rules_auto_check_v2.py && "
+        "/opt/newsbot_v2/venv/bin/python /opt/newsbot_v2/rules_digest_preview_v2.py"
+    )
+
+    pid, log_path = shell_start_background(cmd, "rules_full_run.log")
+
+    return HTMLResponse(f"""
+        <h1>Полный прогон запущен в фоне</h1>
+        <p>PID: <b>{pid}</b></p>
+        <p>Лог: <code>{log_path}</code></p>
+        <p>Проверь прогресс командой:</p>
+        <pre>tail -f {log_path}</pre>
+        <p><a href='/?token={token}'>Назад в админку</a></p>
+    """)

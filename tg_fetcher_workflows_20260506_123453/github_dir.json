@@ -1,0 +1,18 @@
+[
+  {
+    "name": "workflows",
+    "path": ".github/workflows",
+    "sha": "7d17178aa38aea395b6e344144156735b370bbd7",
+    "size": 0,
+    "url": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/contents/.github/workflows?ref=main",
+    "html_url": "https://github.com/v3154930-cell/newsbot-tg-fetcher/tree/main/.github/workflows",
+    "git_url": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/git/trees/7d17178aa38aea395b6e344144156735b370bbd7",
+    "download_url": null,
+    "type": "dir",
+    "_links": {
+      "self": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/contents/.github/workflows?ref=main",
+      "git": "https://api.github.com/repos/v3154930-cell/newsbot-tg-fetcher/git/trees/7d17178aa38aea395b6e344144156735b370bbd7",
+      "html": "https://github.com/v3154930-cell/newsbot-tg-fetcher/tree/main/.github/workflows"
+    }
+  }
+]

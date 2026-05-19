@@ -1,0 +1,90 @@
+import logging
+import requests
+
+logger = logging.getLogger(__name__)
+
+
+def normalize_channel_id(channel_id):
+    if channel_id is None:
+        return ""
+    return str(channel_id).strip()
+
+
+def save_link(url, title=None):
+    return url
+
+
+def append_source_line(text, item_or_source=None, url=None):
+    text = text or ""
+
+    source = ""
+    link = ""
+
+    if isinstance(item_or_source, dict):
+        source = item_or_source.get("source") or item_or_source.get("marketplace") or ""
+        link = item_or_source.get("url") or item_or_source.get("link") or ""
+    else:
+        source = item_or_source or ""
+        link = url or ""
+
+    source = str(source or "").strip()
+    link = str(link or "").strip()
+
+    if not source and not link:
+        return text
+
+    lines = []
+    if source:
+        lines.append(f"Источник: {source}")
+    if link:
+        lines.append(link)
+
+    return text.rstrip() + "\n\n" + "\n".join(lines)
+
+
+def send_message(token, channel_id, text):
+    token = str(token or "").strip()
+    channel_id = normalize_channel_id(channel_id)
+    text = text or ""
+
+    if not token:
+        raise RuntimeError("MAX_BOT_TOKEN is empty")
+
+    if not channel_id:
+        raise RuntimeError("CHANNEL_ID is empty")
+
+    try:
+        chat_id_value = int(channel_id)
+    except Exception:
+        chat_id_value = channel_id
+
+    url = "https://platform-api.max.ru/messages"
+
+    headers = {
+        "Authorization": token,
+        "Content-Type": "application/json"
+    }
+
+    params = {
+        "chat_id": chat_id_value
+    }
+
+    payload = {
+        "text": text
+    }
+
+    resp = requests.post(
+        url,
+        params=params,
+        json=payload,
+        headers=headers,
+        timeout=30
+    )
+
+    if resp.status_code >= 400:
+        raise RuntimeError(
+            f"MAX send_message failed: HTTP {resp.status_code}: {resp.text[:1000]}"
+        )
+
+    logger.info("MAX message sent. channel_id=%s", channel_id)
+    return True

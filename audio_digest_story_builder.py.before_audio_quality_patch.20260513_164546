@@ -1,0 +1,645 @@
+import html
+import re
+import sqlite3
+from datetime import datetime
+from pathlib import Path
+
+DB_PATH = Path("/opt/newsbot_v2/news_queue.db")
+OUT_DIR = Path("/opt/newsbot_v2/audio_digest/scripts")
+
+
+def clean_text(value: str) -> str:
+    value = html.unescape(value or "")
+    value = re.sub(r"<[^>]+>", " ", value)
+    value = re.sub(r"https?://\S+", "", value)
+    value = value.replace("\xa0", " ")
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+
+def voice_text(value: str) -> str:
+    value = clean_text(value)
+
+    replacements = {
+        "Ozon": "Озон",
+        "Wildberries": "Вайлдберриз",
+        "WB": "Вайлдберриз",
+        "Яндекс.Маркет": "Яндекс Маркет",
+        "FBO": "эф-би-о",
+        "FBS": "эф-би-эс",
+        "DBS": "ди-би-эс",
+        "API": "эй-пи-ай",
+        "MAX": "Макс",
+        "Seller Helper": "СЭллер ХЭлпер",
+        "SaluteSpeech": "Салют Спич",
+    }
+
+    for old, new in replacements.items():
+        value = value.replace(old, new)
+
+    # Убираем обрывки, которые плохо звучат в TTS.
+    value = value.replace("маркетпл...", "маркетплейсов")
+    value = value.replace("маркетп...", "маркетплейсов")
+    value = value.replace("нар...", "нарушения")
+    value = value.replace("мож...", "может")
+    value = value.replace("де...", "детали требуют проверки")
+    value = value.replace("Д...", "Детали требуют проверки")
+
+    # Фонетическая подсказка для SaluteSpeech: "сэллер" и "хэлпер" через твёрдое Э.
+    value = value.replace("селлеров", "сэллеров")
+    value = value.replace("селлерам", "сэллерам")
+    value = value.replace("селлерами", "сэллерами")
+    value = value.replace("селлера", "сэллера")
+    value = value.replace("селлеры", "сэллеры")
+    value = value.replace("селлер", "сэллер")
+
+    value = value.replace("Селлеров", "Сэллеров")
+    value = value.replace("Селлерам", "Сэллерам")
+    value = value.replace("Селлерами", "Сэллерами")
+    value = value.replace("Селлера", "Сэллера")
+    value = value.replace("Селлеры", "Сэллеры")
+    value = value.replace("Селлер", "Сэллер")
+
+    value = value.replace("хелпер", "хэлпер")
+    value = value.replace("Хелпер", "Хэлпер")
+
+    # Фонетическая подсказка для SaluteSpeech: нужно звучание "плэй", а не мягкое "плей".
+    value = value.replace("маркетплейсов", "маркетплэйсов")
+    value = value.replace("маркетплейсы", "маркетплэйсы")
+    value = value.replace("маркетплейсах", "маркетплэйсах")
+    value = value.replace("маркетплейса", "маркетплэйса")
+    value = value.replace("маркетплейс", "маркетплэйс")
+
+    value = value.replace("Маркетплейсов", "Маркетплэйсов")
+    value = value.replace("Маркетплейсы", "Маркетплэйсы")
+    value = value.replace("Маркетплейсах", "Маркетплэйсах")
+    value = value.replace("Маркетплейса", "Маркетплэйса")
+    value = value.replace("Маркетплейс", "Маркетплэйс")
+
+    value = re.sub(r"\s+", " ", value).strip()
+    return value
+
+
+def pause_short() -> str:
+    return " "
+
+
+def pause_mid() -> str:
+    return " "
+
+
+def norm(value: str) -> str:
+    value = clean_text(value).lower().replace("ё", "е")
+    value = re.sub(r"[^a-zа-я0-9\s]+", " ", value)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+
+def safe_int(value, default=0):
+    try:
+        return int(value)
+    except Exception:
+        return default
+
+
+def get(row, *names, default=""):
+    for name in names:
+        if name in row.keys() and row[name] is not None:
+            return row[name]
+    return default
+
+
+def mp_label(mp: str) -> str:
+    return {
+        "ozon": "Озон",
+        "wildberries": "Вайлдберриз",
+        "yandex_market": "Яндекс Маркет",
+        "multiple": "несколько площадок",
+        "unknown": "регуляторика",
+        "wb": "Вайлдберриз",
+        "yandex": "Яндекс Маркет",
+    }.get(mp or "unknown", mp or "не определено")
+
+
+def table_exists(cur, table: str) -> bool:
+    row = cur.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+        (table,),
+    ).fetchone()
+    return row is not None
+
+
+def editorial_title(title: str, raw: str = "", limit=240) -> str:
+    title = clean_text(title)
+    raw = clean_text(raw)
+
+    title = re.sub(r"^Новости площадок\s*[🔵🟣🟡⚫️]*\s*", "", title, flags=re.I)
+    title = title.replace("нар...", "нарушения")
+    title = title.replace("мож...", "может")
+    title = title.replace("де...", "детали требуют проверки")
+    title = title.replace("Д...", "Детали требуют проверки")
+
+    # Если title явно обрезан, пробуем взять начало raw_text.
+    if ("..." in title or "…" in title) and raw and len(raw) > len(title):
+        first = re.split(r"(?<=[.!?])\s+", raw)[0]
+        if len(first) > 30:
+            title = first
+
+    title = clean_text(title)
+    title = rewrite_for_audio(title)
+
+    # Убираем типовые хвосты из телеграмных обрезков.
+    title = re.sub(r"\s+Раньше написать.*$", "", title)
+    title = re.sub(r"\s+С октября вступит.*$", "", title)
+    title = re.sub(r":\s*маркетплейсов\.?$", ".", title)
+
+    if len(title) > limit:
+        title = title[:limit].rstrip(" ,.;:-") + "."
+
+    # build_script сам добавляет точку после заголовка.
+    # Поэтому убираем финальные знаки, чтобы не получить "?.", ".." или "!."
+    title = re.sub(r"[.!?]+$", "", title).strip()
+
+    return title
+
+
+def rewrite_for_audio(title: str) -> str:
+    t = norm(title)
+
+    if ("армянск" in t and "отгруз" in t) and (("ozon" in t or "озон" in t) and ("wildberries" in t or "вайлдберриз" in t)):
+        return "Озон и Вайлдберриз приостановили отгрузки товаров армянских селлеров в Россию."
+
+    if ("рек слот" in t or ("рекомендован" in t and "слот" in t) or ("слот" in t and "пвз" in t)) and ("ozon" in t or "озон" in t):
+        return "Озон меняет рекомендованные слоты отгрузки по FBS."
+
+    if ("страх" in t and ("личн" in t or "кабинет" in t or "ozon" in t or "озон" in t)):
+        return "Озон продвигает страхование в личном кабинете продавца."
+
+    if "брошенн" in t and "корзин" in t and ("ozon" in t or "озон" in t):
+        return "Озон запускает платный инструмент для работы с брошенными корзинами."
+
+    if "фас" in t and ("ozon" in t or "wildberries" in t or "маркетплейс" in t or "выплат" in t):
+        return "ФАС выдала предупреждение Озону и Вайлдберриз из-за условий для продавцов."
+
+    if "туркменистан" in t and ("ozon" in t or "озон" in t):
+        return "Озон выходит в Туркменистан и с первого мая вводит отдельные тарифы на логистику."
+
+    if "честный знак" in t and ("блокиров" in t or "продаж" in t):
+        return "В Госдуме обсуждают быструю блокировку партий товаров через Честный знак."
+
+    if "платформенной экономике" in t:
+        return "Готовится закон о платформенной экономике. Для селлеров это риск новых правил и дополнительных расходов."
+
+    return title
+
+
+def event_key(title: str, source: str = "", marketplace: str = "") -> str:
+    t = norm(title)
+    s = norm(source)
+    mp = marketplace or "unknown"
+
+    if "фас" in t and ("маркетплейс" in t or "ozon" in t or "wildberries" in t or "выплат" in t):
+        return "fas_marketplace_conditions"
+
+    if "туркменистан" in t and "ozon" in t and ("тариф" in t or "логистик" in t):
+        return "ozon_turkmenistan_logistics_tariffs"
+
+    if "брошенн" in t and "корзин" in t and ("ozon" in t or "озон" in t):
+        return "ozon_abandoned_carts_paid_tool"
+
+    if "честный знак" in t and ("блокиров" in t or "продаж" in t):
+        return "regulator_honest_sign_blocking"
+
+    if "оферт" in t and ("обнов" in t or "вступит в силу" in t):
+        return f"offer_update:{mp}"
+
+    if ("api" in t or "api" in s or "лимит" in t or "метод" in t) and mp:
+        return f"api_or_limits:{mp}:{t[:80]}"
+
+    return "title:" + t[:120]
+
+
+def is_noise(title: str) -> bool:
+    t = norm(title)
+
+    noise = [
+        "конкурс",
+        "розыгрыш",
+        "мерч",
+        "вебинар",
+        "подкаст",
+        "подарк",
+        "выигрывайте",
+        "акция",
+        "распродажа",
+        "скидк",
+        "курьеры вовремя доставляют",
+        "на фоне снегопада",
+        "график работы",
+        "майские праздники",
+        "быстрые выплаты от яндекс банка",
+    ]
+
+    return any(x in t for x in noise)
+
+
+def news_score(row):
+    title = norm(get(row, "title"))
+    text = norm(get(row, "raw_text", "clean_text", "content", "text"))
+
+    score = 0
+    score += safe_int(get(row, "seller_relevance_score", default=0))
+    score += safe_int(get(row, "actionability_score", default=0))
+
+    strong_words = [
+        "фас", "оферта", "тариф", "комисси", "выплат", "логистик",
+        "маркировк", "честный знак", "закон", "селлер", "продавц",
+        "ozon", "wildberries", "яндекс маркет", "wb",
+        "возврат", "штраф", "удержан", "api", "кабинет продавца",
+        "брошенн", "корзин", "туркменистан",
+    ]
+
+    for word in strong_words:
+        if word in title or word in text:
+            score += 2
+
+    if is_noise(title):
+        score -= 8
+
+    return score
+
+
+def load_news(limit=3, digest_date=None):
+    """
+    Загружает новости только за дату текущего аудиодайджеста.
+
+    Старое поведение брало последние 500 опубликованных новостей без фильтра по дате,
+    затем сортировало по score. Из-за этого старые сильные темы могли повторяться
+    в новых аудиодайджестах. Теперь выпуск не должен собираться из старых новостей.
+    """
+    digest_date = digest_date or datetime.now().strftime("%Y-%m-%d")
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    if not table_exists(cur, "news"):
+        conn.close()
+        return []
+
+    rows = cur.execute("""
+        SELECT *
+        FROM news
+        WHERE created_at >= ?
+          AND created_at < date(?, '+1 day')
+          AND (
+                is_published = 1
+                OR lower(COALESCE(seller_decision, '')) IN ('publish', 'published')
+              )
+        ORDER BY id DESC
+        LIMIT 300
+    """, (digest_date, digest_date)).fetchall()
+
+    conn.close()
+
+    candidates = []
+
+    for row in rows:
+        title = clean_text(get(row, "title"))
+        raw = clean_text(get(row, "raw_text", "clean_text", "content", "text"))
+        source = clean_text(get(row, "source"))
+
+        if not title or len(title) < 12:
+            continue
+
+        if is_noise(title):
+            continue
+
+        final_title = editorial_title(title, raw)
+        key = event_key(final_title, source)
+
+        candidates.append({
+            "id": get(row, "id"),
+            "title": final_title,
+            "source": source,
+            "raw": raw,
+            "score": news_score(row),
+            "event_key": key,
+        })
+
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+
+    result = []
+    seen = set()
+
+    for item in candidates:
+        if item["event_key"] in seen:
+            continue
+        seen.add(item["event_key"])
+        result.append(item)
+        if len(result) >= limit:
+            break
+
+    return result
+
+
+def signal_score(row):
+    level = get(row, "signal_level", default="")
+    urgency = get(row, "urgency", default="")
+    signal_type = get(row, "signal_type", default="")
+
+    score = 0
+
+    if level == "high":
+        score += 5
+    elif level == "medium":
+        score += 3
+
+    if urgency == "urgent":
+        score += 5
+    elif urgency == "daily":
+        score += 2
+
+    if signal_type in ("regulator", "offer", "tariff", "payouts", "penalties", "marking", "api"):
+        score += 3
+
+    return score
+
+
+def load_signals(limit=2, exclude_keys=None, digest_date=None):
+    """
+    Загружает сигналы только за дату текущего аудиодайджеста.
+
+    Старое поведение брало последние 400 сигналов без фильтра по detected_at,
+    поэтому в аудио могли повторяться старые сигналы: Туркменистан, Честный знак и т.п.
+    """
+    exclude_keys = exclude_keys or set()
+    digest_date = digest_date or datetime.now().strftime("%Y-%m-%d")
+
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    if not table_exists(cur, "tariff_signals"):
+        conn.close()
+        return []
+
+    rows = cur.execute("""
+        SELECT *
+        FROM tariff_signals
+        WHERE status IN ('new', 'published', 'urgent_published')
+          AND detected_at >= ?
+          AND detected_at < date(?, '+1 day')
+        ORDER BY id DESC
+        LIMIT 300
+    """, (digest_date, digest_date)).fetchall()
+
+    conn.close()
+
+    candidates = []
+
+    for row in rows:
+        title = clean_text(get(row, "title"))
+        source = clean_text(get(row, "source"))
+        marketplace = get(row, "marketplace")
+        level = get(row, "signal_level", default="")
+
+        if not title or level not in ("high", "medium"):
+            continue
+
+        if is_noise(title):
+            continue
+
+        final_title = editorial_title(title)
+        key = event_key(final_title, source, marketplace)
+
+        if key in exclude_keys:
+            continue
+
+        candidates.append({
+            "id": get(row, "id"),
+            "title": final_title,
+            "source": source,
+            "marketplace": marketplace,
+            "signal_type": get(row, "signal_type"),
+            "level": level,
+            "score": signal_score(row),
+            "event_key": key,
+        })
+
+    candidates.sort(key=lambda x: x["score"], reverse=True)
+
+    result = []
+    seen = set()
+
+    for item in candidates:
+        if item["event_key"] in seen:
+            continue
+        seen.add(item["event_key"])
+        result.append(item)
+        if len(result) >= limit:
+            break
+
+    return result
+
+
+def explain_news(item):
+    t = norm(item["title"])
+
+    if "фас" in t:
+        return "Для селлеров это важный регуляторный сигнал: площадкам придётся объяснять условия работы и сроки выплат."
+    if "брошенн" in t and "корзин" in t:
+        return "Для продавцов это может стать новым платным инструментом продвижения, но расходы лучше считать отдельно."
+    if "туркменистан" in t:
+        return "Это не про всех продавцов сразу, но важно для тех, кто смотрит на трансграничные продажи и логистику."
+    if "кабинет" in t or "сводк" in t:
+        return "Практический смысл простой: быстрее видно заказы, возвраты и проблемные места в операционке."
+    if "честный знак" in t or "маркировк" in t:
+        return "Здесь риск уже не маркетинговый, а регуляторный: ошибки в карточках и маркировке могут стать дороже."
+
+    return "Главный вопрос для селлера — как это повлияет на расходы, выплаты и операционные действия."
+
+
+def build_script(news_items, signal_items):
+    today = datetime.now().strftime("%d.%m.%Y")
+
+    parts = []
+
+    parts.append(f"Инсайдер Селлер. Вечерний дайджест за {today}.")
+    parts.append("Коротко и по делу. Что сегодня важно для продавцов маркетплейсов.")
+
+    if news_items:
+        parts.append(f"{pause_mid()} Начнём с главного.")
+
+        labels = ["Первое", "Второе", "Третье"]
+
+        for idx, item in enumerate(news_items):
+            label = labels[idx] if idx < len(labels) else f"Новость номер {idx + 1}"
+            title = item["title"]
+            explanation = explain_news(item)
+
+            title = voice_text(title)
+            explanation = voice_text(explanation)
+
+            parts.append(f"{label}. {title}. {pause_short()} {explanation}")
+    else:
+        parts.append("Сегодня без сильных новостей, которые стоило бы отдельно выносить в выпуск.")
+
+    if signal_items:
+        parts.append(f"{pause_mid()} Теперь коротко о сигналах, которые стоит держать в поле зрения.")
+
+        signal_labels = [
+            "Первый сигнал",
+            "Второй сигнал",
+            "Третий сигнал",
+            "Четвёртый сигнал",
+            "Пятый сигнал",
+        ]
+
+        for idx, item in enumerate(signal_items):
+            label = signal_labels[idx] if idx < len(signal_labels) else f"Сигнал номер {idx + 1}"
+            mp = voice_text(mp_label(item["marketplace"]))
+            title = voice_text(item["title"])
+
+            if mp in ("регуляторика", "не определено"):
+                parts.append(f"{label}. {title}.")
+            else:
+                parts.append(f"{label}. {mp}. {title}.")
+
+        parts.append("В расчётах Сэллер Хэлпер ничего не меняем, пока не проверим официальный источник.")
+    else:
+        parts.append("По тарифам, офертам и условиям работы новых сильных сигналов для отдельной проверки сегодня не обнаружено.")
+
+    endings = [
+        "На сегодня всё. Отдыхайте, селлеры. Завтра снова тяжёлый бой с маркетплейсами — но хотя бы с разведкой.",
+        "На этом всё. Берегите маржу, нервы и остатки на складе. Завтра продолжим наблюдение.",
+        "Дайджест окончен. Селлеры, выдыхайте. Маркетплейсы не спят, но и мы теперь тоже смотрим внимательнее.",
+    ]
+
+    ending = endings[datetime.now().day % len(endings)]
+    parts.append(ending)
+
+    return " ".join(parts)
+
+
+def final_voice_cleanup(value: str) -> str:
+    value = value or ""
+
+    # Убираем двойные точки и лишние пробелы перед знаками.
+    value = re.sub(r"\.{2,}", ".", value)
+    value = re.sub(r"\s+([.,:;!?])", r"\1", value)
+    value = re.sub(r"\s+", " ", value).strip()
+
+    # Делаем блок сигналов более естественным для голоса.
+
+    # Небольшая речевая правка.
+    value = value.replace("Дайджест окончен.", "На сегодня всё.")
+
+    # Финальная фонетическая правка для SaluteSpeech:
+    # нужно, чтобы звучало "сЭллер", "СЭллеры", "СЭллер ХЭлпер".
+    seller_replacements = {
+        "селлеров": "сЭллеров",
+        "селлерам": "сЭллерам",
+        "селлерами": "сЭллерами",
+        "селлера": "сЭллера",
+        "селлеры": "сЭллеры",
+        "селлер": "сЭллер",
+
+        "сэллеров": "сЭллеров",
+        "сэллерам": "сЭллерам",
+        "сэллерами": "сЭллерами",
+        "сэллера": "сЭллера",
+        "сэллеры": "сЭллеры",
+        "сэллер": "сЭллер",
+
+        "Селлеров": "СЭллеров",
+        "Селлерам": "СЭллерам",
+        "Селлерами": "СЭллерами",
+        "Селлера": "СЭллера",
+        "Селлеры": "СЭллеры",
+        "Селлер": "СЭллер",
+
+        "Сэллеров": "СЭллеров",
+        "Сэллерам": "СЭллерам",
+        "Сэллерами": "СЭллерами",
+        "Сэллера": "СЭллера",
+        "Сэллеры": "СЭллеры",
+        "Сэллер": "СЭллер",
+
+        "Хелпер": "ХЭлпер",
+        "Хэлпер": "ХЭлпер",
+        "хелпер": "хЭлпер",
+        "хэлпер": "хЭлпер",
+    }
+
+    for old, new in seller_replacements.items():
+        value = value.replace(old, new)
+
+    return value
+
+
+def save_script(script, news_count, signal_count):
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    ts = datetime.now().strftime("%Y%m%d_%H%M%S")
+    path = OUT_DIR / f"audio_digest_script_{ts}.txt"
+    path.write_text(script, encoding="utf-8")
+
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS audio_digest_scripts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        digest_date TEXT,
+        script_path TEXT,
+        script_text TEXT,
+        news_count INTEGER DEFAULT 0,
+        signal_count INTEGER DEFAULT 0,
+        created_at TEXT DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
+    cur.execute("""
+        INSERT INTO audio_digest_scripts (
+            digest_date,
+            script_path,
+            script_text,
+            news_count,
+            signal_count
+        )
+        VALUES (?, ?, ?, ?, ?)
+    """, (
+        datetime.now().strftime("%Y-%m-%d"),
+        str(path),
+        script,
+        news_count,
+        signal_count,
+    ))
+
+    conn.commit()
+    conn.close()
+
+    return path
+
+
+def main():
+    news_items = load_news(limit=3)
+    exclude_keys = {item["event_key"] for item in news_items}
+    signal_items = load_signals(limit=2, exclude_keys=exclude_keys)
+
+    script = build_script(news_items, signal_items)
+    script = voice_text(script)
+    script = final_voice_cleanup(script)
+    path = save_script(script, len(news_items), len(signal_items))
+
+    print("=== AUDIO DIGEST SCRIPT ===")
+    print(script)
+    print()
+    print("news_items:", len(news_items))
+    print("signal_items:", len(signal_items))
+    print("saved:", path)
+
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,214 @@
+#!/usr/bin/env python3
+import argparse
+import hashlib
+import sqlite3
+from datetime import datetime, timezone
+from pathlib import Path
+
+from db import add_to_queue_batch
+
+BASE_DIR = Path("/opt/newsbot_v2")
+NEWS_DB = BASE_DIR / "news_queue.db"
+
+PUBLISH_TYPES = {
+    "tariff",
+    "api",
+    "logistics",
+    "returns",
+    "storage",
+    "penalties",
+    "offer",
+    "marking",
+    "payouts",
+    "regulator",
+}
+
+
+def now_s():
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def norm(value):
+    return str(value or "").strip()
+
+
+def make_content_hash(row):
+    base = "|".join([
+        "official_signal_bridge",
+        str(row["id"]),
+        norm(row["source"]),
+        norm(row["marketplace"]),
+        norm(row["signal_type"]),
+        norm(row["title"]),
+        norm(row["link"]),
+    ])
+    return hashlib.sha256(base.encode("utf-8", errors="ignore")).hexdigest()
+
+
+def decision_for(row):
+    level = norm(row["signal_level"]).lower()
+    stype = norm(row["signal_type"]).lower()
+
+    if level == "high" and stype in PUBLISH_TYPES:
+        return "publish"
+
+    if level in ("high", "medium"):
+        return "digest"
+
+    return "ignore"
+
+
+def score_for(row):
+    level = norm(row["signal_level"]).lower()
+    stype = norm(row["signal_type"]).lower()
+
+    if level == "high":
+        rel = 8
+        act = 8 if stype in PUBLISH_TYPES else 5
+    elif level == "medium":
+        rel = 5
+        act = 4
+    else:
+        rel = 2
+        act = 1
+
+    return rel, act
+
+
+def build_item(row):
+    source = norm(row["source"]) or "OFFICIAL"
+    marketplace = norm(row["marketplace"]) or "unknown"
+    signal_type = norm(row["signal_type"]) or "official"
+    level = norm(row["signal_level"]) or "medium"
+    title = norm(row["title"]) or "Официальное обновление маркетплейса"
+    link = norm(row["link"]) or f"official-signal://{row['id']}"
+
+    raw_text = (
+        f"{title}\n\n"
+        f"Площадка: {marketplace}\n"
+        f"Тип сигнала: {signal_type}\n"
+        f"Уровень: {level}\n"
+        f"Источник: {source}\n"
+    )
+
+    content_hash = make_content_hash(row)
+
+    return {
+        "title": title,
+        "description": raw_text,
+        "raw_text": raw_text,
+        "link": link,
+        "url": link,
+        "source": source,
+        "importance": "high" if level == "high" else "normal",
+        "category": "marketplace_official",
+        "score": 90 if level == "high" else 70,
+        "priority_bucket": "high" if level == "high" else "medium",
+        "reason_tags": f"official_signal_bridge:{signal_type}:{level}:signal_id={row['id']}",
+        "content_hash": content_hash,
+    }
+
+
+def already_in_news(cur, row):
+    link = norm(row["link"]) or f"official-signal://{row['id']}"
+    ch = make_content_hash(row)
+
+    found = cur.execute("""
+        SELECT id
+        FROM news
+        WHERE link = ?
+           OR content_hash = ?
+           OR reason_tags LIKE ?
+        LIMIT 1
+    """, (link, ch, f"%signal_id={row['id']}%")).fetchone()
+
+    return found is not None
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--lookback-hours", type=int, default=72)
+    parser.add_argument("--limit", type=int, default=10)
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    conn = sqlite3.connect(NEWS_DB)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+
+    rows = cur.execute("""
+        SELECT
+            id,
+            news_id,
+            source,
+            marketplace,
+            signal_type,
+            signal_level,
+            title,
+            link,
+            published_at,
+            detected_at,
+            status
+        FROM tariff_signals
+        WHERE source LIKE 'OFFICIAL:%'
+          AND status IN ('new', 'queued')
+          AND datetime(detected_at) >= datetime('now', ?)
+          AND signal_level IN ('high', 'medium')
+        ORDER BY
+          CASE signal_level WHEN 'high' THEN 0 ELSE 1 END,
+          datetime(detected_at) DESC,
+          id DESC
+        LIMIT ?
+    """, (f"-{args.lookback_hours} hours", args.limit)).fetchall()
+
+    items = []
+    decisions = {}
+    skipped_existing = 0
+    skipped_ignore = 0
+
+    for row in rows:
+        decision = decision_for(row)
+        if decision == "ignore":
+            skipped_ignore += 1
+            continue
+
+        if already_in_news(cur, row):
+            skipped_existing += 1
+            continue
+
+        item = build_item(row)
+        rel, act = score_for(row)
+
+        items.append(item)
+        decisions[item["link"]] = {
+            "decision": decision,
+            "seller_relevance_score": rel,
+            "actionability_score": act,
+            "reason": item["reason_tags"],
+        }
+
+    conn.close()
+
+    print("official_signal_bridge checked:", len(rows))
+    print("official_signal_bridge new items:", len(items))
+    print("official_signal_bridge skipped_existing:", skipped_existing)
+    print("official_signal_bridge skipped_ignore:", skipped_ignore)
+
+    for item in items[:10]:
+        print("-", decisions[item["link"]]["decision"], item["source"], item["title"][:140])
+
+    if args.dry_run:
+        print("official_signal_bridge dry-run only")
+        return 0
+
+    if not items:
+        print("official_signal_bridge nothing to queue")
+        return 0
+
+    inserted = add_to_queue_batch(items, seller_decisions=decisions)
+    print("official_signal_bridge queued via add_to_queue_batch:", inserted)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

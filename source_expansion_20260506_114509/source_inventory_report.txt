@@ -1,0 +1,677 @@
+SOURCE INVENTORY
+time: 2026-05-06T11:45:09
+root: /opt/newsbot_v2
+
+========================================================================================================================
+DB: /opt/newsbot_v2/news_queue.db
+========================================================================================================================
+TABLES: audio_digest_runs, audio_digest_scripts, digest_state, news, news_rejects, official_channel_posts, rules_checks, rules_documents, rules_imported_files, rules_signals, signal_digest_runs, sqlite_sequence, tariff_signals, urgent_signal_events
+
+--- audio_digest_runs | rows=12 ---
+columns: id, digest_date, audio_path, max_message_id, status, published_at
+  published_at=2026-05-05 19:45:16
+  published_at=2026-05-04 19:45:15
+  published_at=2026-05-03 19:45:15
+  published_at=2026-05-02 19:45:14
+  published_at=2026-05-01 19:45:15
+  published_at=2026-04-30 19:45:15
+  published_at=2026-04-29 14:42:32
+  published_at=2026-04-29 14:39:22
+  published_at=2026-04-29 14:33:01
+  published_at=2026-04-29 14:27:40
+  published_at=2026-04-29 14:21:56
+  published_at=2026-04-29 14:01:21
+
+--- audio_digest_scripts | rows=20 ---
+columns: id, digest_date, script_path, script_text, news_count, signal_count, created_at
+  created_at=2026-05-05 19:45:02
+  created_at=2026-05-04 19:45:01
+  created_at=2026-05-04 17:31:18
+  created_at=2026-05-04 17:30:14
+  created_at=2026-05-03 19:45:02
+  created_at=2026-05-02 19:45:01
+  created_at=2026-05-01 19:45:01
+  created_at=2026-04-30 19:45:01
+  created_at=2026-04-29 14:41:55
+  created_at=2026-04-29 14:39:01
+  created_at=2026-04-29 14:36:45
+  created_at=2026-04-29 14:32:32
+  created_at=2026-04-29 14:27:16
+  created_at=2026-04-29 14:25:42
+  created_at=2026-04-29 14:08:28
+  created_at=2026-04-29 14:07:15
+  created_at=2026-04-29 14:05:37
+  created_at=2026-04-29 13:49:44
+  created_at=2026-04-29 13:34:51
+  created_at=2026-04-29 13:33:15
+
+--- digest_state | rows=1 ---
+columns: id, morning_sent_date, evening_sent_date, audio_sent_date, last_updated
+
+--- news | rows=121 ---
+columns: id, title, raw_text, processed_text, link, source, importance, category, score, priority_bucket, reason_tags, is_published, in_digest, created_at, content_hash, seller_decision, seller_relevance_score, actionability_score, full_article_message_id, full_article_published_at, full_article_clicks, max_message_id
+  title=Производитель мороженого не отдает Озон банку 123 миллиона рублей | source=Oborot.ru | score=75 | is_published=0 | in_digest=0 | created_at=2026-05-06 07:37:18 | seller_decision=digest
+  title=Маркетплейсы стали антидепрессантом 43% россиян заходят на маркетплейсы не за покупками, а за «дофаминовой подзарядкой» . То есть человек ус... | source=TG:marketplace_biz | score=65 | is_published=1 | in_digest=0 | created_at=2026-05-06 07:07:21 | seller_decision=publish
+  title=ЯМ вывоз возвратов из сортцентров только по электронной заявке — с 28 апреля 🔵 Для вывоза возвратов вам больше не нужно привозить документы... | source=TG:crmmarketplace | score=25 | is_published=0 | in_digest=0 | created_at=2026-05-06 06:37:20 | seller_decision=digest
+  title=Говорят, налоги будут повышать. Пока это не решение, а сигнал Появилась новость с прогнозом от аналитика Виталия Калугина. Он говорит просту... | source=TG:marketplace_biz | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-05 17:07:17 | seller_decision=digest
+  title=Майские: денег тратят меньше и режут лишнее По майским вышли цифры, и они довольно показательные. Большинство закладывает очень скромный бюд... | source=TG:marketplace_biz | score=40 | is_published=0 | in_digest=1 | created_at=2026-05-05 17:07:17 | seller_decision=digest
+  title=30 апреля 2026г многие продавцы на маркетплейсе OZON столкнулись с неожиданной ситуацией: в личных кабинетах были автоматически отключены вс... | source=TG:oborotru | score=30 | is_published=1 | in_digest=1 | created_at=2026-05-05 13:07:19 | seller_decision=publish
+  title=На заводе Tesla Gigafactory Nevada выпустили первый электрогрузовик Semi. У этой машины будет два варианта комплектации: 🚍 Standard Range с... | source=TG:oborotru | score=35 | is_published=0 | in_digest=0 | created_at=2026-05-05 13:07:19 | seller_decision=digest
+  title=Отзыв на Wildberries стал причиной депортации . Иностранный гражданин оставил на сайте Wildberries отзыв на женскую кожаную юбку. Он то ли в... | source=TG:marketplace_biz | score=80 | is_published=0 | in_digest=1 | created_at=2026-05-05 13:07:19 | seller_decision=digest
+  title=В России введен ГОСТ для ПВЗ, Wildberries уже недоволен | source=Oborot.ru | score=40 | is_published=0 | in_digest=1 | created_at=2026-05-05 11:37:17 | seller_decision=digest
+  title=Доставка, ПВЗ, каршеринги и эквайринг вырубились. Как столичный ecommerce, логистика и таксиситы живут без мобильного Интернета | source=Oborot.ru | score=45 | is_published=1 | in_digest=1 | created_at=2026-05-05 11:37:17 | seller_decision=publish
+  title=Почему Ozon и Wildberries приостановили отгрузки товаров армянских селлеров в Россию? 30 апреля фиолетовый маркетплейс начал постепенно скры... | source=TG:oborotru | score=30 | is_published=1 | in_digest=1 | created_at=2026-05-05 11:07:18 | seller_decision=publish
+  title=Сотни квадратных метров вместо тысяч: продавцы одежды и техники учатся торговать с маленьких площадей | source=Oborot.ru | score=35 | is_published=0 | in_digest=0 | created_at=2026-05-05 11:07:18 | seller_decision=digest
+  title=Суд в Москве оштрафовал Google на ₽15,2 млн за неудаление контента | source=RBC | score=65 | is_published=0 | in_digest=1 | created_at=2026-05-05 10:37:17 | seller_decision=digest
+  title=wildberries опять не перечисляет деньги | source=Oborot.ru | score=65 | is_published=0 | in_digest=1 | created_at=2026-05-05 10:07:16 | seller_decision=digest
+  title=WB и Ozon просто выключили Армению 1 мая продавцы из Армении начали массово писать: их товары просто исчезли с WB и Ozon. Без предупреждений... | source=TG:marketplace_biz | score=30 | is_published=1 | in_digest=1 | created_at=2026-05-05 09:37:20 | seller_decision=publish
+  title=Ozon fresh запустит сеть мини-складов в Нижнем Новгороде | source=Retail.ru | score=50 | is_published=0 | in_digest=1 | created_at=2026-05-05 09:37:20 | seller_decision=digest
+  title=Нашел одну из причин системных заказов и отмен от одного и того же покупателя. Оказывается, при отмене заказа, все эти товары автоматически... | source=TG:marketplace_biz | score=55 | is_published=0 | in_digest=1 | created_at=2026-05-05 07:37:17 | seller_decision=digest
+  title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий селлера - обсуждение | source=Oborot.ru | score=65 | is_published=0 | in_digest=1 | created_at=2026-05-05 06:07:18 | seller_decision=digest
+  title="Флаувау" открывает свой первый офлайн-маркетплейс и сдает там витрины в аренду селлерам (ФОТО) | source=Oborot.ru | score=40 | is_published=0 | in_digest=0 | created_at=2026-05-05 04:37:23 | seller_decision=digest
+  title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий селлера | source=Oborot.ru | score=40 | is_published=0 | in_digest=0 | created_at=2026-05-05 04:37:23 | seller_decision=digest
+
+--- news_rejects | rows=0 ---
+columns: id, title, raw_text, link, source, content_hash, seller_decision, seller_relevance_score, actionability_score, seller_reason, created_at
+
+--- official_channel_posts | rows=98 ---
+columns: id, source_name, username, marketplace, source_type, rag_layer, trust_level, post_id, title, raw_text, link, published_at, collected_at, content_hash, status
+  source_name=OFFICIAL: Yandex Market Sellers TG | marketplace=yandex_market | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=Экономьте на хранении востребованных категорий Готовьтесь сразу к двум волнам спроса — на товары для летнего отдыха и школы. За хранение этих категорий не будем брать дополнительну | published_at=2026-04-30T07:00:01+00:00
+  source_name=OFFICIAL: WB Partners TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=Друзья, прямо сейчас рассказываем про новые инструменты аналитики — подключайтесь! | published_at=2026-05-05T10:02:44+00:00
+  source_name=OFFICIAL: WB Partners TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=👌👌Запускаете кампанию продвижения и теряетесь в вопросах? Игорь Шульгин, менеджер по развитию продаж платформы продвижения RWB Медиа, ответил на популярные запросы продавцов. Узнай | published_at=2026-05-04T13:58:01+00:00
+  source_name=OFFICIAL: WB Partners TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=Развенчиваем мифы о работе менеджера маркетплейса… на курсе Университета RWB Пора узнать всю правду! С 12 мая запускаем первый поток курса «Менеджер маркетплейса на Wildberries», г | published_at=2026-05-04T12:15:01+00:00
+  source_name=OFFICIAL: WB Partners TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=Продлеваем акцию в сервисе «Примерка на фото» Вы можете подключить примерку на фото бесплатно и без подписки «Джем» для 10 карточек до 31 октября включительно. Если вы подключите и | published_at=2026-05-04T08:15:01+00:00
+  source_name=OFFICIAL: WB Partners TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#дайджест 1️⃣ Новые статьи на PRO WB: 👌Словарь продавца: что такое ДРР и как правильно её считать. 👌Сделано в Беларуси: как эта плашка может привлечь покупателей. 2️⃣ Новые меропри | published_at=2026-05-03T11:02:01+00:00
+  source_name=OFFICIAL: WB Partners TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#ПрямаяРечь От перепродажи к собственному бренду: белорусский путь в мире бытовой химии Подробности — в новом интервью с экспертом! WB Партнёры: теперь в МАХ | published_at=2026-05-02T10:58:01+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#fbs Рекомендация склада для поставок FBS Добавили поле recommendedWhId — рекомендуемый склад для поставки для Москвы и Московской области — в ответы методов: • GET /api/v3/supplie | published_at=2026-04-30T07:48:06+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#fbs Новый метод Заказов FBS Добавили метод получения архивных сборочных заданий FBS — GET /api/marketplace/v3/fbs/orders/archive. Метод возвращает список сборочных заданий, создан | published_at=2026-04-28T13:32:21+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#products Новый метод в Песочнице Цен и скидок Теперь в Песочнице Цен и скидок вы можете протестировать метод получения товаров с ценами по артикулам POST /api/v2/list/goods/filter | published_at=2026-04-28T10:29:23+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#dbs #dbw Изменения в метаданных DBS и DBW Теперь с помощью WB API вы можете получить метаданные и статусы их валидации для сборочных заданий DBW и DBS. Для этого используйте новые | published_at=2026-04-28T09:31:28+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#products Изменения в Работе с товарами В ответ метода GET /content/v2/object/charcs/{subjectId} для каждой характеристики добавили поле isVariable с информацией о том, могут ли ва | published_at=2026-04-27T11:55:22+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#general Продолжаем обновлять лимиты для Базовых токенов. 23 апреля обновятся методы категории Продвижение. 28 апреля обновятся методы оставшихся категорий: • Статистика • Аналитик | published_at=2026-04-24T08:04:59+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#dbs Изменения в Сборочных заданиях DBS С 4 мая отменить сборочные задания DBS можно будет только в статусах new и confirm. Отменить сборочное задание в статусе deliver будет невоз | published_at=2026-04-23T13:01:31+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#general Продолжаем обновлять лимиты для Базовых токенов. 23 апреля обновятся методы категории Продвижение. 28 апреля обновятся методы оставшихся категорий: • Статистика • Аналитик | published_at=2026-04-22T15:53:20+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#products Обязательные ключевые характеристики для отдельных предметов С 29 апреля в запросах на cоздание, создание с присоединением и редактирование карточек товаров для некоторых | published_at=2026-04-21T13:51:38+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#documents Отчёты об издержках на приём платежей Добавили методы получения: • списка отчётов об издержках на приём платежей — POST /api/finance/v1/acquiring/list • детализаций к от | published_at=2026-04-15T15:14:03+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#documents_and_accounting Новые методы отчётов реализации Добавили новую версию метода получения детализаций к отчётам реализации за период — POST /api/finance/v1/sales-reports/det | published_at=2026-04-15T12:09:01+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#products Изменения в Работе с товарами Теперь с помощью WB API вы можете подтвердить, что на товар нанесён обязательный код маркировки. Для этого передайте значение true для парам | published_at=2026-04-09T12:55:41+00:00
+  source_name=OFFICIAL: WB API Notifications TG | marketplace=wildberries | source_type=official_channel | rag_layer=official_signal | trust_level=high | title=#fbs Изменения в Заказах FBS Добавили поля в ответ метода получения стикеров сборочных заданий кроссбордера POST /api/v3/orders/stickers/cross-border. В полях указаны данные для пе | published_at=2026-04-08T14:19:56+00:00
+
+--- rules_checks | rows=33 ---
+columns: id, signal_id, news_id, marketplace, check_status, confirmation_level, matched_document, effective_date, change_summary, seller_impact, seller_action, can_publish, created_at, updated_at, matched_document_id, match_score
+  marketplace=unknown | created_at=2026-05-05 19:23:16
+  marketplace=wildberries | created_at=2026-05-05 19:23:09
+  marketplace=unknown | created_at=2026-05-05 19:23:03
+  marketplace=unknown | created_at=2026-05-05 19:22:56
+  marketplace=wildberries | created_at=2026-05-05 19:22:49
+  marketplace=unknown | created_at=2026-05-05 19:22:43
+  marketplace=unknown | created_at=2026-05-05 19:22:35
+  marketplace=unknown | created_at=2026-05-05 19:22:28
+  marketplace=unknown | created_at=2026-05-05 19:22:20
+  marketplace=unknown | created_at=2026-05-05 19:22:12
+  marketplace=wildberries | created_at=2026-05-05 19:22:05
+  marketplace=wildberries | created_at=2026-05-05 19:21:59
+  marketplace=wildberries | created_at=2026-05-05 19:21:53
+  marketplace=ozon | created_at=2026-05-05 19:21:47
+  marketplace=unknown | created_at=2026-05-05 19:21:46
+  marketplace=multiple | created_at=2026-05-05 19:21:38
+  marketplace=unknown | created_at=2026-05-05 19:21:31
+  marketplace=ozon | created_at=2026-05-05 19:21:24
+  marketplace=ozon | created_at=2026-05-05 19:21:22
+  marketplace=ozon | created_at=2026-05-05 19:21:20
+
+--- rules_documents | rows=212532 ---
+columns: id, marketplace, document_name, section, topic, rule_text, effective_date, source_url, content_hash, loaded_at
+  marketplace=ozon | source_url=rules_docs/inbox/ozon/20260505_ozon_reverse_logistics_rule.txt
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+  marketplace=wildberries | source_url=rules_docs/inbox/wildberries/20260426_141822_Оферта товарная.pdf
+
+--- rules_imported_files | rows=15 ---
+columns: id, file_path, file_size, file_mtime, file_fingerprint, rows_imported, imported_at
+
+--- rules_signals | rows=76 ---
+columns: id, news_id, marketplace, signal_type, confidence, title, source, link, reason, status, created_at, signal_level, is_digest_candidate
+  marketplace=wildberries | title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий селлера - обсуждение | source=Oborot.ru | created_at=2026-05-05 19:20:03
+  marketplace=ozon | title=Нашел одну из причин системных заказов и отмен от одного и того же покупателя. Оказывается, при отмене заказа, все эти товары автоматически... | source=TG:marketplace_biz | created_at=2026-05-05 19:20:03
+  marketplace=wildberries | title=Отзыв на Wildberries стал причиной депортации . Иностранный гражданин оставил на сайте Wildberries отзыв на женскую кожаную юбку. Он то ли в... | source=TG:marketplace_biz | created_at=2026-05-05 19:20:03
+  marketplace=ozon | title=30 апреля 2026г многие продавцы на маркетплейсе OZON столкнулись с неожиданной ситуацией: в личных кабинетах были автоматически отключены вс... | source=TG:oborotru | created_at=2026-05-05 19:20:03
+  marketplace=unknown | title=Блокировать продажу товаров низкого качества во внесудебном порядке хотят в Госдуме В Госдуму внесли законопроект о внесудебной блокировке о... | source=TG:mpgo_ru | created_at=2026-05-04 19:20:13
+  marketplace=unknown | title=17% за все? На каких условиях селлеры продают мед, кофе, соусы и печенье через маркетплейс "М.Видео" | source=Oborot.ru | created_at=2026-05-04 19:20:13
+  marketplace=ozon | title=Ozon продаёт страховку через страх В личном кабинете Ozon продолжает активно пушить страхование. Логика в примере простая: без страховки — п... | source=TG:marketplace_biz | created_at=2026-05-04 19:20:13
+  marketplace=ozon | title=✨ ОЗОН Расширили программу лояльности 15 апреля усилили программу лояльности «Звёздные товары»: в ней появились 140 дней льготного периода п... | source=TG:crmmarketplace | created_at=2026-05-04 19:20:13
+  marketplace=wildberries | title=С третьей попытки. Как Wildberries удалось отстоять свою монополию на фиолетовый цвет? Крупнейший российский маркетплейс все-таки запатентов... | source=TG:oborotru | created_at=2026-05-04 19:20:13
+  marketplace=ozon | title=🛒 Кейс АПЭТ Иногда проблемы со сроками годности возникают не потому, что товар реально «просрочен», а из-за нюансов оформления. В этом кейсе... | source=TG:Apetecom | created_at=2026-05-03 19:20:03
+  marketplace=wildberries | title=WB отменяет «поддержку малого бизнеса». Комиссии возвращаются назад Wildberries завершает акцию по снижению комиссии для продавцов с небольш... | source=TG:marketplace_biz | created_at=2026-05-03 19:20:03
+  marketplace=wildberries | title=WB начал блокировать вывод денег селлерам Часть продавцов столкнулась с новой историей — Wildberries временно ограничивает вывод средств . Ф... | source=TG:marketplace_biz | created_at=2026-05-03 19:20:03
+  marketplace=multiple | title=WB меняет утилизацию возвратов. Добавили ещё одно звено Wildberries поменял логику утилизации. Раньше было просто: не забрал возврат из ПВЗ... | source=TG:marketplace_biz | created_at=2026-05-02 19:20:02
+  marketplace=unknown | title=Закрываем лишний кабинет на 🤪 без лишних вопросов. Есть квоты на ближайший пул. Ситуация: у вас или у знакомого селлера висит мёртвый кабине... | source=TG:Apetecom | created_at=2026-05-02 19:20:02
+  marketplace=unknown | title=ЯМ вывоз возвратов из сортцентров только по электронной заявке — с 28 апреля 🔵 Для вывоза возвратов вам больше не нужно привозить документы... | source=TG:crmmarketplace | created_at=2026-05-01 19:20:03
+  marketplace=ozon | title=Ozon: не указал ПВЗ для возвратов — товар уедет на утилизацию Ozon обновляет правила по FBO: если у вас не указан ПВЗ для получения возврато... | source=TG:marketplace_biz | created_at=2026-05-01 19:20:03
+  marketplace=unknown | title=Госдума готовит закон про быструю блокировку продажи партии (или даже категории) товара сразу у всех продавцов через "Честный знак" Вроде бы... | source=TG:oborotru | created_at=2026-04-30 19:20:02
+  marketplace=wildberries | title=Wildberries увеличила выплаты владельцам ПВЗ на 36% в 2026 году | source=Retail.ru | created_at=2026-04-30 19:20:02
+  marketplace=wildberries | title=Wildberries увеличила выплаты владельцам ПВЗ на 36% в 2026 году | source=CNews | created_at=2026-04-30 19:20:02
+  marketplace=yandex_market | title=«Яндекс Маркет» обнулит стоимость хранения сезонных товаров для продавцов | source=CNews | created_at=2026-04-30 19:20:02
+
+--- signal_digest_runs | rows=7 ---
+columns: id, digest_date, published_at, status, item_count
+  published_at=2026-05-05 19:33:04
+  published_at=2026-05-04 19:33:26
+  published_at=2026-05-03 19:34:03
+  published_at=2026-05-02 19:33:03
+  published_at=2026-05-01 19:33:03
+  published_at=2026-04-30 19:31:42
+  published_at=2026-04-29 09:38:44
+
+--- sqlite_sequence | rows=11 ---
+columns: name, seq
+
+--- tariff_signals | rows=220 ---
+columns: id, news_id, source, marketplace, signal_type, signal_level, title, link, published_at, detected_at, status, reason, urgency, urgent_published_at
+  source=Oborot.ru | marketplace=wildberries | title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий селлера - обсуждение | published_at=2026-05-05 06:07:18
+  source=Oborot.ru | marketplace=wildberries | title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий селлера - обсуждение | published_at=2026-05-05 06:07:18
+  source=TG:marketplace_biz | marketplace=ozon | title=Нашел одну из причин системных заказов и отмен от одного и того же покупателя. Оказывается, при отмене заказа, все эти товары автоматически... | published_at=2026-05-05 07:37:17
+  source=TG:marketplace_biz | marketplace=ozon | title=Нашел одну из причин системных заказов и отмен от одного и того же покупателя. Оказывается, при отмене заказа, все эти товары автоматически... | published_at=2026-05-05 07:37:17
+  source=TG:oborotru | marketplace=multiple | title=Почему Ozon и Wildberries приостановили отгрузки товаров армянских селлеров в Россию? 30 апреля фиолетовый маркетплейс начал постепенно скры... | published_at=2026-05-05 11:07:18
+  source=Oborot.ru | marketplace=unknown | title=Доставка, ПВЗ, каршеринги и эквайринг вырубились. Как столичный ecommerce, логистика и таксиситы живут без мобильного Интернета | published_at=2026-05-05 11:37:17
+  source=Oborot.ru | marketplace=unknown | title=Доставка, ПВЗ, каршеринги и эквайринг вырубились. Как столичный ecommerce, логистика и таксиситы живут без мобильного Интернета | published_at=2026-05-05 11:37:17
+  source=TG:marketplace_biz | marketplace=wildberries | title=Отзыв на Wildberries стал причиной депортации . Иностранный гражданин оставил на сайте Wildberries отзыв на женскую кожаную юбку. Он то ли в... | published_at=2026-05-05 13:07:19
+  source=TG:marketplace_biz | marketplace=wildberries | title=Отзыв на Wildberries стал причиной депортации . Иностранный гражданин оставил на сайте Wildberries отзыв на женскую кожаную юбку. Он то ли в... | published_at=2026-05-05 13:07:19
+  source=TG:marketplace_biz | marketplace=unknown | title=Майские: денег тратят меньше и режут лишнее По майским вышли цифры, и они довольно показательные. Большинство закладывает очень скромный бюд... | published_at=2026-05-05 17:07:17
+  source=TG:marketplace_biz | marketplace=unknown | title=Майские: денег тратят меньше и режут лишнее По майским вышли цифры, и они довольно показательные. Большинство закладывает очень скромный бюд... | published_at=2026-05-05 17:07:17
+  source=RBC | marketplace=unknown | title=Владелец «Эксмо-АСТ» сравнил издание книг в России с «минным полем» | published_at=2026-05-04 05:07:20
+  source=RBC | marketplace=unknown | title=Владелец «Эксмо-АСТ» сравнил издание книг в России с «минным полем» | published_at=2026-05-04 05:07:20
+  source=TG:mpgo_ru | marketplace=unknown | title=Блокировать продажу товаров низкого качества во внесудебном порядке хотят в Госдуме В Госдуму внесли законопроект о внесудебной блокировке о... | published_at=2026-05-04 07:07:20
+  source=TG:mpgo_ru | marketplace=unknown | title=Блокировать продажу товаров низкого качества во внесудебном порядке хотят в Госдуме В Госдуму внесли законопроект о внесудебной блокировке о... | published_at=2026-05-04 07:07:20
+  source=TG:crmmarketplace | marketplace=wildberries | title=WB ввёл платную доставку для сверхгабаритных товаров. С 17 апреля покупатели оплачивают курьерскую доставку всех СГТ-товаров без исключения:... | published_at=2026-05-04 07:37:19
+  source=TG:crmmarketplace | marketplace=wildberries | title=WB ввёл платную доставку для сверхгабаритных товаров. С 17 апреля покупатели оплачивают курьерскую доставку всех СГТ-товаров без исключения:... | published_at=2026-05-04 07:37:19
+  source=TG:crmmarketplace | marketplace=wildberries | title=WB ввёл платную доставку для сверхгабаритных товаров. С 17 апреля покупатели оплачивают курьерскую доставку всех СГТ-товаров без исключения:... | published_at=2026-05-04 07:37:19
+  source=Oborot.ru | marketplace=unknown | title=17% за все? На каких условиях селлеры продают мед, кофе, соусы и печенье через маркетплейс "М.Видео" | published_at=2026-05-04 09:37:21
+  source=Oborot.ru | marketplace=unknown | title=17% за все? На каких условиях селлеры продают мед, кофе, соусы и печенье через маркетплейс "М.Видео" | published_at=2026-05-04 09:37:21
+
+--- urgent_signal_events | rows=0 ---
+columns: id, event_key, title, sources, source_count, status, published_at, created_at
+
+========================================================================================================================
+DB: /opt/newsbot_v2/data/rag_store.db
+========================================================================================================================
+TABLES: rag_documents, rag_documents_fts, rag_documents_fts_config, rag_documents_fts_data, rag_documents_fts_docsize, rag_documents_fts_idx, rag_sources, sqlite_sequence
+
+--- rag_documents | rows=68 ---
+columns: id, source_news_id, title, clean_text, markdown_text, source, source_type, marketplace, document_type, topic, impact_level, published_at, effective_date, link, content_hash, rag_eligible, eligibility_reason, created_at, rag_layer, trust_level, source_url
+  title=Yandex Market seller docs | source=Yandex Market seller docs | source_type=official | marketplace=yandex_market | published_at=2026-04-29T08:44:41 | created_at=2026-04-29 08:44:41 | rag_layer=legal_official | trust_level=high | source_url=https://yandex.ru/support/marketplace/
+  title=Yandex Market rates | source=Yandex Market rates | source_type=official | marketplace=yandex_market | published_at=2026-04-29T08:44:40 | created_at=2026-04-29 08:44:40 | rag_layer=tariff_official | trust_level=high | source_url=https://yandex.ru/support/marketplace/ru/introduction/rates/
+  title=У селлера украли товаров на 800 тысяч, а когда маркетплейс предложил проверку - пропала еще одна партия на 500 тысяч… | source=Oborot.ru | source_type=media | marketplace=unknown | published_at=2026-04-25 15:39:30 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Кто попало не сможет торговать на маркетплейсах сим-картами - оставят только дилеров операторов сотовой связи | source=Oborot.ru | source_type=media | marketplace=ozon | published_at=2026-04-25 20:09:07 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Суд отказал клиенту "Мегамаркета" в праве купить 20 смартфонов по 200 рублей | source=Oborot.ru | source_type=media | marketplace=unknown | published_at=2026-04-25 20:09:26 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Селлер Wildberries требовал от покупательницы поставить пятерку в отзыве, иначе не вернет деньги за брак | source=Oborot.ru | source_type=media | marketplace=wildberries | published_at=2026-04-25 20:10:36 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Производителям из Подмосковья компенсируют полмиллиона затрат на маркетплейсы. Другие селлеры считают это дискриминацией | source=Oborot.ru | source_type=media | marketplace=unknown | published_at=2026-04-26 08:07:35 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Доходы владельцев ПВЗ Wildberries снижаются на фоне рекордного расширения сети. Что происходит? | source=Oborot.ru | source_type=media | marketplace=wildberries | published_at=2026-04-26 09:38:02 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда… | source=TG:mpgo_ru | source_type=tg | marketplace=ozon | published_at=2026-04-26 09:43:53 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат… | source=TG:marketplace_biz | source_type=tg | marketplace=unknown | published_at=2026-04-26 09:43:58 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Новости площадок 🔵 Ozon запустил конкурс среди пунктов выдачи — «ПВЗ что надо» Победителей в 9 номинациях определят по… | source=TG:mpgo_ru | source_type=tg | marketplace=multiple | published_at=2026-04-26 09:44:17 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто… | source=TG:marketplace_biz | source_type=tg | marketplace=wildberries | published_at=2026-04-26 09:44:23 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про… | source=TG:mpgo_ru | source_type=tg | marketplace=ozon | published_at=2026-04-26 09:44:28 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=У селлера украли товаров на 800 тысяч, а когда маркетплейс предложил проверку - пропала еще одна партия на 500 тысяч… | source=TG:oborotru | source_type=tg | marketplace=unknown | published_at=2026-04-26 09:44:34 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и… | source=TG:crmmarketplace | source_type=tg | marketplace=multiple | published_at=2026-04-26 09:44:39 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в… | source=TG:marketplace_biz | source_type=tg | marketplace=wildberries | published_at=2026-04-26 09:44:44 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о… | source=TG:mpgo_ru | source_type=tg | marketplace=unknown | published_at=2026-04-26 09:44:54 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=МСП Подмосковья смогут получить субсидии на затраты на маркетплейсах В Московской области стартовал прием заявок на… | source=TG:mpgo_ru | source_type=tg | marketplace=multiple | published_at=2026-04-26 09:44:59 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=«Цены на маркетплейсах вырастут». Пошла подготовка? В «Известиях» вышел материал про то, что усиление контроля за… | source=TG:marketplace_biz | source_type=tg | marketplace=unknown | published_at=2026-04-26 09:45:04 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+  title=WB тестирует «не требует проверки» — и снова за счёт селлера Появилась новая отметка — «не требует проверки» . Для… | source=TG:marketplace_biz | source_type=tg | marketplace=wildberries | published_at=2026-04-26 09:45:10 | created_at=2026-04-29 08:39:34 | rag_layer=news_signal | trust_level=medium | source_url=None
+
+--- rag_documents_fts | rows=68 ---
+columns: title, clean_text, markdown_text
+  title=Yandex Market seller docs
+  title=Yandex Market rates
+  title=У селлера украли товаров на 800 тысяч, а когда маркетплейс предложил проверку - пропала еще одна партия на 500 тысяч…
+  title=Кто попало не сможет торговать на маркетплейсах сим-картами - оставят только дилеров операторов сотовой связи
+  title=Суд отказал клиенту "Мегамаркета" в праве купить 20 смартфонов по 200 рублей
+  title=Селлер Wildberries требовал от покупательницы поставить пятерку в отзыве, иначе не вернет деньги за брак
+  title=Производителям из Подмосковья компенсируют полмиллиона затрат на маркетплейсы. Другие селлеры считают это дискриминацией
+  title=Доходы владельцев ПВЗ Wildberries снижаются на фоне рекордного расширения сети. Что происходит?
+  title=У селлера украли товар на 1,3 млн рублей Селлер Ozon рассказал, что у него пропал товар на 800 тысяч рублей, а когда…
+  title=ФАС пришла за выплатами селлерам ФАС выдала предупреждения маркетплейсам и потребовала сократить сроки выплат…
+  title=Новости площадок 🔵 Ozon запустил конкурс среди пунктов выдачи — «ПВЗ что надо» Победителей в 9 номинациях определят по…
+  title=WB продаёт витрину за 200 тысяч в месяц WB обновил «Витрину магазина» и добавил тарифы . Теперь это не просто…
+  title=Новости площадок 🔵 Ozon внедрил платный инструмент для работы с брошенными корзинами Раньше написать клиенту про…
+  title=У селлера украли товаров на 800 тысяч, а когда маркетплейс предложил проверку - пропала еще одна партия на 500 тысяч…
+  title=❗️ ФАС России выдала предупреждение маркетплейсам Ozon и Wildberries за навязывание невыгодных условий продавцам и…
+  title=WB превратил поиск в лотерею WB запустил акцию «Вабанга» : билеты дают за покупки, а ещё их можно просто найти в…
+  title=Товары на маркетплейсах подорожают из-за закона о платформенной экономике С октября вступит в силу закон о…
+  title=МСП Подмосковья смогут получить субсидии на затраты на маркетплейсах В Московской области стартовал прием заявок на…
+  title=«Цены на маркетплейсах вырастут». Пошла подготовка? В «Известиях» вышел материал про то, что усиление контроля за…
+  title=WB тестирует «не требует проверки» — и снова за счёт селлера Появилась новая отметка — «не требует проверки» . Для…
+
+--- rag_documents_fts_config | rows=1 ---
+columns: k, v
+
+--- rag_documents_fts_data | rows=32 ---
+columns: id, block
+
+--- rag_documents_fts_docsize | rows=68 ---
+columns: id, sz
+
+--- rag_documents_fts_idx | rows=30 ---
+columns: segid, term, pgno
+
+--- rag_sources | rows=18 ---
+columns: id, name, source_type, marketplace, rag_layer, trust_level, url, enabled, notes, created_at, updated_at
+  source_type=official_channel | marketplace=yandex_market | rag_layer=official_signal | trust_level=high | url=https://t.me/s/yandex_market_api | enabled=1 | created_at=2026-04-29 13:08:34
+  source_type=official_channel | marketplace=yandex_market | rag_layer=official_signal | trust_level=high | url=https://t.me/s/market_marketplace | enabled=1 | created_at=2026-04-29 13:08:34
+  source_type=official_channel | marketplace=wildberries | rag_layer=official_signal | trust_level=high | url=https://t.me/s/wb_api_notifications | enabled=1 | created_at=2026-04-29 13:08:34
+  source_type=official_channel | marketplace=wildberries | rag_layer=official_signal | trust_level=high | url=https://t.me/s/wbsellerofficial | enabled=1 | created_at=2026-04-29 13:08:34
+  source_type=official_channel | marketplace=ozon | rag_layer=official_signal | trust_level=high | url=https://t.me/s/ozonmarketplace | enabled=1 | created_at=2026-04-29 13:08:34
+  source_type=internal_db | marketplace=yandex_market | rag_layer=tariff_calculation_source | trust_level=high | url=/opt/newsbot_v2/data/unified_tariffs.db#clean_commissions | enabled=1 | created_at=2026-04-29 08:56:06
+  source_type=internal_db | marketplace=wildberries | rag_layer=tariff_calculation_source | trust_level=high | url=/opt/newsbot_v2/data/unified_tariffs.db#clean_commissions | enabled=1 | created_at=2026-04-29 08:56:06
+  source_type=internal_db | marketplace=ozon | rag_layer=tariff_calculation_source | trust_level=high | url=/opt/newsbot_v2/data/unified_tariffs.db#clean_commissions | enabled=1 | created_at=2026-04-29 08:56:06
+  source_type=telegram | marketplace=multiple | rag_layer=news_signal | trust_level=medium | url=None | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=telegram | marketplace=multiple | rag_layer=news_signal | trust_level=medium | url=None | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=telegram | marketplace=multiple | rag_layer=news_signal | trust_level=medium | url=None | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=media | marketplace=multiple | rag_layer=news_signal | trust_level=medium | url=https://oborot.ru/ | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=official | marketplace=yandex_market | rag_layer=legal_official | trust_level=high | url=https://yandex.ru/support/marketplace/ | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=official | marketplace=yandex_market | rag_layer=tariff_official | trust_level=high | url=https://yandex.ru/support/marketplace/ru/introduction/rates/ | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=official | marketplace=wildberries | rag_layer=legal_official | trust_level=high | url=https://seller.wildberries.ru/terms | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=official | marketplace=wildberries | rag_layer=tariff_official | trust_level=high | url=https://dev.wildberries.ru/openapi/analytics#tag/Tarify | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=official | marketplace=ozon | rag_layer=legal_official | trust_level=high | url=https://docs.ozon.ru/ | enabled=1 | created_at=2026-04-29 08:43:31
+  source_type=official | marketplace=ozon | rag_layer=tariff_official | trust_level=high | url=https://docs.ozon.ru/global/ru/commissions/ | enabled=1 | created_at=2026-04-29 08:43:31
+
+--- sqlite_sequence | rows=2 ---
+columns: name, seq
+
+========================================================================================================================
+DB: /opt/newsbot_v2/data/unified_tariffs.db
+========================================================================================================================
+TABLES: clean_commissions, commission, legal_docs, margin_calculation_layers, marketplace, marketplace_fee_components, seller_helper_decision_log, seller_helper_marketplace_readiness, sqlite_sequence, tariff_source_quality
+
+--- clean_commissions | rows=135656 ---
+columns: id, marketplace, category, product_type, scheme, fee_percent, fee_type, valid_from, source_file, source_note, created_at, product_type_norm, category_norm
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+
+--- commission | rows=55040 ---
+columns: id, marketplace_id, category, scheme, price_min, price_max, fee_percent, valid_from, valid_to, source
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+  source=Таблица_категорий_для_расчёта_вознаграждения_Селект_22102025_1760974681.xlsx
+
+--- legal_docs | rows=0 ---
+columns: id, title, content, doc_type, source_url, added_date
+
+--- margin_calculation_layers | rows=10 ---
+columns: id, layer_key, layer_name, layer_group, calculation_status, is_required, comment, created_at
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+  created_at=2026-04-26 16:02:57
+
+--- marketplace | rows=3 ---
+columns: id, name
+
+--- marketplace_fee_components | rows=11 ---
+columns: id, marketplace, component_key, component_name, is_present_in_clean_commissions, calculation_type, depends_on, source_status, comment, created_at
+  marketplace=yandex | created_at=2026-04-26 16:01:54
+  marketplace=yandex | created_at=2026-04-26 16:01:54
+  marketplace=yandex | created_at=2026-04-26 16:01:54
+  marketplace=yandex | created_at=2026-04-26 16:01:54
+  marketplace=yandex | created_at=2026-04-26 16:01:54
+  marketplace=yandex | created_at=2026-04-26 16:01:54
+  marketplace=wb | created_at=2026-04-26 16:01:54
+  marketplace=wb | created_at=2026-04-26 16:01:54
+  marketplace=wb | created_at=2026-04-26 16:01:54
+  marketplace=wb | created_at=2026-04-26 16:01:54
+  marketplace=wb | created_at=2026-04-26 16:01:54
+
+--- seller_helper_decision_log | rows=3 ---
+columns: id, decision_date, decision_key, decision_title, decision_text, impact, created_by
+
+--- seller_helper_marketplace_readiness | rows=3 ---
+columns: marketplace, display_name, commission_status, margin_status, data_status, can_show_commission, can_calculate_margin, comment, updated_at
+  marketplace=ozon
+  marketplace=yandex
+  marketplace=wb
+
+--- sqlite_sequence | rows=5 ---
+columns: name, seq
+
+--- tariff_source_quality | rows=4 ---
+columns: marketplace, source_file, source_note, source_status, source_role, comment, created_at
+  marketplace=ozon | created_at=2026-04-27 17:38:16
+  marketplace=ozon | created_at=2026-04-26 15:52:21
+  marketplace=yandex | created_at=2026-04-26 15:52:14
+  marketplace=wb | created_at=2026-04-26 15:52:14
+
+========================================================================================================================
+RECENT NEWS BY SOURCE / DECISION
+========================================================================================================================
+news columns: id, title, raw_text, processed_text, link, source, importance, category, score, priority_bucket, reason_tags, is_published, in_digest, created_at, content_hash, seller_decision, seller_relevance_score, actionability_score, full_article_message_id, full_article_published_at, full_article_clicks, max_message_id
+
+--- counts by source and seller_decision ---
+   23 | publish  | TG:marketplace_biz
+   14 | publish  | TG:mpgo_ru
+   12 | digest   | Oborot.ru
+   11 | publish  | Oborot.ru
+   10 | publish  | TG:oborotru
+    7 | publish  | TG:crmmarketplace
+    7 | digest   | TG:marketplace_biz
+    7 | digest   | TG:oborotru
+    5 | digest   | TG:crmmarketplace
+    4 | digest   | RBC
+    4 | digest   | Retail.ru
+    4 | digest   | TG:Apetecom
+    3 | publish  | Retail.ru
+    3 | publish  | TG:Apetecom
+    3 | digest   | TG:mpgo_ru
+    2 | digest   | CNews
+    2 | publish  | CNews
+
+--- last 40 news ---
+id=44966 | source=Oborot.ru | title=Производитель мороженого не отдает Озон банку 123 миллиона рублей | seller_decision=digest | score=75 | is_published=0 | in_digest=0 | created_at=2026-05-06 07:37:18
+id=44933 | source=TG:marketplace_biz | title=Маркетплейсы стали антидепрессантом 43% россиян заходят на маркетплейсы не за покупками, а за «дофаминовой подзарядкой» . То есть человек ус... | seller_decision=publish | score=65 | is_published=1 | in_digest=0 | created_at=2026-05-06 07:07:21
+id=44923 | source=TG:crmmarketplace | title=ЯМ вывоз возвратов из сортцентров только по электронной заявке — с 28 апреля 🔵 Для вывоза возвратов вам больше не нужно привозить документы... | seller_decision=digest | score=25 | is_published=0 | in_digest=0 | created_at=2026-05-06 06:37:20
+id=44078 | source=TG:marketplace_biz | title=Говорят, налоги будут повышать. Пока это не решение, а сигнал Появилась новость с прогнозом от аналитика Виталия Калугина. Он говорит просту... | seller_decision=digest | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-05 17:07:17
+id=44069 | source=TG:marketplace_biz | title=Майские: денег тратят меньше и режут лишнее По майским вышли цифры, и они довольно показательные. Большинство закладывает очень скромный бюд... | seller_decision=digest | score=40 | is_published=0 | in_digest=1 | created_at=2026-05-05 17:07:17
+id=43748 | source=TG:oborotru | title=30 апреля 2026г многие продавцы на маркетплейсе OZON столкнулись с неожиданной ситуацией: в личных кабинетах были автоматически отключены вс... | seller_decision=publish | score=30 | is_published=1 | in_digest=1 | created_at=2026-05-05 13:07:19
+id=43745 | source=TG:oborotru | title=На заводе Tesla Gigafactory Nevada выпустили первый электрогрузовик Semi. У этой машины будет два варианта комплектации: 🚍 Standard Range с... | seller_decision=digest | score=35 | is_published=0 | in_digest=0 | created_at=2026-05-05 13:07:19
+id=43717 | source=TG:marketplace_biz | title=Отзыв на Wildberries стал причиной депортации . Иностранный гражданин оставил на сайте Wildberries отзыв на женскую кожаную юбку. Он то ли в... | seller_decision=digest | score=80 | is_published=0 | in_digest=1 | created_at=2026-05-05 13:07:19
+id=43621 | source=Oborot.ru | title=В России введен ГОСТ для ПВЗ, Wildberries уже недоволен | seller_decision=digest | score=40 | is_published=0 | in_digest=1 | created_at=2026-05-05 11:37:17
+id=43613 | source=Oborot.ru | title=Доставка, ПВЗ, каршеринги и эквайринг вырубились. Как столичный ecommerce, логистика и таксиситы живут без мобильного Интернета | seller_decision=publish | score=45 | is_published=1 | in_digest=1 | created_at=2026-05-05 11:37:17
+id=43585 | source=TG:oborotru | title=Почему Ozon и Wildberries приостановили отгрузки товаров армянских селлеров в Россию? 30 апреля фиолетовый маркетплейс начал постепенно скры... | seller_decision=publish | score=30 | is_published=1 | in_digest=1 | created_at=2026-05-05 11:07:18
+id=43581 | source=Oborot.ru | title=Сотни квадратных метров вместо тысяч: продавцы одежды и техники учатся торговать с маленьких площадей | seller_decision=digest | score=35 | is_published=0 | in_digest=0 | created_at=2026-05-05 11:07:18
+id=43517 | source=RBC | title=Суд в Москве оштрафовал Google на ₽15,2 млн за неудаление контента | seller_decision=digest | score=65 | is_published=0 | in_digest=1 | created_at=2026-05-05 10:37:17
+id=43476 | source=Oborot.ru | title=wildberries опять не перечисляет деньги | seller_decision=digest | score=65 | is_published=0 | in_digest=1 | created_at=2026-05-05 10:07:16
+id=43467 | source=TG:marketplace_biz | title=WB и Ozon просто выключили Армению 1 мая продавцы из Армении начали массово писать: их товары просто исчезли с WB и Ozon. Без предупреждений... | seller_decision=publish | score=30 | is_published=1 | in_digest=1 | created_at=2026-05-05 09:37:20
+id=43449 | source=Retail.ru | title=Ozon fresh запустит сеть мини-складов в Нижнем Новгороде | seller_decision=digest | score=50 | is_published=0 | in_digest=1 | created_at=2026-05-05 09:37:20
+id=43298 | source=TG:marketplace_biz | title=Нашел одну из причин системных заказов и отмен от одного и того же покупателя. Оказывается, при отмене заказа, все эти товары автоматически... | seller_decision=digest | score=55 | is_published=0 | in_digest=1 | created_at=2026-05-05 07:37:17
+id=43170 | source=Oborot.ru | title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий селлера - обсуждение | seller_decision=digest | score=65 | is_published=0 | in_digest=1 | created_at=2026-05-05 06:07:18
+id=43070 | source=Oborot.ru | title="Флаувау" открывает свой первый офлайн-маркетплейс и сдает там витрины в аренду селлерам (ФОТО) | seller_decision=digest | score=40 | is_published=0 | in_digest=0 | created_at=2026-05-05 04:37:23
+id=43069 | source=Oborot.ru | title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий селлера | seller_decision=digest | score=40 | is_published=0 | in_digest=0 | created_at=2026-05-05 04:37:23
+id=42119 | source=TG:Apetecom | title=Для наших резидентов предлагаем эффективный инструмент, позволяющий существенно снизить налоговые расходы. С нами вы сможете получить Резиде... | seller_decision=digest | score=45 | is_published=0 | in_digest=0 | created_at=2026-05-04 17:07:23
+id=41967 | source=TG:oborotru | title=В России введен ГОСТ для ПВЗ, Wildberries уже недоволен. Официально утвержден обновленный национальный стандарт, регулирующий деятельность о... | seller_decision=digest | score=30 | is_published=0 | in_digest=1 | created_at=2026-05-04 15:07:18
+id=41966 | source=TG:oborotru | title=С третьей попытки. Как Wildberries удалось отстоять свою монополию на фиолетовый цвет? Крупнейший российский маркетплейс все-таки запатентов... | seller_decision=digest | score=30 | is_published=0 | in_digest=1 | created_at=2026-05-04 15:07:18
+id=41962 | source=TG:marketplace_biz | title=Ozon меняет рек. слот на ПВЗ. Теперь как повезёт Ozon обновляет рекомендованные слоты отгрузки по FBS. Раньше всё было понятно: фиксированны... | seller_decision=publish | score=40 | is_published=1 | in_digest=1 | created_at=2026-05-04 15:07:18
+id=41948 | source=TG:oborotru | title=Я в шоке. Деньги, выведенные 20.04.2026 г. не поступили до сих пор! Это еще мартовская выручка. Ответ поддержки обескураживает: "Wildberries... | seller_decision=digest | score=55 | is_published=0 | in_digest=0 | created_at=2026-05-04 15:07:18
+id=41934 | source=TG:crmmarketplace | title=✨ ОЗОН Расширили программу лояльности 15 апреля усилили программу лояльности «Звёздные товары»: в ней появились 140 дней льготного периода п... | seller_decision=digest | score=85 | is_published=0 | in_digest=1 | created_at=2026-05-04 15:07:18
+id=41844 | source=CNews | title=Маркетплейс в «Мажордоме» принес УК 1,5 млн рублей за 2 месяца | seller_decision=digest | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-04 13:37:19
+id=41775 | source=TG:crmmarketplace | title=Эквайринг на WB реально вырос с 2% в январе до 4+% в марте от цены реализации. Проверьте свои цифры. Где найти отчет? Кабинет → Финансы → Фи... | seller_decision=digest | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-04 12:37:20
+id=41774 | source=TG:marketplace_biz | title=Ozon СЕЛЕКТ....и так сойдёт | seller_decision=digest | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-04 12:37:20
+id=41771 | source=TG:oborotru | title="Мы заметили признаки недобросовестных действий с вашей стороны". Wildberries задерживает срок вывода денег под предлогом проверки действий... | seller_decision=digest | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-04 12:37:20
+id=41623 | source=TG:oborotru | title="Флаувау" открывает свой первый офлайн-маркетплейс и сдает там витрины в аренду селлерам В торговой точке нового формата будут представлены... | seller_decision=digest | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-04 10:37:19
+id=41610 | source=TG:mpgo_ru | title=СПОТ не будет применяться к транзитным товарам Торгово-промышленная палата России (ТПП) попросила налоговую разъяснить, как будет работать С... | seller_decision=digest | score=50 | is_published=0 | in_digest=0 | created_at=2026-05-04 10:37:19
+id=41590 | source=TG:marketplace_biz | title=Ozon продаёт страховку через страх В личном кабинете Ozon продолжает активно пушить страхование. Логика в примере простая: без страховки — п... | seller_decision=publish | score=85 | is_published=1 | in_digest=1 | created_at=2026-05-04 10:37:19
+id=41574 | source=Retail.ru | title=Ozon fresh запустил новый формат доставки готовой еды | seller_decision=digest | score=40 | is_published=0 | in_digest=0 | created_at=2026-05-04 10:07:18
+id=41570 | source=Oborot.ru | title=99 рублей вместо 39! Ускоренная доставка для покупателей Wildberries подорожала почти в 2,5 раза | seller_decision=digest | score=50 | is_published=0 | in_digest=1 | created_at=2026-05-04 10:07:18
+id=41537 | source=Oborot.ru | title=17% за все? На каких условиях селлеры продают мед, кофе, соусы и печенье через маркетплейс "М.Видео" | seller_decision=digest | score=40 | is_published=0 | in_digest=1 | created_at=2026-05-04 09:37:21
+id=41512 | source=TG:mpgo_ru | title=Посетили Императорский фарфоровый завод в Санкт-Петербурге с коллегами из Яндекс Маркета Императорский фарфоровый завод (ИФЗ) однозначно из... | seller_decision=digest | score=105 | is_published=0 | in_digest=1 | created_at=2026-05-04 09:37:21
+id=41499 | source=Oborot.ru | title=Почему Ozon и Wildberries приостановили отгрузки товаров армянских селлеров в Россию? | seller_decision=publish | score=40 | is_published=1 | in_digest=1 | created_at=2026-05-04 09:07:21
+id=41465 | source=Oborot.ru | title=Ozon завершил I квартал с прибылью 4,5 млрд рублей, а рост выручки составил 49% | seller_decision=digest | score=40 | is_published=0 | in_digest=1 | created_at=2026-05-04 08:37:19
+id=41397 | source=TG:marketplace_biz | title=Зумеры всё ещё ходят в ТЦ. Неожиданный поворот На фоне разговоров про «все ушли в онлайн» вышло исследование: почти половина зумеров всё ещё... | seller_decision=digest | score=30 | is_published=0 | in_digest=0 | created_at=2026-05-04 07:37:20
+
+========================================================================================================================
+PYTHON FILES WITH SOURCES
+========================================================================================================================
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/collector_v2.py
+========================================================================================================================
+No URLs/channels found
+
+--- lines with source/channel keywords ---
+9: from telegram_json_sources_v2 import fetch_telegram_json_sources
+65:         normalize_text(item.get("source")),
+102:         "source": item.get("source") or "unknown",
+123:         tg_news = fetch_telegram_json_sources()
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/seller_filter.py
+========================================================================================================================
+No URLs/channels found
+
+--- lines with source/channel keywords ---
+19:         norm(item.get("source")),
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/official_sources_v2.py
+========================================================================================================================
+https://partner.market.yandex.ru/chtojournal/category/novosti-marketa/
+https://partner.market.yandex.ru
+https://seller.wildberries.ru/instructions/ru/ru/material/portal-news
+https://seller.wildberries.ru
+
+--- lines with source/channel keywords ---
+10: logger = logging.getLogger("official_sources_v2")
+16: SOURCES = [
+43: def extract_links_from_page(source: Dict, limit: int = 20) -> List[Dict]:
+44:     url = source["url"]
+58:         full_url = urljoin(source["base"], href)
+70:         if source["name"].startswith("Яндекс"):
+79:         if source["name"].startswith("WB"):
+94:             "source": source["name"],
+106: def get_official_news(limit_per_source: int = 20) -> List[Dict]:
+109:     for source in SOURCES:
+111:             items = extract_links_from_page(source, limit=limit_per_source)
+112:             logger.info("Official source [%s]: %s items", source["name"], len(items))
+115:             logger.warning("Official source [%s] failed: %s", source["name"], e)
+125:         print("-", item["source"], "|", item["title"], "|", item["link"])
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/telegram_sources_v2.py
+========================================================================================================================
+https://t.me/s/
+t.me/s.
+https://t.me/s/{channel}
+https://t.me/{msg_id}
+
+--- lines with source/channel keywords ---
+13: DEFAULT_CHANNELS = [
+14:     # Сюда будем добавлять проверенные публичные Telegram-каналы.
+15:     # Формат: "channel_username", без @
+28:         return "Telegram post"
+34: def fetch_tg_channel_public(channel: str, limit: int = 10) -> List[Dict]:
+36:     Читает публичную страницу https://t.me/s/<channel>.
+37:     Не требует Telegram API, Telethon, api_id/api_hash.
+38:     Работает только для публичных каналов, доступных через t.me/s.
+40:     channel = channel.strip().lstrip("@")
+41:     if not channel:
+44:     url = f"https://t.me/s/{channel}"
+57:         logger.warning("Telegram source %s failed: HTTP %s", channel, resp.status_code)
+74:             link = f"https://t.me/{msg_id}"
+85:             "source": f"TG:{channel}",
+88:             "category": "telegram",
+98: def fetch_telegram_sources(channels=None, limit_per_channel: int = 10) -> List[Dict]:
+99:     channels = channels or DEFAULT_CHANNELS
+102:     for channel in channels:
+104:             posts = fetch_tg_channel_public(channel, limit=limit_per_channel)
+105:             logger.info("TG [%s]: %s posts", channel, len(posts))
+108:             logger.warning("TG [%s] failed: %s", channel, e)
+121:     channels = [x.strip().lstrip("@") for x in sys.argv[1:] if x.strip()]
+123:     if not channels:
+125:         print("  python telegram_sources_v2.py channel1 channel2")
+128:         print("  python telegram_sources_v2.py marketplaceguru sellerden")
+131:     posts = fetch_telegram_sources(channels, limit_per_channel=5)
+137:         print("source:", p.get("source"))
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/telegram_json_sources_v2.py
+========================================================================================================================
+No URLs/channels found
+
+--- lines with source/channel keywords ---
+11: def fetch_telegram_json(url: str, limit: int = 50) -> List[Dict]:
+45:             "source": x.get("source") or x.get("channel") or "TG",
+47:             "category": "telegram",
+54: def fetch_telegram_json_sources() -> List[Dict]:
+64:             items = fetch_telegram_json(url)
+75:     items = fetch_telegram_json_sources()
+79:         print(i, item.get("source"))
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/rss_sources.py
+========================================================================================================================
+NOT FOUND
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/sources.py
+========================================================================================================================
+NOT FOUND
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/signal_monitor.py
+========================================================================================================================
+No URLs/channels found
+
+--- lines with source/channel keywords ---
+137:         source TEXT,
+184:     source_col = pick_col(columns, ["source"])
+185:     link_col = pick_col(columns, ["link", "url", "source_url"])
+192:     for c in [raw_col, source_col, link_col, published_col]:
+214:         source = row[source_col] if source_col else ""
+218:         full = f"{title}\n{raw_text}\n{source}\n{link}"
+236:                 source,
+250:                 source,
+273:         SELECT id, news_id, marketplace, signal_type, signal_level, source, substr(title, 1, 120) AS title
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/signal_digest.py
+========================================================================================================================
+No URLs/channels found
+
+--- lines with source/channel keywords ---
+112:     Строгий режим для публикации в MAX-канал.
+167:         return f"offer_update:{item.get('marketplace')}:{item.get('source')}"
+251:     return "Проверить официальный источник перед изменением расчётов."
+264:             source,
+366:             source_url,
+375:         GROUP BY marketplace, document_name, source_url
+395:               AND COALESCE(source_url, '') = COALESCE(?, '')
+401:                 item.get("source_url"),
+413:               AND COALESCE(source_url, '') = COALESCE(?, '')
+419:                 item.get("source_url"),
+435:                   AND COALESCE(source_url, '') = COALESCE(?, '')
+444:                     item.get("source_url"),
+484:     lines.append("⚠️ <b>За день обновлялись официальные источники маркетплейсов.</b>")
+485:     lines.append("Это не означает, что тарифы или условия уже изменены в расчётах. Команда канала сверяет обновления с официальными документами.")
+512:     Возвращает загрузки официальных документов/тарифных источников за день.
+513:     Это публичный сигнал: официальный источник обновлялся, но расчёты Seller Helper
+538:             source_url,
+545:         GROUP BY marketplace, document_name, source_url
+555:         source_url = g["source_url"] or ""
+563:               AND COALESCE(source_url, '') = COALESCE(?, '')
+564:         """, (date_key, marketplace, document_name, source_url)).fetchall()
+580:                   AND COALESCE(source_url, '') = COALESCE(?, '')
+584:             """, (date_key + " 00:00:00", marketplace, document_name, source_url, section)).fetchone()
+595:         # Человеческие названия для публичного канала
+620:             "source_url": source_url,
+649:         lines.append("Новостные и TG-сигналы без подтверждения официальным источником не считаются изменением тарифов.")
+663:         source = html.escape(signal.get("source") or "источник не указан")
+670:         lines.append(f"Источник: {source}")
+683:     lines.append("Числовые тарифы обновляются только после проверки официального источника: Excel/API/DB-слоя clean_commissions.")
+779:     channel_id = os.getenv("CHANNEL_ID") or os.getenv("MAX_CHANNEL_ID")
+781:     if not token or not channel_id:
+782:         raise RuntimeError("MAX_BOT_TOKEN or CHANNEL_ID/MAX_CHANNEL_ID not found in environment")
+788:         channel_id,
+800:     parser.add_argument("--publish", action="store_true", help="Send digest to MAX channel")
+
+========================================================================================================================
+FILE SCAN: /opt/newsbot_v2/publisher_v2.py
+========================================================================================================================
+No URLs/channels found
+
+--- lines with source/channel keywords ---
+7: from publisher_imports import send_message, send_seller_helper_cta, format_news, append_source_line, save_link, has_full_article
+62:         str(item.get("source", "")),
+119: def normalize_channel_id(channel_id: str) -> str:
+120:     channel_id = str(channel_id or "").strip()
+122:     if channel_id.startswith("@"):
+125:     if channel_id.isdigit():
+126:         return f"-{channel_id}"
+128:     return channel_id
+163:     channel_id = normalize_channel_id(os.getenv("CHANNEL_ID"))
+168:     if not channel_id:
+169:         raise SystemExit("CHANNEL_ID is empty")
+217:         text = append_source_line(text, link)
+228:             channel_id,
+259:             send_seller_helper_cta(token, channel_id)
+
+========================================================================================================================
+FIND SOURCE-LIKE FILES
+========================================================================================================================
+/opt/newsbot_v2/collector_v2.py
+/opt/newsbot_v2/init_rag_sources.py
+/opt/newsbot_v2/load_official_sources.py
+/opt/newsbot_v2/official_channel_collector.py
+/opt/newsbot_v2/official_sources_v2.py
+/opt/newsbot_v2/ozon_source_diagnostics.py
+/opt/newsbot_v2/source_expansion_20260506_114509/new_sources_candidate_plan_v1.json
+/opt/newsbot_v2/source_expansion_20260506_114509/source_inventory_report.txt
+/opt/newsbot_v2/source_expansion_20260506_114509/source_inventory_v1.py
+/opt/newsbot_v2/telegram_json_sources_v2.py
+/opt/newsbot_v2/telegram_sources_v2.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/anyio/_core/_resources.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/anyio/abc/_resources.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/feedparser/namespaces/georss.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/feedparser/namespaces/mediarss.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/openpyxl/chart/data_source.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/pip/_internal/index/collector.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/pip/_internal/index/sources.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/pip/_internal/metadata/pkg_resources.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/pip/_vendor/distlib/resources.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/pygments/lexers/_sourcemod_builtins.py
+/opt/newsbot_v2/venv/lib/python3.12/site-packages/pygments/lexers/resource.py

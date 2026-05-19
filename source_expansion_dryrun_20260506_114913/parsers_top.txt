@@ -1,0 +1,140 @@
+import feedparser
+import socket
+socket.setdefaulttimeout(10)
+import requests
+from bs4 import BeautifulSoup
+import re
+from urllib.parse import urljoin
+import hashlib
+import logging
+from datetime import datetime, timezone
+from typing import List, Dict
+from filters import is_court_case, is_seller_story
+from config import DEFAULT_IMAGE_URL
+
+logger = logging.getLogger(__name__)
+
+RSS_FEEDS = [
+    # === TIER 1: Marketplace Official - NO PUBLIC RSS AVAILABLE ===
+    # All official marketplace docs use HTML/API, not RSS
+    # Monitoring via: Telegram @OzonSellerAPI, @wb_api_news
+    # === TIER 2: E-commerce / Retail Media (working RSS) ===
+    ("https://www.retail.ru/rss/news/", "Retail.ru"),
+    ("https://oborot.ru/feed/", "Oborot.ru"),
+    ("https://vc.ru/rss/all", "vc.ru"),
+    ("https://www.cnews.ru/inc/rss/news.xml", "CNews"),
+    ("https://rssexport.rbc.ru/rbcnews/news/30/full.rss", "RBC")
+]
+
+# HTML-only sources - DISABLED: return 0 items consistently
+# Keeping for future reference if URLs start working
+HTML_ONLY_SOURCES = {
+    # "Ozon Seller News": {
+    #     "url": "https://dev.ozon.ru/ru/news/",
+    #     "type": "html",
+    #     "tier": "tier1",
+    #     "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
+    #     "selectors": {
+    #         "item": "article, .news-item, .article",
+    #         "title": "h1, h2, .news-item__title",
+    #         "link": "a[href]",
+    #         "date": "time, .news-item__date, .article__date"
+    #     }
+    # },
+    # "Yandex Market Updates": {
+    #     "url": "https://yandex.ru/dev/market/partner-api/doc/ru/changelog/all",
+    #     "type": "html",
+    #     "tier": "tier1",
+    #     "headers": {"User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)"},
+    #     "selectors": {
+    #         "item": "h3[id]",
+    #         "title": "h3",
+    #         "link": "a[href]",
+    #         "date": "h3"
+    #     }
+    # }
+}
+
+# Enable/disable flag
+ENABLE_HTML_SOURCES = False
+
+LEGAL_NEWS_FEEDS = []
+
+COURT_RSS_FEEDS = [
+    ("https://mos-gorsud.ru/rss/index", "МосГорСуд"),
+    ("https://www.mosobl.sudrf.ru/modules.php?name=press_dep&func=page&page=2&rss=1", "МособлСуд"),
+]
+
+SALE_RSS_FEEDS = [
+    ("https://www.retail.ru/rss/tag/akcii/", "Retail.ru Акции"),
+    ("https://e-pepper.ru/news/rss.xml", "E-Pepper"),
+]
+
+MARKETPLACE_KEYWORDS = ["маркетплейс", "озон", "wildberries", "яндекс маркет", "ozon", "wb", "ozon", "мегамаркет"]
+
+SALE_KEYWORDS = ["акция", "распродажа", "скидк", "бонус", "cashback", "чёрная пятница", "11.11", "сезонная", "промокод", "купон", "спецпредложение", "特卖", "特價"]
+
+LEGAL_KEYWORDS = ["суд", "арбитраж", "иск", "взыскание", "убытки", "компенсация", "штраф", "решение суда", "мосгорсуд", "мосobl", "кадатр"]
+
+def is_legal_news(title, description):
+    text = f"{title} {description}".lower()
+    return any(kw in text for kw in LEGAL_KEYWORDS)
+
+def is_sale_news(title, description):
+    text = f"{title} {description}".lower()
+    return any(kw in text for kw in SALE_KEYWORDS)
+
+def determine_importance(title, description):
+    text = f"{title} {description}".lower()
+    
+    critical_keywords = ["взыскание", "убытки", "компенсация", "миллион", "штраф", "блокировка", "крупный", "тяжба"]
+    if any(kw in text for kw in critical_keywords):
+        return "critical"
+    
+    important_keywords = ["подмена товара", "возврат", "нарушение прав", "неустойка", "повышение тарифа", "изменение", "иск"]
+    if any(kw in text for kw in important_keywords):
+        return "high"
+    
+    return "normal"
+
+def fetch_rss_feed(url, source_name):
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (compatible; InsiderSellerBot/1.0)"
+        }
+
+        import requests
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        feed = feedparser.parse(response.content)
+
+        if feed.bozo and feed.bozo_exception:
+            exc_str = str(feed.bozo_exception)[:100]
+            logger.warning(f"RSS [{source_name}] bozo: {exc_str}")
+
+        if not feed.entries:
+            logger.warning(f"RSS [{source_name}] empty feed")
+
+        return feed
+
+    except Exception as e:
+        logger.error(f"RSS [{source_name}] error: {e}")
+        return None
+def extract_image_from_entry(entry, link, default_image=None):
+    if hasattr(entry, 'media_content') and entry.media_content:
+        for media in entry.media_content:
+            if media.get('type', '').startswith('image/'):
+                url = media.get('url')
+                if url:
+                    return url
+    
+    if hasattr(entry, 'enclosures') and entry.enclosures:
+        for enc in entry.enclosures:
+            if enc.get('type', '').startswith('image/'):
+                url = enc.get('url')
+                if url:
+                    return url
+    
+    try:
+        response = requests.get(link, timeout=10, headers={

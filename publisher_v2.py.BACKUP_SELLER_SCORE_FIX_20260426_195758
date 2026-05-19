@@ -1,0 +1,172 @@
+import os
+import logging
+from typing import Dict, Any, List
+
+from db import init_db, get_pending_news, mark_published, cleanup_by_retention_policy
+from publisher_imports import send_message, format_news, append_source_line, save_link
+
+import sys
+from llm import enhance_post_with_llm
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger("publisher_v2")
+
+MAX_POSTS_PER_RUN = int(os.getenv("MAX_POSTS_PER_RUN", "2"))
+
+SELLER_KEYWORDS = [
+    "ozon", "озон",
+    "wildberries", "вайлдберриз", "wb",
+    "яндекс маркет", "yandex market",
+    "маркетплейс", "маркетплейсы",
+    "селлер", "селлеры",
+    "продавец", "продавцы",
+    "комиссия", "комиссии",
+    "тариф", "тарифы",
+    "оферта", "оферты",
+    "штраф", "штрафы",
+    "возврат", "возвраты",
+    "логистика", "фулфилмент", "склад",
+    "fbo", "fbs", "dbs",
+    "карточка товара", "личный кабинет продавца",
+    "маркировка", "честный знак",
+    "пвз", "пункт выдачи",
+    "кабинет продавца",
+]
+
+BLOCK_KEYWORDS = [
+    "porsche", "bugatti", "порше", "бугатти",
+    "пашинян", "биатлон", "футбол", "хоккей",
+    "теннис", "уефа", "uefa",
+    "министр обороны", "замминистра обороны",
+    "иванов", "agi", "аги",
+]
+
+
+def item_text(item: Dict[str, Any]) -> str:
+    return " ".join([
+        str(item.get("title", "")),
+        str(item.get("summary", "")),
+        str(item.get("description", "")),
+        str(item.get("raw_text", "")),
+        str(item.get("source", "")),
+        str(item.get("link", "")),
+    ]).lower().replace("ё", "е")
+
+
+def seller_score(item: Dict[str, Any]) -> int:
+    text = item_text(item)
+
+    if any(word in text for word in BLOCK_KEYWORDS):
+        return -100
+
+    return sum(1 for word in SELLER_KEYWORDS if word in text)
+
+
+def select_items(items: List[Dict[str, Any]], limit: int) -> List[Dict[str, Any]]:
+    scored = []
+
+    for item in items:
+        score = seller_score(item)
+        logger.info(
+            "candidate id=%s score=%s title=%s",
+            item.get("id"),
+            score,
+            str(item.get("title", ""))[:100],
+        )
+
+        if score >= 2:
+            scored.append((score, item))
+
+    scored.sort(key=lambda x: x[0], reverse=True)
+    return [item for score, item in scored[:limit]]
+
+
+def normalize_channel_id(channel_id: str) -> str:
+    channel_id = str(channel_id or "").strip()
+
+    if channel_id.startswith("@"):
+        return "-73160979033512"
+
+    if channel_id.isdigit():
+        return f"-{channel_id}"
+
+    return channel_id
+
+
+def main():
+    token = os.getenv("MAX_BOT_TOKEN")
+    channel_id = normalize_channel_id(os.getenv("CHANNEL_ID"))
+
+    if not token:
+        raise SystemExit("MAX_BOT_TOKEN is empty")
+
+    if not channel_id:
+        raise SystemExit("CHANNEL_ID is empty")
+
+    logger.info("=== Publisher v2 started ===")
+
+    init_db()
+
+    try:
+        cleanup_result = cleanup_by_retention_policy()
+        if cleanup_result:
+            logger.info("Retention cleanup result: %s", cleanup_result)
+    except Exception as e:
+        logger.warning("Retention cleanup failed: %s", e)
+
+
+    pending = get_pending_news(30)
+    logger.info("pending loaded=%s", len(pending))
+
+    if not pending:
+        logger.info("No pending news")
+        return
+
+    selected = select_items(pending, MAX_POSTS_PER_RUN)
+    logger.info("selected=%s", [item.get("id") for item in selected])
+
+    if not selected:
+        logger.warning("No seller-relevant items selected. Nothing published.")
+        return
+
+    sent = 0
+
+    for item in selected:
+        link = item.get("link") or ""
+
+        logger.info("Final LLM enhance started for id=%s", item.get("id"))
+
+        enhanced = None
+        try:
+            enhanced = enhance_post_with_llm(item)
+        except Exception as e:
+            logger.warning("Final LLM enhance exception for id=%s: %s", item.get("id"), e)
+
+        if enhanced:
+            logger.info("Final LLM enhance ok for id=%s", item.get("id"))
+            text = enhanced
+        else:
+            logger.warning("Final LLM enhance failed for id=%s, using template fallback", item.get("id"))
+            text = format_news(item)
+
+        text = append_source_line(text, link)
+
+        ok = send_message(token, channel_id, text)
+
+        if ok:
+            if link:
+                save_link(link)
+            mark_published(item["id"])
+            sent += 1
+            logger.info("Posted id=%s", item.get("id"))
+        else:
+            logger.error("Failed to post id=%s", item.get("id"))
+
+    logger.info("=== Publisher v2 finished. Sent=%s ===", sent)
+
+
+if __name__ == "__main__":
+    main()

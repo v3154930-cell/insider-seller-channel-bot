@@ -1,0 +1,99 @@
+{
+  "version": "source_expansion_v1",
+  "purpose": "Увеличить поток новостей без превращения канала в мусорную RSS-ленту",
+  "rules": {
+    "official_channel": "Не меняет тариф автоматически; создаёт сигнал проверки официального документа/API/Excel",
+    "media": "По умолчанию digest/manual_review; publish только при сильном seller-impact",
+    "vendor_blog": "Только digest/manual_review из-за риска SEO и рекламы",
+    "do_not_touch": [
+      "/opt/newsbot",
+      "/opt/helperbot/max_bot_polling.py",
+      "publisher_v2.py без отдельной необходимости",
+      "seller_filter.py до анализа текущего отсева"
+    ]
+  },
+  "p0_official_sources": [
+    {
+      "name": "Ozon Marketplace TG",
+      "url": "https://t.me/s/ozonmarketplace",
+      "source_type": "official_channel",
+      "marketplace": "ozon",
+      "trust_level": "high",
+      "default_route": "signal_or_digest",
+      "notes": "Новости площадки, обучение, изменения кабинета, логистика, тарифные сигналы"
+    },
+    {
+      "name": "Ozon Seller News / Бестселлер",
+      "url": "https://seller.ozon.ru/media/news/",
+      "source_type": "official_site",
+      "marketplace": "ozon",
+      "trust_level": "high",
+      "default_route": "signal_or_digest",
+      "notes": "Официальные новости для продавцов и владельцев ПВЗ"
+    },
+    {
+      "name": "WB Партнёры TG",
+      "url": "https://t.me/s/wbsellerofficial",
+      "source_type": "official_channel",
+      "marketplace": "wildberries",
+      "trust_level": "high",
+      "default_route": "signal_or_digest",
+      "notes": "Официальный канал Wildberries для предпринимателей"
+    },
+    {
+      "name": "Яндекс Маркет для продавцов TG",
+      "url": "https://t.me/s/market_marketplace",
+      "source_type": "official_channel",
+      "marketplace": "yandex_market",
+      "trust_level": "high",
+      "default_route": "signal_or_digest",
+      "notes": "Новости Маркета для продавцов"
+    }
+  ],
+  "p0_regulators": [
+    {
+      "name": "ФАС",
+      "url": "https://fas.gov.ru/news",
+      "source_type": "regulator",
+      "marketplace": "multiple",
+      "trust_level": "high",
+      "default_route": "signal_or_digest",
+      "notes": "Маркетплейсы, выплаты, навязывание условий, предупреждения"
+    },
+    {
+      "name": "Роспотребнадзор / ЗПП",
+      "url": "https://zpp.rospotrebnadzor.ru/news",
+      "source_type": "regulator",
+      "marketplace": "multiple",
+      "trust_level": "high",
+      "default_route": "legal_or_digest",
+      "notes": "Возвраты, права покупателей, обязанности продавцов"
+    },
+    {
+      "name": "Честный Знак",
+      "url": "https://xn--80ajghhoc2aj1c8b.xn--p1ai/news/",
+      "source_type": "regulator",
+      "marketplace": "multiple",
+      "trust_level": "high",
+      "default_route": "marking_or_digest",
+      "notes": "Маркировка и обязательные требования по товарным группам"
+    }
+  ],
+  "p1_media": [
+    "https://oborot.ru/",
+    "https://www.retail.ru/",
+    "https://new-retail.ru/",
+    "https://rb.ru/",
+    "https://www.kommersant.ru/rubric/4",
+    "https://www.vedomosti.ru/business",
+    "https://vc.ru/tag/маркетплейсы"
+  ],
+  "p2_vendor_digest_only": [
+    "Selsup",
+    "МойСклад",
+    "Контур",
+    "Модульбанк",
+    "MPStats",
+    "Moneyplace"
+  ]
+}

@@ -1,0 +1,405 @@
+RSS CANDIDATE TEST
+
+========================================================================================================================
+Retail.ru
+https://www.retail.ru/rss/news/
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://www.retail.ru/rss/news/ content_type: text/xml;charset=UTF-8
+bozo: False
+entries: 30
+01. seller_score=0 | Товары «Яндекс Фабрики» появились в сети «Гипер Лента»
+    link: https://www.retail.ru/news/tovary-yandeks-fabriki-poyavilis-v-seti-giper-lenta-6-maya-2026-277476/
+02. seller_score=0 | «М.Видео»: продажи ТВ и смарт-мониторов в I квартале выросли на 10%
+    link: https://www.retail.ru/news/m-video-prodazhi-tv-i-smart-monitorov-v-i-kvartale-vyrosli-na-10-6-maya-2026-277475/
+03. seller_score=0 | «Авто.ру»: объём предложения новых автомобилей локальных марок вырос на 18% с начала года
+    link: https://www.retail.ru/news/avto-ru-obyem-predlozheniya-novykh-avtomobiley-lokalnykh-marok-vyros-na-18-s-nach-6-maya-2026-277474/
+04. seller_score=0 | Фармкомпании по новым правилам передают в систему маркировки сведения в целях прослеживаемости сырья для лекарств
+    link: https://www.retail.ru/news/farmkompanii-po-novym-pravilam-peredayut-v-sistemu-markirovki-svedeniya-v-tselya-6-maya-2026-277473/
+05. seller_score=0 | РСКО потребовал ввести 22% НДС на непродовольственные зарубежные товары
+    link: https://www.retail.ru/news/rsko-potreboval-vvesti-22-nds-na-neprodovolstvennye-zarubezhnye-tovary-6-maya-2026-277472/
+06. seller_score=0 | Раиса Полякова: «До конца 2026 года все магазины сети „Перекрёсток“ будут управляться директорами-предпринимателями»
+    link: https://www.retail.ru/news/raisa-polyakova-do-kontsa-2026-goda-vse-magaziny-seti-perekryestok-budut-upravlya-6-maya-2026-277471/
+07. seller_score=0 | Подготовка к майским увеличила спрос на автотовары в 4,5 раза — исследование
+    link: https://www.retail.ru/news/podgotovka-k-mayskim-uvelichila-spros-na-avtotovary-v-4-5-raza-issledovanie-5-maya-2026-277470/
+08. seller_score=0 | «Перекрёсток» запустил парковый формат кафе на Пушкинской набережной
+    link: https://www.retail.ru/news/perekryestok-zapustil-parkovyy-format-kafe-na-pushkinskoy-naberezhnoy-5-maya-2026-277469/
+09. seller_score=0 | Компания «Ригла» открыла семитысячную аптеку
+    link: https://www.retail.ru/news/kompaniya-rigla-otkryla-semitysyachnuyu-apteku-5-maya-2026-277466/
+10. seller_score=0 | «Мегафон»: в первые дни мая россияне скупили рекордное число мангалов и грилей
+    link: https://www.retail.ru/news/megafon-v-pervye-dni-maya-rossiyane-skupili-rekordnoe-chislo-mangalov-i-griley-5-maya-2026-277463/
+========================================================================================================================
+Oborot.ru
+https://oborot.ru/feed/
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://oborot.ru/feed/ content_type: application/rss+xml; charset=UTF-8
+bozo: False
+entries: 20
+01. seller_score=3 | Производитель мороженого не отдает Озон банку 123 миллиона рублей
+    link: https://oborot.ru/news/proizvoditel-morozhenogo-ne-otdaet-ozon-banku-123-milliona-rublej-i269515.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+02. seller_score=0 | Завтра – значит завтра: как Dalli доставляет заказы на следующий день
+    link: https://oborot.ru/news/zavtra-znachit-zavtra-kak-dalli-dostavlyaet-zakazy-na-sleduyushhij-den-i269415.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+03. seller_score=4 | Доставка, ПВЗ, каршеринги и эквайринг вырубились. Как столичный ecommerce, логистика и таксисты живут без мобильного Интернета
+    link: https://oborot.ru/news/dostavka-pvz-karsheringi-i-ekvajring-vyrubilis-kak-stolichnyj-ecommerce-logistika-i-taksisity-zhivut-bez-mobilnogo-interneta-i269457.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+04. seller_score=1 | Сотни квадратных метров вместо тысяч: продавцы одежды и техники учатся торговать с маленьких площадей
+    link: https://oborot.ru/news/sotni-kvadratnyh-metrov-vmesto-tysyach-prodavcy-odezhdy-i-tehniki-uchatsya-torgovat-s-malenkih-ploshhadej-i269154.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+05. seller_score=1 | Суд в России назначил арест и депортацию за комментарий к товару на маркетплейсе
+    link: https://oborot.ru/news/sud-v-rossii-naznachil-arest-i-deportaciyu-za-kommentarij-k-tovaru-na-marketplejse-i269391.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+06. seller_score=0 | "Почта России" убрала из сервиса отслеживания посылок подробные статусы, сославшись на благо клиента
+    link: https://oborot.ru/news/pochta-rossii-ubrala-iz-servisa-otslezhivaniya-posylok-podrobnye-statusy-soslavshis-na-blago-klienta-i269424.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+07. seller_score=2 | Финансовым директором Ozon станет Екатерина Яновская. А что с прежним CFO?
+    link: https://oborot.ru/news/finansovym-direktorom-ozon-stanet-ekaterina-yanovskaya-a-chto-s-prezhnim-cfo-i269405.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+08. seller_score=1 | Как производителю запустить современный сайт, сохранив визуальную связь с брендом. Кейс
+    link: https://oborot.ru/articles/razrabotka-site-keis-27-i269214.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+09. seller_score=0 | Выручка цифровых бизнесов Х5 выросла на 26,6%, онлайн компенсирует падение офлайн-трафика
+    link: https://oborot.ru/news/vyruchka-cifrovyh-biznesov-h5-vyrosla-na-266-onlajn-kompensiruet-padenie-oflajn-trafika-i269378.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss
+10. seller_score=2 | "Союзмультфильм", Hobby World и еще 11 компаний официально объявили войну китайским продавцам "копий" своих товаров на российских маркетплейсах. Чего конкретно они требуют? - обсуж
+    link: https://oborot.ru/forum/soyuzmultfilm-hobby-world-i-eshhe-11-kompanij-oficialno-obyavili-vojnu-kitajskim-prodavcam-kopij-svoih-tovarov-na-rossijskih-marketplejsah-chego-konkretno-oni-trebuyut-obsuzhdenie-i53560.html?utm_source=rss&utm_medium=subscr&utm_campaign=rss_infolenta_rss#p270482
+========================================================================================================================
+vc.ru
+https://vc.ru/rss/all
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://vc.ru/rss/all content_type: application/rss+xml; charset=utf-8
+bozo: False
+entries: 12
+01. seller_score=0 | Правительство с 1 сентября 2026 года разрешит переносить номера телефонов к другому оператору между регионами
+    link: https://vc.ru/services/2912449-perenos-nomerov-telefonov-mezhdu-regionami?from=rss
+02. seller_score=0 | Pornhub разрешит некоторым новым пользователям в Великобритании просматривать контент на платформе — для этого нужно подтвердить возраст через устройство от Apple
+    link: https://vc.ru/services/2912329-pornhub-razreshit-polzovatelyam-iz-velikobritanii-podtverzhdat-vozrast-cherez-apple?from=rss
+03. seller_score=0 | Минцифры: доступ к мобильному интернету в Москве восстановлен
+    link: https://vc.ru/services/2911071-dostup-k-mobilnomu-internetu-v-moskve-vosstanovlen?from=rss
+04. seller_score=0 | В Max добавили функцию расшифровки «видеокружков»
+    link: https://vc.ru/services/2911500-funktsiya-rasshifrovki-videokruzhkov-v-messendzhere-max?from=rss
+05. seller_score=0 | Юрист Маска выяснил, что технический директор OpenAI владеет долей на $30 млрд и был лично заинтересован в переходе к коммерческой структуре
+    link: https://vc.ru/money/2911690-ilon-mask-i-sudebnoe-razbiratelstvo-s-openai?from=rss
+06. seller_score=0 | «Самый большой риск — бездействие»: Coinbase уволит 14% штата — около 700 человек
+    link: https://vc.ru/crypto/2910180-coinbase-uvolit-14-sotrudnikov?from=rss
+07. seller_score=0 | Иметь «небольшую сумму в запасе» и подключаться к Wi-Fi: что рекомендуют делать банки и сервисы при отключениях мобильного интернета
+    link: https://vc.ru/services/2910886-problemy-s-svyazyu-u-yandeks-go-i-sber?from=rss
+08. seller_score=0 | «Аналогичные товары представлены в достаточном объёме»: Минпромторг прокомментировал исключение из параллельного импорта компьютеров Acer, Asus и других
+    link: https://vc.ru/tech/2910020-minpromtorg-prokommentiroval-isklyucheniye-kompyuterov-iz-parallelnogo-importa?from=rss
+09. seller_score=1 | «Делимобиль» договорился с ВТБ о привлечении до 6,7 млрд рублей в формате возвратного лизинга
+    link: https://vc.ru/money/2911316-delimobil-privlekaet-sredstva-ot-vtb?from=rss
+10. seller_score=0 | День 1533: Минфин предложил новые формулы расчёта ставок льготных кредитов бизнесу
+    link: https://vc.ru/money/2912170-minfin-rossii-novye-formuly-rascheta-lgotnykh-kreditov?from=rss
+========================================================================================================================
+CNews
+https://www.cnews.ru/inc/rss/news.xml
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://www.cnews.ru/inc/rss/news.xml content_type: application/xml
+bozo: False
+entries: 200
+01. seller_score=0 | Работодатели стали осторожнее в найме специалистов с избыточной квалификацией
+    link: https://www.cnews.ru/news/line/2026-05-06_rabotodateli_stali_ostorozhnee
+02. seller_score=0 | «Яндекс 360» запустил бота для переноса рабочих чатов из Telegram в корпоративный мессенджер
+    link: https://www.cnews.ru/news/line/2026-05-06_yandeks_360_zapustil_bota
+03. seller_score=0 | PRO32 Connect подтвердила совместимость с российской СУБД Postgres Pro
+    link: https://www.cnews.ru/news/line/2026-05-06_pro32_connect_podtverdila_sovmestimost
+04. seller_score=0 | Искусственный интеллект научат лучше понимать потребности человека
+    link: https://www.cnews.ru/news/line/2026-05-06_iskusstvennyj_intellekt
+05. seller_score=0 | Физики ВШЭ и ФИАН научились «фотографировать» звук, чтобы тестировать материалы для связи 6G
+    link: https://www.cnews.ru/news/line/2026-05-06_fiziki_vshe_i_fian_nauchilis
+06. seller_score=1 | «МегаФон» обнулит трафик на миграцию файлов из iCloud
+    link: https://www.cnews.ru/news/line/2026-05-06_megafon_obnulit_trafik
+07. seller_score=0 | Топ-менеджеры компаний ТЭК отработали практические навыки киберзащиты
+    link: https://www.cnews.ru/news/line/2026-05-06_top-menedzhery_kompanij_tek
+08. seller_score=0 | Бюджеты международных рекламодателей в «Яндексе» выросли на 79% в I квартале 2026 года
+    link: https://www.cnews.ru/news/line/2026-05-06_byudzhety_mezhdunarodnyh_reklamodatelej
+09. seller_score=1 | IBC Real Estate: доля маркетплейсов в продажах продуктов составляет менее 10%
+    link: https://www.cnews.ru/news/line/2026-05-06_ibc_real_estate_dolya_marketplejsov
+10. seller_score=0 | В России реализован инструмент анализа мобильных приложений через нейросети
+    link: https://www.cnews.ru/news/line/2026-05-06_v_rossii_realizovan_instrument
+========================================================================================================================
+RBC
+https://rssexport.rbc.ru/rbcnews/news/30/full.rss
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://rssexport.rbc.ru/rbcnews/news/30/full.rss content_type: text/xml;charset=UTF-8
+bozo: False
+entries: 30
+01. seller_score=0 | ФАС выдала предостережения за прогнозы о росте цен в России
+    link: https://www.rbc.ru/business/27/04/2026/69ef3d2d9a79470f865ea893
+02. seller_score=0 | Сбившего насмерть фотографа в Москве мотоциклиста проверили на трезвость
+    link: https://www.rbc.ru/rbcfreenews/69f87ee29a7947ecc9f7e2da
+03. seller_score=0 | Бывший футболист «Зенита» Халк нашел новый клуб в Бразилии
+    link: https://www.rbc.ru/sport/22/05/2024/664da26f9a794734153dc8c4
+04. seller_score=0 | США впервые применили вызвавшую протесты Китая установку Typhon
+    link: https://www.rbc.ru/politics/06/05/2026/69faf44d9a7947fa0d6300ca
+05. seller_score=0 | Священник рассказал, как банк повесил трубку в разговоре с папой римским
+    link: https://www.rbc.ru/rbcfreenews/69e0eeaf9a7947e0f1364aa0
+06. seller_score=0 | Рыбакина заявила, что поддержит бойкот турниров из-за размера призовых
+    link: https://www.rbc.ru/sport/05/05/2026/69f9fe409a79471b061aba8f
+07. seller_score=0 | Водителям посоветовали брать с собой бумажную версию полиса ОСАГО
+    link: https://www.rbc.ru/rbcfreenews/69f9c7619a7947844ea968b1
+08. seller_score=0 | Nissan начал готовить массовые сокращения в Европе
+    link: https://www.rbc.ru/business/16/11/2025/6919defc9a7947e0c8bb8d21
+09. seller_score=0 | В Москве провели репетицию воздушной части парада Победы. Видео
+    link: https://www.rbc.ru/politics/04/05/2026/69f8a60f9a79471c342978cb
+10. seller_score=0 | Подростку дали два года за стрельбу из пневматики в сотрудника РЖД
+    link: https://www.rbc.ru/rbcfreenews/69ee68319a794716072b7960
+========================================================================================================================
+RB.RU all
+https://rb.ru/feeds/all/
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://rb.ru/feeds/all/ content_type: application/rss+xml; charset=utf-8
+bozo: False
+entries: 20
+01. seller_score=0 | Капитализация Samsung достигла $1 трлн — компания вошла в число 13 крупнейших в мире
+    link: https://rb.ru/news/kapitalizaciya-samsung-dostigla-1-trln-kompaniya-voshla-v-chislo-13-krupnejshih-v-mire/
+02. seller_score=0 | Продажи новых автомобилей в России выросли на 15% — за апрель было продано более 117,5 тыс. машин
+    link: https://rb.ru/news/prodazhi-novyh-avtomobilej-v-rossii-vyrosli-na-15-za-aprel-bylo-prodano-bolee-1175-tys-mashin/
+03. seller_score=0 | Яндекс выкупит свои акции на 50 млрд ₽ — бумаги направят на программу долгосрочной мотивации сотрудников
+    link: https://rb.ru/news/yandeks-vykupit-svoi-akcii-na-50-mlrd-bumagi-napravyat-na-programmu-dolgosrochnoj-motivacii-sotrudnikov/
+04. seller_score=0 | Четверть российских облигаций оказалась в зоне риска — дефолты участились на фоне дорогих кредитов и роста НДС
+    link: https://rb.ru/news/chetvert-rossijskih-obligacij-okazalas-v-zone-riska-defolty-uchastilis-na-fone-dorogih-kreditov-i-rosta-nds/
+05. seller_score=0 | В MAX появилась расшифровка видеосообщений — во время чтения пользователь может поставить видео на паузу
+    link: https://rb.ru/news/v-max-poyavilas-rasshifrovka-videosoobshenij-vo-vremya-chteniya-polzovatel-mozhet-postavit-video-na-pauzu/
+06. seller_score=0 | Продажи товаров для приготовления шашлыка в начале майских праздников выросли в 2 раза: в топе — мангалы и грили
+    link: https://rb.ru/news/prodazhi-tovarov-dlya-prigotovleniya-shashlyka-v-nachale-majskih-prazdnikov-vyrosli-v-2-raza-v-tope-mangaly-i-grili/
+07. seller_score=0 | В России могут ограничить поступление в магистратуру — продолжить обучение разрешат только по профилю бакалавриата
+    link: https://rb.ru/news/v-rossii-mogut-ogranichit-postuplenie-v-magistraturu-prodolzhit-obuchenie-razreshat-tolko-po-profilyu-bakalavriata/
+08. seller_score=0 | Мосбиржа начнёт рассчитывать индексы четырёх криптовалют с 13 мая — ранее были доступны только биткоин и Ethereum
+    link: https://rb.ru/news/mosbirzha-nachnyot-rasschityvat-indeksy-chetyryoh-kriptovalyut-s-13-maya-ranee-byli-dostupny-tolko-bitkoin-i-ethereum/
+09. seller_score=0 | 65% россиян считают себя финансово грамотными — но больше половины не знают своего кредитного рейтинга
+    link: https://rb.ru/news/65-rossiyan-schitayut-sebya-finansovo-gramotnymi-no-bolshe-poloviny-ne-znayut-svoego-kreditnogo-rejtinga/
+10. seller_score=0 | Банки снизили ставки по вкладам после снижения ставки ЦБ — сильнее всего упала доходность депозитов на 3 месяца
+    link: https://rb.ru/news/banki-snizili-stavki-po-vkladam-posle-snizheniya-stavki-cb-silnee-vsego-upala-dohodnost-depozitov-na-3-mesyaca/
+========================================================================================================================
+Rusbase old all
+http://rusbase.com/feeds/all/
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://rb.ru/feeds/all/ content_type: application/rss+xml; charset=utf-8
+bozo: False
+entries: 20
+01. seller_score=0 | Капитализация Samsung достигла $1 трлн — компания вошла в число 13 крупнейших в мире
+    link: https://rb.ru/news/kapitalizaciya-samsung-dostigla-1-trln-kompaniya-voshla-v-chislo-13-krupnejshih-v-mire/
+02. seller_score=0 | Продажи новых автомобилей в России выросли на 15% — за апрель было продано более 117,5 тыс. машин
+    link: https://rb.ru/news/prodazhi-novyh-avtomobilej-v-rossii-vyrosli-na-15-za-aprel-bylo-prodano-bolee-1175-tys-mashin/
+03. seller_score=0 | Яндекс выкупит свои акции на 50 млрд ₽ — бумаги направят на программу долгосрочной мотивации сотрудников
+    link: https://rb.ru/news/yandeks-vykupit-svoi-akcii-na-50-mlrd-bumagi-napravyat-na-programmu-dolgosrochnoj-motivacii-sotrudnikov/
+04. seller_score=0 | Четверть российских облигаций оказалась в зоне риска — дефолты участились на фоне дорогих кредитов и роста НДС
+    link: https://rb.ru/news/chetvert-rossijskih-obligacij-okazalas-v-zone-riska-defolty-uchastilis-na-fone-dorogih-kreditov-i-rosta-nds/
+05. seller_score=0 | В MAX появилась расшифровка видеосообщений — во время чтения пользователь может поставить видео на паузу
+    link: https://rb.ru/news/v-max-poyavilas-rasshifrovka-videosoobshenij-vo-vremya-chteniya-polzovatel-mozhet-postavit-video-na-pauzu/
+06. seller_score=0 | Продажи товаров для приготовления шашлыка в начале майских праздников выросли в 2 раза: в топе — мангалы и грили
+    link: https://rb.ru/news/prodazhi-tovarov-dlya-prigotovleniya-shashlyka-v-nachale-majskih-prazdnikov-vyrosli-v-2-raza-v-tope-mangaly-i-grili/
+07. seller_score=0 | В России могут ограничить поступление в магистратуру — продолжить обучение разрешат только по профилю бакалавриата
+    link: https://rb.ru/news/v-rossii-mogut-ogranichit-postuplenie-v-magistraturu-prodolzhit-obuchenie-razreshat-tolko-po-profilyu-bakalavriata/
+08. seller_score=0 | Мосбиржа начнёт рассчитывать индексы четырёх криптовалют с 13 мая — ранее были доступны только биткоин и Ethereum
+    link: https://rb.ru/news/mosbirzha-nachnyot-rasschityvat-indeksy-chetyryoh-kriptovalyut-s-13-maya-ranee-byli-dostupny-tolko-bitkoin-i-ethereum/
+09. seller_score=0 | 65% россиян считают себя финансово грамотными — но больше половины не знают своего кредитного рейтинга
+    link: https://rb.ru/news/65-rossiyan-schitayut-sebya-finansovo-gramotnymi-no-bolshe-poloviny-ne-znayut-svoego-kreditnogo-rejtinga/
+10. seller_score=0 | Банки снизили ставки по вкладам после снижения ставки ЦБ — сильнее всего упала доходность депозитов на 3 месяца
+    link: https://rb.ru/news/banki-snizili-stavki-po-vkladam-posle-snizheniya-stavki-cb-silnee-vsego-upala-dohodnost-depozitov-na-3-mesyaca/
+========================================================================================================================
+New Retail
+https://new-retail.ru/rss/
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://new-retail.ru/rss/ content_type: application/rss+xml; charset=UTF-8
+bozo: False
+entries: 120
+01. seller_score=0 | Продажи смарт-ТВ в России выросли на 10% в первом квартале | New Retail
+    link: https://new-retail.ru/novosti/retail/prodazhi_smart_tv_v_rossii_vyrosli_na_10_v_pervom_kvartale/
+02. seller_score=0 | В «Ленте» начали продаваться товары «Яндекс Фабрики» | New Retail
+    link: https://new-retail.ru/novosti/retail/v_lente_nachali_prodavatsya_tovary_yandeks_fabriki/
+03. seller_score=0 | Рыночная капитализация Samsung превысила $1 трлн на фоне бума ИИ | New Retail
+    link: https://new-retail.ru/novosti/retail/rynochnaya_kapitalizatsiya_samsung_prevysila_1_trln_na_fone_buma_ii/
+04. seller_score=0 | Исследование BrandLab: какие ушедшие бренды россияне ждут больше всего | New Retail
+    link: https://new-retail.ru/novosti/retail/issledovanie_brandlab_kakie_ushedshie_brendy_rossiyane_zhdut_bolshe_vsego/
+05. seller_score=0 | Интерес к функциональному питанию и не только: как изменились потребительские предпочтения россиян | New-Retail.ru
+    link: https://new-retail.ru/marketing/interes_k_funktsionalnomu_pitaniyu_i_ne_tolko_kak_izmenilis_potrebitelskie_predpochteniya_rossiyan/
+06. seller_score=0 | Бренды, которые остались: как они работают в России в 2026 году | New-Retail.ru
+    link: https://new-retail.ru/business/brendy_kotorye_ostalis_kak_oni_rabotayut_v_rossii_v_2026_godu/
+07. seller_score=0 | За последние пять лет мясо подорожало в 2 раза | New Retail
+    link: https://new-retail.ru/novosti/retail/za_poslednie_pyat_let_myaso_podorozhalo_v_2_raza/
+08. seller_score=0 | Продажи товаров для сада и огорода продолжают падение и в 2026 году | New Retail
+    link: https://new-retail.ru/novosti/retail/prodazhi_tovarov_dlya_sada_i_ogoroda_prodolzhayut_padenie_i_v_2026_godu/
+09. seller_score=0 | «Перекрёсток» открыл кафе Select в Парке Горького (ФОТО) | New Retail
+    link: https://new-retail.ru/novosti/retail/perekryestok_otkryl_kafe_select_v_parke_gorkogo/
+10. seller_score=0 | Авито: сколько готовы россияне потратить на велосипед | New Retail
+    link: https://new-retail.ru/novosti/retail/avito_skolko_gotovy_rossiyane_potratit_na_velosiped/
+========================================================================================================================
+New Retail news
+https://new-retail.ru/news/rss/
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://new-retail.ru/novosti/retail/ content_type: text/html; charset=UTF-8
+bozo: True
+bozo_exception: <unknown>:3:43: duplicate attribute
+entries: 0
+html_title: Важные новости рынка розничной торговли и e-Commerce 2026
+========================================================================================================================
+E-Pepper
+https://e-pepper.ru/news/rss.xml
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 404 final_url: https://e-pepper.ru/news/rss.xml content_type: text/html; charset=utf-8
+========================================================================================================================
+Sostav
+https://www.sostav.ru/rss/news.xml
+------------------------------------------------------------------------------------------------------------------------
+ERROR: ReadTimeout(ReadTimeoutError("HTTPSConnectionPool(host='www.sostav.ru', port=443): Read timed out. (read timeout=15)"))
+========================================================================================================================
+Коммерсантъ news
+https://www.kommersant.ru/RSS/news.xml
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://www.kommersant.ru/rss/news.xml content_type: text/xml; charset=UTF-8
+bozo: False
+entries: 430
+01. seller_score=0 | В Москве начали отключать отопление
+    link: https://www.kommersant.ru/doc/8636463
+02. seller_score=0 | Нескольких бойцов «Эспаньолы» арестовали по делу о незаконном обороте оружия
+    link: https://www.kommersant.ru/doc/8636479
+03. seller_score=0 | Австралия создаст госрезерв топлива на 50 дней
+    link: https://www.kommersant.ru/doc/8636453
+04. seller_score=0 | WSJ: Китай продолжает поставлять БПЛА в Иран и Россию в нарушение санкций
+    link: https://www.kommersant.ru/doc/8636417
+05. seller_score=0 | Задержан мотоциклист, насмерть сбивший фотографа Добромилову на западе Москвы
+    link: https://www.kommersant.ru/doc/8636444
+06. seller_score=0 | Рынок онлайн-образования РФ в первом квартале вырос до 35,5 млрд рублей
+    link: https://www.kommersant.ru/doc/8636460
+07. seller_score=0 | Форвард «Монреаля» Демидов претендует на приз лучшему новичку сезона НХЛ
+    link: https://www.kommersant.ru/doc/8636459
+08. seller_score=0 | Адвокату бизнесмена Карапетяна смягчили меру пресечения
+    link: https://www.kommersant.ru/doc/8636439
+09. seller_score=0 | В Барнауле простились с бывшим солистом группы «Земляне» Юрием Жучковым
+    link: https://www.kommersant.ru/doc/8636447
+10. seller_score=0 | В Приморье вакцинировали контактных лиц умершего от инфекции мальчика
+    link: https://www.kommersant.ru/doc/8636419
+========================================================================================================================
+Коммерсантъ business
+https://www.kommersant.ru/RSS/section-business.xml
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://www.kommersant.ru/rss/section-business.xml content_type: text/xml; charset=UTF-8
+bozo: False
+entries: 132
+01. seller_score=0 | Бизнес заплатил за оффлайн // Как выживали предприятия во время тотального шатдауна
+    link: https://www.kommersant.ru/doc/8636443
+02. seller_score=0 | Рынок онлайн-образования РФ в первом квартале вырос до 35,5 млрд рублей
+    link: https://www.kommersant.ru/doc/8636460
+03. seller_score=0 | Выдачи розничных кредитов в апреле 2026 года замедлили рост до 4%
+    link: https://www.kommersant.ru/doc/8636303
+04. seller_score=0 | Топливу укажут направление // Правительство обновляет меры регулирования рынком нефтепродуктов
+    link: https://www.kommersant.ru/doc/8634797
+05. seller_score=0 | Минпромторг начал поиск специалистов для улучшения характеристик SSJ100
+    link: https://www.kommersant.ru/doc/8636329
+06. seller_score=0 | Россиянам с 1 сентября разрешат сохранять номер телефона при переезде в другой регион
+    link: https://www.kommersant.ru/doc/8636332
+07. seller_score=0 | И тех, и edtech // Рынок онлайн-образования в первом квартале достиг 35,5 млрд рублей
+    link: https://www.kommersant.ru/doc/8636047
+08. seller_score=0 | Продажи новых автомобилей в России в апреле выросли на 15%
+    link: https://www.kommersant.ru/doc/8636195
+09. seller_score=0 | Туризм теряет привлекательность // Количество ликвидаций турфирм увеличилось на 34,2%
+    link: https://www.kommersant.ru/doc/8636177
+10. seller_score=0 | Bloomberg: Ирак предлагает скидки на нефть из-за блокады Ормузского пролива
+    link: https://www.kommersant.ru/doc/8636245
+========================================================================================================================
+Ведомости news
+https://www.vedomosti.ru/rss/news
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://www.vedomosti.ru/rss/news content_type: text/xml
+bozo: False
+entries: 200
+01. seller_score=0 | СД «Русала» рекомендовал не выплачивать дивиденды по итогам I квартала 2026 года
+    link: https://www.vedomosti.ru/business/news/2026/05/06/1195495-rusala-dividendi
+02. seller_score=0 | КНДР приняла поправки в конституцию, признающие Южную Корею отдельной страной
+    link: https://www.vedomosti.ru/politics/news/2026/05/06/1195493-kndr-prinyala-popravki
+03. seller_score=0 | Кабмин разрешил сохранять номер телефона при переезде в другой регион
+    link: https://www.vedomosti.ru/technology/news/2026/05/06/1195489-kabmin-razreshil-sohranyat
+04. seller_score=0 | ГД готовится принять норму об аннулировании ВНЖ за работу менее 10 месяцев
+    link: https://www.vedomosti.ru/society/news/2026/05/06/1195480-gd-gotovitsya-prinyat
+05. seller_score=0 | СК подтвердил гибель двух человек при крушении самолета в Омской области
+    link: https://www.vedomosti.ru/society/news/2026/05/06/1195488-sk-podtverdil-gibel
+06. seller_score=0 | В МВД рассказали о схеме «переезд чата» для обмана родственников военных
+    link: https://www.vedomosti.ru/society/news/2026/05/06/1195483-v-mvd-rasskazali
+07. seller_score=0 | Вещи актера Мэттью Перри выставят на благотворительный аукцион
+    link: https://www.vedomosti.ru/media/news/2026/05/06/1195478-veschi-aktera
+08. seller_score=0 | Ван И назвал нелегитимными военные операции США и Израиля против Ирана
+    link: https://www.vedomosti.ru/politics/news/2026/05/06/1195476-van-nazval-nelegitimnimi
+09. seller_score=0 | Двух сбежавших в 2025 году из СИЗО арестантов приговорили к колонии
+    link: https://www.vedomosti.ru/society/news/2026/05/06/1195468-dvuh-sbezhavshih
+10. seller_score=0 | Медведев рассказал, что может предотвратить бойню в Европе
+    link: https://www.vedomosti.ru/politics/news/2026/05/06/1195458-navyazivaet-kontseptsiyu-mira
+========================================================================================================================
+Ведомости business
+https://www.vedomosti.ru/rss/rubric/business
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://www.vedomosti.ru/rss/rubric/business content_type: text/xml
+bozo: False
+entries: 200
+01. seller_score=0 | Спад деловой активности в сфере услуг РФ замедлился в апреле
+    link: https://www.vedomosti.ru/business/news/2026/05/06/1195456-delovaya-aktivnost
+02. seller_score=0 | Минпромторг ищет возможности продления ресурса самолетов SSJ100
+    link: https://www.vedomosti.ru/business/articles/2026/05/06/1195409-minpromtorg-ischet-vozmozhnosti-prodleniya-resursa-ssj100
+03. seller_score=0 | Курс на рупию
+    link: https://www.vedomosti.ru/opinion/columns/2026/05/06/1195404-kurs-na-rupiyu
+04. seller_score=0 | Нефтяные котировки как поле битвы
+    link: https://www.vedomosti.ru/opinion/columns/2026/05/06/1195399-neftyanie-kotirovki-kak-pole-bitvi
+05. seller_score=0 | Bloomberg: Ирак пытается продать нефть со скидкой до $33 за баррель
+    link: https://www.vedomosti.ru/politics/news/2026/05/05/1195387-irak-pitaetsya-prodat-neft
+06. seller_score=0 | «Аэрофлот» отменяет часть рейсов на фоне ограничений в Москве
+    link: https://www.vedomosti.ru/business/news/2026/05/05/1195379-aeroflot-otmenyaet-chast
+07. seller_score=0 | В Госдуме предложили вдвое увеличить штрафы авиакомпаниям за овербукинг
+    link: https://www.vedomosti.ru/business/news/2026/05/05/1195343-predlozhili-uvelichit-shtrafi
+08. seller_score=0 | Эксперты назвали самые популярные сферы при запуске проектов ГЧП в городах
+    link: https://www.vedomosti.ru/business/news/2026/05/05/1195328-eksperti-nazvali-samie
+09. seller_score=0 | «КамАЗ» анонсировал выпуск опытно-промышленной партии БТР в 2027 году
+    link: https://www.vedomosti.ru/business/news/2026/05/05/1195280-kamaz-anonsiroval-vipusk
+10. seller_score=0 | Экспорт куриных яиц из России увеличился на 21% за три месяца
+    link: https://www.vedomosti.ru/business/news/2026/05/05/1195266-eksport-yaits
+========================================================================================================================
+АКИТ
+https://www.akit.ru/feed/
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 404 final_url: https://www.akit.ru/feed/ content_type: text/html; charset=utf-8
+========================================================================================================================
+Data Insight feed
+https://datainsight.ru/news/feed
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 404 final_url: https://datainsight.ru/news/feed content_type: text/html; charset=UTF-8
+========================================================================================================================
+Data Insight rss.xml
+https://datainsight.ru/rss.xml
+------------------------------------------------------------------------------------------------------------------------
+HTTP: 200 final_url: https://datainsight.ru/rss.xml content_type: application/rss+xml; charset=utf-8
+bozo: False
+entries: 10
+01. seller_score=0 | eGrocery бюллетень, февраль 2026
+    link: https://datainsight.ru/DI_eGrocery_february_2026
+02. seller_score=0 | eGrocery бюллетень, март 2026
+    link: https://datainsight.ru/DI_eGrocery_march_2026
+03. seller_score=2 | Использование склейки офлайн-действий с онлайн-рекламой (О2О данные)
+    link: https://datainsight.ru/consolidationO2Odata
+04. seller_score=0 | Компас рынка ePharma
+    link: https://datainsight.ru/PharmCompass_2026
+05. seller_score=1 | ePharma-бюллетень: интернет-аптеки в России, февраль 2026
+    link: https://datainsight.ru/ePharma_bulletin_february_2026
+06. seller_score=7 | Итоги церемонии награждения E-commerce Index Top-100 за 2025 год
+    link: https://datainsight.ru/winners-top100-2026
+07. seller_score=8 | Интернет-торговля в России 2026
+    link: https://datainsight.ru/DI_eCommerce_2026
+08. seller_score=7 | Рынок маркетплейсов: динамика и ориентиры на 2026
+    link: https://datainsight.ru/DI_FV_SiM_2026
+09. seller_score=7 | Последняя миля eCommerce 2025: объем и каналы
+    link: https://datainsight.ru/Russian_online_shopping_market_with_delivery_2025
+10. seller_score=2 | ePharma-бюллетень: интернет-аптеки в России, январь 2026
+    link: https://datainsight.ru/DI_ePharma_bulletin_january_2026
+
+========================================================================================================================
+SUMMARY
+========================================================================================================================
+name | status | http | entries | seller_like_first10 | url
+Retail.ru | weak | 200 | 30 | 0 | https://www.retail.ru/rss/news/
+Oborot.ru | good | 200 | 20 | 7 | https://oborot.ru/feed/
+vc.ru | weak | 200 | 12 | 1 | https://vc.ru/rss/all
+CNews | good | 200 | 200 | 2 | https://www.cnews.ru/inc/rss/news.xml
+RBC | weak | 200 | 30 | 0 | https://rssexport.rbc.ru/rbcnews/news/30/full.rss
+RB.RU all | weak | 200 | 20 | 0 | https://rb.ru/feeds/all/
+Rusbase old all | weak | 200 | 20 | 0 | http://rusbase.com/feeds/all/
+New Retail | weak | 200 | 120 | 0 | https://new-retail.ru/rss/
+New Retail news | empty_or_not_rss | 200 | 0 | 0 | https://new-retail.ru/news/rss/
+E-Pepper | bad_http | 404 | 0 | 0 | https://e-pepper.ru/news/rss.xml
+Sostav | error |  | 0 | 0 | https://www.sostav.ru/rss/news.xml | ReadTimeout(ReadTimeoutError("HTTPSConnectionPool(host='www.sostav.ru', port=443): Read timed out. (read timeout=15)"))
+Коммерсантъ news | weak | 200 | 430 | 0 | https://www.kommersant.ru/RSS/news.xml
+Коммерсантъ business | weak | 200 | 132 | 0 | https://www.kommersant.ru/RSS/section-business.xml
+Ведомости news | weak | 200 | 200 | 0 | https://www.vedomosti.ru/rss/news
+Ведомости business | weak | 200 | 200 | 0 | https://www.vedomosti.ru/rss/rubric/business
+АКИТ | bad_http | 404 | 0 | 0 | https://www.akit.ru/feed/
+Data Insight feed | bad_http | 404 | 0 | 0 | https://datainsight.ru/news/feed
+Data Insight rss.xml | good | 200 | 10 | 7 | https://datainsight.ru/rss.xml

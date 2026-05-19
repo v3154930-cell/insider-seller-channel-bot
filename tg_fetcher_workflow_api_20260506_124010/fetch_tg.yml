@@ -1,0 +1,141 @@
+name: Fetch Telegram posts
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "*/30 * * * *"
+
+permissions:
+  contents: write
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install deps
+        run: |
+          python -m pip install requests beautifulsoup4 lxml
+
+      - name: Fetch Telegram public pages
+        run: |
+          cat > fetch_tg.py << 'PY'
+          import json
+          import re
+          import html
+          from datetime import datetime, timezone
+
+          import requests
+          from bs4 import BeautifulSoup
+
+          CHANNELS = [
+              "mpgo_ru",
+              "oborotru",
+              "marketplace_biz",
+              "Apetecom",
+              "crmmarketplace",
+          ]
+
+          def clean_text(text):
+              text = html.unescape(text or "")
+              text = re.sub(r"\s+", " ", text).strip()
+              return text
+
+          def title_from_text(text, max_len=140):
+              text = clean_text(text)
+              if len(text) <= max_len:
+                  return text
+              return text[:max_len].rstrip() + "..."
+
+          def fetch_channel(channel, limit=10):
+              url = f"https://t.me/s/{channel}"
+              headers = {
+                  "User-Agent": "Mozilla/5.0 AppleWebKit/537.36 Chrome/120 Safari/537.36"
+              }
+
+              resp = requests.get(url, headers=headers, timeout=20)
+              resp.raise_for_status()
+
+              soup = BeautifulSoup(resp.text, "lxml")
+              posts = []
+
+              for msg in soup.select(".tgme_widget_message"):
+                  msg_id = msg.get("data-post") or ""
+                  text_el = msg.select_one(".tgme_widget_message_text")
+                  time_el = msg.select_one("time")
+
+                  text = clean_text(text_el.get_text(" ", strip=True) if text_el else "")
+                  if not text:
+                      continue
+
+                  link = f"https://t.me/{msg_id}" if msg_id else ""
+
+                  published_at = ""
+                  if time_el and time_el.get("datetime"):
+                      published_at = time_el.get("datetime")
+
+                  posts.append({
+                      "title": title_from_text(text),
+                      "description": text,
+                      "link": link,
+                      "url": link,
+                      "source": f"TG:{channel}",
+                      "channel": channel,
+                      "published_at": published_at,
+                      "fetched_at": datetime.now(timezone.utc).isoformat(),
+                  })
+
+                  if len(posts) >= limit:
+                      break
+
+              return posts
+
+          all_posts = []
+
+          for channel in CHANNELS:
+              try:
+                  posts = fetch_channel(channel, limit=10)
+                  print(channel, len(posts))
+                  all_posts.extend(posts)
+              except Exception as e:
+                  print(channel, "ERROR", e)
+
+          seen = set()
+          deduped = []
+
+          for p in all_posts:
+              key = p.get("link") or (p.get("source", "") + "|" + p.get("title", ""))
+              if key in seen:
+                  continue
+              seen.add(key)
+              deduped.append(p)
+
+          data = {
+              "generated_at": datetime.now(timezone.utc).isoformat(),
+              "count": len(deduped),
+              "items": deduped,
+          }
+
+          with open("tg_posts.json", "w", encoding="utf-8") as f:
+              json.dump(data, f, ensure_ascii=False, indent=2)
+
+          print("saved", len(deduped), "posts")
+          PY
+
+          python fetch_tg.py
+
+      - name: Commit tg_posts.json
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add tg_posts.json
+          git commit -m "Update Telegram posts" || echo "No changes"
+          git push
