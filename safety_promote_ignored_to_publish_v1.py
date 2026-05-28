@@ -4,8 +4,9 @@ import sqlite3
 from datetime import datetime, date
 
 DB = "/opt/newsbot_v2/news_queue.db"
-DAILY_TARGET = 10
-BATCH_LIMIT = 3
+MIN_WEEKDAY_TARGET = 10
+MIN_WEEKEND_TARGET = 3
+BATCH_LIMIT = 1  # promote one candidate at a time; publication frequency is controlled by cron/time window
 
 DRY_RUN = os.getenv("NEWSBOT_SAFETY_PROMOTE_DRY_RUN", "").strip().lower() in {"1", "true", "yes", "y"}
 
@@ -83,8 +84,10 @@ def rank_row(row):
 
     return rank, f"rank={rank} hard_hits={hard_hits} soft_hits={soft_hits}"
 
-today = date.today().isoformat()
+today_obj = date.today()
+today = today_obj.isoformat()
 since = today + " 00:00:00"
+min_daily_target = MIN_WEEKEND_TARGET if today_obj.weekday() >= 5 else MIN_WEEKDAY_TARGET
 
 con = sqlite3.connect(DB)
 con.row_factory = sqlite3.Row
@@ -104,15 +107,18 @@ pending_publish = con.execute("""
       AND seller_decision = 'publish'
 """).fetchone()["c"]
 
-if published_today >= DAILY_TARGET:
-    print(f"SKIP target reached published_today={published_today} target={DAILY_TARGET}")
-    raise SystemExit(0)
+minimum_met = published_today >= min_daily_target
+# IMPORTANT PROJECT POLICY:
+# min_daily_target is a minimum floor, not a maximum cap.
+# Weekdays: at least 10. Weekends: at least 3.
+# Upper bound is only publication time window + availability of good candidates.
+# Therefore we must NOT stop just because minimum is already met.
 
 if pending_publish > 0:
     print(f"SKIP already has pending_publish={pending_publish}")
     raise SystemExit(0)
 
-need = min(BATCH_LIMIT, DAILY_TARGET - published_today)
+need = BATCH_LIMIT
 
 rows = con.execute("""
     SELECT id, created_at, source, score, title, raw_text, processed_text,
