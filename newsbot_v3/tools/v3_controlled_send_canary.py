@@ -195,6 +195,29 @@ def _fetch_v2_publish_state(v2_db: str, v2_news_id: str) -> tuple[int | None, st
         con.close()
 
 
+def _quarantine_v2_send_failed(v2_db: str, v2_news_id: str, reason: str = "") -> bool:
+    """Remove a failed v2 candidate from the publish queue so the next cron run can continue."""
+    if not v2_news_id:
+        return False
+    con = sqlite3.connect(v2_db)
+    try:
+        cur = con.execute(
+            """
+            UPDATE news
+            SET seller_decision = 'send_failed'
+            WHERE id = ?
+              AND seller_decision = 'publish'
+              AND COALESCE(is_published, 0) = 0
+              AND COALESCE(max_message_id, '') = ''
+            """,
+            (v2_news_id,),
+        )
+        con.commit()
+        return cur.rowcount > 0
+    finally:
+        con.close()
+
+
 def _mark_v2_published(v2_db: str, v2_news_id: str, max_message_id: str) -> bool:
     if not v2_news_id:
         return False
@@ -378,7 +401,23 @@ def main() -> int:
         result["max_guard_ok"] = str(bool(client_diag.get("max_guard_ok", False))).lower()
         result["mock_message_id_forbidden"] = str(real_send).lower()
         try:
-            if post.get("read_more_needed"):
+            send_mascot_attachment = (
+                bool(mascot_attachment_planned)
+                and bool(mascot_asset_selected)
+                and os.getenv("NEWSBOT_V3_SEND_MASCOT_ATTACHMENTS", "true").strip().lower() in {"1", "true", "yes", "y"}
+            )
+            if post.get("read_more_needed") and send_mascot_attachment and hasattr(client, "send_text_with_callback_button_and_image"):
+                resp = client.send_text_with_callback_button_and_image(
+                    target_channel,
+                    post["text"],
+                    post["button_text"],
+                    post["callback_payload"],
+                    mascot_asset_selected,
+                )
+                result["max_send_method"] = "send_text_with_callback_button_and_image"
+                result["mascot_attachment_sent"] = "true"
+                result["mascot_send_status"] = "sent"
+            elif post.get("read_more_needed"):
                 resp = client.send_text_with_callback_button(target_channel, post["text"], post["button_text"], post["callback_payload"])
                 result["max_send_method"] = "send_text_with_callback_button"
             else:
@@ -390,9 +429,13 @@ def main() -> int:
             for k, v in result.items():
                 print(f"{k}={v}")
             return 1
-        except MaxClientSendError:
+        except MaxClientSendError as exc:
             result["V3_CONTROLLED_SEND_STATUS"] = "FAIL"
             result["send_status"] = "failed_main_send"
+            result["send_error"] = str(exc)[:500]
+            quarantined = _quarantine_v2_send_failed(args.v2_db, v2_news_id, str(exc))
+            result["v2_send_failed_quarantined"] = str(quarantined).lower()
+            result["v2_send_failed_decision"] = "send_failed" if quarantined else ""
             for k, v in result.items():
                 print(f"{k}={v}")
             return 1
@@ -401,6 +444,10 @@ def main() -> int:
         if not (client.validate_visible_delivery(resp) and msg_id):
             result["V3_CONTROLLED_SEND_STATUS"] = "FAIL"
             result["send_status"] = "failed_main_send"
+            result["send_error"] = "missing_or_invalid_visible_delivery"
+            quarantined = _quarantine_v2_send_failed(args.v2_db, v2_news_id, "missing_or_invalid_visible_delivery")
+            result["v2_send_failed_quarantined"] = str(quarantined).lower()
+            result["v2_send_failed_decision"] = "send_failed" if quarantined else ""
             for k, v in result.items():
                 print(f"{k}={v}")
             return 1
