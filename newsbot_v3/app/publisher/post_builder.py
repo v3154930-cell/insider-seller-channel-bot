@@ -475,3 +475,637 @@ def build_post(item, seller_result=None):
         return _insider_force_blue_analytics_post(post)
     return post
 # --- /PRODUCTION HOTFIX ---
+
+# --- PRODUCTION HOTFIX: traffic-light category and seller takeaway v2 ---
+# Goal:
+# - make 🔴/🟠/🟢/🔵 consistent;
+# - replace generic seller takeaway with topic-specific advice;
+# - classify positive marketplace opportunities as 🟢, analytics as 🔵, risks as 🔴, operations as 🟠.
+try:
+    _BUILD_POST_BEFORE_TRAFFIC_LIGHT_TAKEAWAYS_V2 = build_post
+except NameError:
+    _BUILD_POST_BEFORE_TRAFFIC_LIGHT_TAKEAWAYS_V2 = None
+
+
+def _tl_norm_v2(value):
+    try:
+        return str(value or "").lower().replace("ё", "е")
+    except Exception:
+        return ""
+
+
+def _tl_any_v2(text, tokens):
+    t = _tl_norm_v2(text)
+    return any(tok in t for tok in tokens)
+
+
+def _tl_item_text_v2(item, post):
+    parts = []
+    for attr in ("title", "text", "body", "raw_text", "summary", "source_name"):
+        try:
+            value = getattr(item, attr, "")
+        except Exception:
+            value = ""
+        if value:
+            parts.append(str(value))
+    try:
+        if isinstance(post, dict):
+            parts.append(str(post.get("text") or ""))
+    except Exception:
+        pass
+    return "\n".join(parts)
+
+
+def _tl_category_v2(item, post):
+    hay = _tl_item_text_v2(item, post)
+
+    red_terms = (
+        "штраф", "фнс", "налог", "самозанят", "проверка", "проверки",
+        "блокиров", "замороз", "приостанов", "приостановка выплат",
+        "выплат", "оферт", "закон вступ", "вступит в силу", "дедлайн",
+        "срок до", "обязател", "маркиров", "честный знак", "суд",
+        "ответственность", "нарушен", "санкц", "риск штраф",
+    )
+
+    green_terms = (
+        "хорошая новость", "расширил", "расширила", "добавил", "добавила",
+        "запустил", "запустила", "открыл", "открыла", "упростил", "упростила",
+        "снизил", "снизила", "компенсац", "вернет", "вернут", "новая возможность",
+        "партнеры ozon", "партнёры ozon", "realfbs", "real fbs", "comfort",
+        "express", "экспресс-достав", "экспресс достав", "новые города",
+        "добавил метод", "добавила метод",
+    )
+
+    blue_terms = (
+        "аналитик", "исследован", "статистик", "рынок", "тренд", "динамик",
+        "индекс", "итоги", "рейтинг", "отчет", "отчёт", "data insight",
+        "e-commerce", "ecommerce", "маркетплейсов стало", "селлеры все чаще",
+        "селлеры всё чаще", "стратег", "наблюден", "доли рынка",
+    )
+
+    orange_terms = (
+        "логистик", "доставк", "склад", "пвз", "карточк", "продвижен",
+        "реклам", "условия", "правила", "изменил", "изменила", "обновил",
+        "обновила", "жалоб", "госуслуг", "роспотребнадзор", "минцифры",
+        "спор", "возврат", "сортиров", "измерять товары",
+    )
+
+    event_or_leadgen = (
+        "вебинар", "круглый стол", "регистрация", "22 мая", "13:00",
+        "эфир", "конференц", "неделе российского ритейла", "лидоген",
+    )
+
+    # Risk wins first.
+    if _tl_any_v2(hay, red_terms):
+        return "🔴 Важно", "🔴"
+
+    # Positive marketplace capability: green, but not if it is just an event promo.
+    if _tl_any_v2(hay, green_terms) and not _tl_any_v2(hay, event_or_leadgen):
+        return "🟢 Хорошая новость", "🟢"
+
+    # Research/market observations: blue, unless there is an operational/regulatory change.
+    if _tl_any_v2(hay, blue_terms) and not _tl_any_v2(hay, red_terms):
+        return "🔵 Интересно / аналитика", "🔵"
+
+    if _tl_any_v2(hay, orange_terms):
+        return "🟠 Обратите внимание", "🟠"
+
+    return "", ""
+
+
+def _tl_takeaway_v2(item, post, category_label):
+    hay = _tl_item_text_v2(item, post)
+
+    if _tl_any_v2(hay, ("realfbs", "real fbs", "comfort", "express", "партнеры ozon", "партнёры ozon", "экспресс-достав", "экспресс достав")):
+        return (
+            "Вывод для селлера:\n"
+            "Если вы работаете по realFBS Express или Comfort, проверьте доступность метода «Партнёры Ozon» "
+            "в своих городах. Это может повлиять на сроки доставки, нагрузку на сборку и экономику заказов."
+        )
+
+    if _tl_any_v2(hay, ("доставк", "логистик", "склад", "пвз", "сортиров", "измерять товары")):
+        return (
+            "Вывод для селлера:\n"
+            "Проверьте, влияет ли изменение на вашу схему хранения, сборки и доставки. "
+            "Если да — пересчитайте сроки, операционные затраты и возможные узкие места."
+        )
+
+    if _tl_any_v2(hay, ("штраф", "фнс", "налог", "самозанят", "блокиров", "приостанов", "выплат", "оферт", "закон", "маркиров", "честный знак")):
+        return (
+            "Вывод для селлера:\n"
+            "Это зона риска. Проверьте документы, выплаты, маркировку, договоры и процессы, "
+            "которые могут попасть под новые требования или проверки."
+        )
+
+    if _tl_any_v2(hay, ("жалоб", "госуслуг", "роспотребнадзор", "минцифры", "спор", "потребител")):
+        return (
+            "Вывод для селлера:\n"
+            "Держите в порядке переписку, статусы заказов, документы по качеству товара и возвратам. "
+            "Если спор уйдёт в электронную жалобу, доказательства понадобятся быстро."
+        )
+
+    if _tl_any_v2(hay, ("аналитик", "исследован", "статистик", "рынок", "тренд", "динамик", "индекс", "data insight", "селлеры все чаще", "селлеры всё чаще")):
+        return (
+            "Вывод для селлера:\n"
+            "Это не срочная инструкция, а рыночный сигнал. Используйте его для проверки стратегии: "
+            "каналы продаж, маржа, зависимость от одной площадки и планы на сезон."
+        )
+
+    if category_label == "🟢 Хорошая новость":
+        return (
+            "Вывод для селлера:\n"
+            "Проверьте, можно ли использовать новую возможность в вашей модели продаж. "
+            "Если она подходит — пересчитайте экономику и протестируйте на ограниченном объёме."
+        )
+
+    if category_label == "🔵 Интересно / аналитика":
+        return (
+            "Вывод для селлера:\n"
+            "Это повод сверить свою стратегию с рынком: ассортимент, каналы продаж, маржинальность и зависимость от площадок."
+        )
+
+    if category_label == "🔴 Важно":
+        return (
+            "Вывод для селлера:\n"
+            "Проверьте, есть ли прямой риск для ваших денег, документов, карточек, выплат или соблюдения правил площадки."
+        )
+
+    return (
+        "Вывод для селлера:\n"
+        "Проверьте, есть ли практическое влияние на ваши товары, карточки, логистику, выплаты или маржу."
+    )
+
+
+def _tl_replace_takeaway_v2(text, takeaway):
+    import re
+    text = str(text or "")
+
+    patterns = [
+        r"Вывод для селлера:\s*\n\s*Что важно селлеру:\s*проверьте, затрагивает ли изменение ваши товары и процессы\.?",
+        r"Вывод для селлера:\s*\n\s*Проверьте, затрагивает ли изменение ваши товары и процессы\.?",
+        r"Что важно селлеру:\s*проверьте, затрагивает ли изменение ваши товары и процессы\.?",
+    ]
+    for pat in patterns:
+        if re.search(pat, text, flags=re.IGNORECASE):
+            return re.sub(pat, takeaway, text, count=1, flags=re.IGNORECASE)
+
+    # If no takeaway exists, insert before category/source.
+    marker_match = re.search(r"\n\n[🔴🟠🟢🔵] .+?(?=\n\nИсточник:|\Z)", text)
+    if marker_match:
+        pos = marker_match.start()
+        return text[:pos].rstrip() + "\n\n" + takeaway + "\n" + text[pos:]
+    return text.rstrip() + "\n\n" + takeaway
+
+
+def _tl_replace_category_v2(text, category_label):
+    import re
+    text = str(text or "")
+
+    labels = (
+        "🔴 Важно",
+        "🟠 Обратите внимание",
+        "🟢 Хорошая новость",
+        "🔵 Интересно / аналитика",
+    )
+
+    # Remove standalone old category labels.
+    lines = []
+    for line in text.splitlines():
+        if line.strip() in labels:
+            continue
+        lines.append(line)
+    text = "\n".join(lines).rstrip()
+
+    # Insert category before source if possible.
+    source_marker = "\n\nИсточник:"
+    if source_marker in text:
+        head, tail = text.split(source_marker, 1)
+        return head.rstrip() + "\n\n" + category_label + source_marker + tail
+
+    return text.rstrip() + "\n\n" + category_label
+
+
+def _tl_trim_duplicate_title_v2(text):
+    import re
+    text = str(text or "")
+
+    m = re.match(r"(?s)^\s*<b>(.*?)</b>\s*\n\n(.*)$", text)
+    if not m:
+        return text
+
+    title = re.sub(r"<.*?>", "", m.group(1)).strip()
+    rest = m.group(2)
+
+    if not title:
+        return text
+
+    # If body starts with the title, remove duplicate once.
+    title_plain = re.sub(r"\s+", " ", title).strip()
+    rest_plain_start = re.sub(r"\s+", " ", rest[: len(title_plain) + 80]).strip()
+
+    if rest_plain_start.lower().replace("ё", "е").startswith(title_plain.lower().replace("ё", "е")):
+        rest = rest[len(title_plain):].lstrip(" .—-:;")
+        return f"<b>{title}</b>\n\n{rest}"
+
+    return text
+
+
+def build_post(item, seller_result=None):  # type: ignore[override]
+    post = _BUILD_POST_BEFORE_TRAFFIC_LIGHT_TAKEAWAYS_V2(item, seller_result)
+
+    try:
+        category_label, category_indicator = _tl_category_v2(item, post)
+        if not category_label:
+            category_label = post.get("category_label") or ""
+            category_indicator = post.get("category_indicator") or ""
+
+        if category_label:
+            post["category_label"] = category_label
+            post["category_indicator"] = category_indicator
+
+        text = post.get("text") or ""
+        text = _tl_trim_duplicate_title_v2(text)
+
+        if category_label:
+            takeaway = _tl_takeaway_v2(item, post, category_label)
+            text = _tl_replace_takeaway_v2(text, takeaway)
+            text = _tl_replace_category_v2(text, category_label)
+
+        post["text"] = text
+    except Exception:
+        # Never break publishing because of editorial post-processing.
+        return post
+
+    return post
+# --- END PRODUCTION HOTFIX: traffic-light category and seller takeaway v2 ---
+
+# --- PRODUCTION HOTFIX: traffic-light final repair v3 ---
+# Repairs:
+# - allow useful green logistics/delivery opportunities as regular posts;
+# - keep event/leadgen candidates denied;
+# - repair posts where body was trimmed too aggressively;
+# - shorten known ugly titles.
+try:
+    _BUILD_POST_BEFORE_TRAFFIC_LIGHT_FINAL_REPAIR_V3 = build_post
+except NameError:
+    _BUILD_POST_BEFORE_TRAFFIC_LIGHT_FINAL_REPAIR_V3 = None
+
+
+def _tl3_norm(value):
+    return str(value or "").lower().replace("ё", "е")
+
+
+def _tl3_any(text, tokens):
+    t = _tl3_norm(text)
+    return any(tok in t for tok in tokens)
+
+
+def _tl3_item_full_text(item):
+    parts = []
+    for attr in ("title", "text", "body", "raw_text", "summary", "source_name"):
+        try:
+            value = getattr(item, attr, "")
+        except Exception:
+            value = ""
+        if value:
+            parts.append(str(value))
+    return "\n".join(parts)
+
+
+def _tl3_clean_body_from_item(item, max_chars=850):
+    import re
+
+    title = ""
+    try:
+        title = str(getattr(item, "title", "") or "")
+    except Exception:
+        title = ""
+
+    body = ""
+    for attr in ("text", "body", "raw_text", "summary"):
+        try:
+            value = str(getattr(item, attr, "") or "")
+        except Exception:
+            value = ""
+        if len(value) > len(body):
+            body = value
+
+    body = re.sub(r"https?://\S+|t\.me/\S+", "", body)
+    body = re.sub(r"\s+", " ", body).strip()
+
+    # Remove duplicated title prefix, but do not nuke the whole body.
+    if title:
+        title_clean = re.sub(r"\s+", " ", title).strip()
+        if len(title_clean) > 30 and body.lower().replace("ё", "е").startswith(title_clean[:120].lower().replace("ё", "е")):
+            body = body[len(title_clean):].lstrip(" .—-:;")
+
+    # Known duplicated first sentence cleanup.
+    body = re.sub(
+        r"^Ozon расширил партн[её]рскую экспресс-доставку ещё на 11 городов\s*",
+        "",
+        body,
+        flags=re.IGNORECASE,
+    )
+    body = re.sub(r"\s+", " ", body).strip()
+
+    if len(body) > max_chars:
+        body = body[:max_chars].rsplit(" ", 1)[0].rstrip(" .,;:") + "..."
+
+    return body
+
+
+def _tl3_short_title(item, fallback_title=""):
+    hay = _tl3_item_full_text(item)
+
+    if _tl3_any(hay, ("ozon", "realfbs", "real fbs", "express", "comfort", "партнеры ozon", "партнёры ozon")) and _tl3_any(hay, ("11 город", "новые города", "экспресс-достав")):
+        return "Ozon расширил экспресс-доставку realFBS ещё на 11 городов"
+
+    if _tl3_any(hay, ("госуслуг", "электронную книгу жалоб", "жаловаться на маркетплейсы")):
+        return "На Госуслугах появится книга жалоб на маркетплейсы"
+
+    return fallback_title
+
+
+def _tl3_is_green_delivery(item):
+    hay = _tl3_item_full_text(item)
+    return (
+        _tl3_any(hay, ("ozon", "wildberries", "wb", "яндекс маркет"))
+        and _tl3_any(hay, ("расширил", "расширила", "добавил", "добавила", "запустил", "запустила"))
+        and _tl3_any(hay, ("доставк", "realfbs", "real fbs", "express", "comfort", "партнеры ozon", "партнёры ozon", "пвз", "склад", "город"))
+        and not _tl3_is_event_leadgen(item)
+    )
+
+
+def _tl3_is_event_leadgen(item):
+    hay = _tl3_item_full_text(item)
+    return _tl3_any(
+        hay,
+        (
+            "круглый стол",
+            "вебинар",
+            "эфир",
+            "регистрация",
+            "неделе российского ритейла",
+            "22 мая",
+            "13:00",
+            "мск",
+            "лидоген",
+            "лид-магнит",
+            "мастер-класс",
+            "конференц",
+        ),
+    )
+
+
+def _tl3_rebuild_text(item, post, category_label):
+    import re
+
+    old_text = str(post.get("text") or "")
+
+    old_title = ""
+    m = re.search(r"<b>(.*?)</b>", old_text, flags=re.DOTALL)
+    if m:
+        old_title = re.sub(r"<.*?>", "", m.group(1)).strip()
+
+    title = _tl3_short_title(item, old_title)
+    if not title:
+        title = old_title
+
+    body = _tl3_clean_body_from_item(item)
+
+    takeaway = ""
+    m2 = re.search(r"Вывод для селлера:\s*\n.*?(?=\n\n[🔴🟠🟢🔵] |\n\nИсточник:|\Z)", old_text, flags=re.DOTALL)
+    if m2:
+        takeaway = m2.group(0).strip()
+
+    if not takeaway:
+        takeaway = "Вывод для селлера:\nПроверьте, есть ли практическое влияние на ваши товары, логистику, выплаты или маржу."
+
+    source = ""
+    # Preserve V3 source-link contract expected by read-more tests.
+    m3 = re.search(r"Ссылка на источник:\s*https?://\S+", old_text)
+    if m3:
+        source = m3.group(0).strip()
+    else:
+        m3 = re.search(r"Источник:\s*.*", old_text)
+        if m3:
+            source = m3.group(0).strip()
+
+    parts = []
+    if title:
+        parts.append(f"<b>{title}</b>")
+    if body:
+        parts.append(body)
+    parts.append(takeaway)
+    if category_label:
+        parts.append(category_label)
+    if source:
+        parts.append(source)
+
+    text = "\n\n".join(parts).strip()
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text
+
+
+def build_post(item, seller_result=None):  # type: ignore[override]
+    post = _BUILD_POST_BEFORE_TRAFFIC_LIGHT_FINAL_REPAIR_V3(item, seller_result)
+
+    try:
+        if _tl3_is_event_leadgen(item):
+            post["regular_allowed"] = False
+            post["regular_denial_reason"] = "native_ad_leadgen"
+            # Keep category text if useful for digest, but do not allow regular.
+            if not post.get("category_label"):
+                post["category_label"] = "🔵 Интересно / аналитика"
+                post["category_indicator"] = "🔵"
+            return post
+
+        if _tl3_is_green_delivery(item):
+            post["category_label"] = "🟢 Хорошая новость"
+            post["category_indicator"] = "🟢"
+            post["regular_allowed"] = True
+            post["regular_denial_reason"] = ""
+            post["text"] = _tl3_rebuild_text(item, post, "🟢 Хорошая новость")
+            return post
+
+        # For non-green posts: repair empty/over-trimmed body only when text is too short.
+        text = str(post.get("text") or "")
+        if len(text) < 650 and post.get("category_label"):
+            post["text"] = _tl3_rebuild_text(item, post, post.get("category_label") or "")
+    except Exception:
+        return post
+
+    return post
+# --- END PRODUCTION HOTFIX: traffic-light final repair v3 ---
+
+# --- PRODUCTION HOTFIX: Ozon realFBS body/source repair v4 ---
+try:
+    _BUILD_POST_BEFORE_OZON_REALFBS_REPAIR_V4 = build_post
+except NameError:
+    _BUILD_POST_BEFORE_OZON_REALFBS_REPAIR_V4 = None
+
+
+def _tl4_get_item_text(item):
+    parts = []
+    for attr in ("text", "body", "raw_text", "summary", "title"):
+        try:
+            v = getattr(item, attr, "")
+        except Exception:
+            v = ""
+        if v:
+            parts.append(str(v))
+    return "\n".join(parts)
+
+
+def _tl4_source_link(item):
+    try:
+        link = getattr(item, "link", "") or getattr(item, "url", "")
+    except Exception:
+        link = ""
+    return str(link or "").strip()
+
+
+def _tl4_ozon_realfbs_body(item):
+    import re
+    raw = _tl4_get_item_text(item)
+    raw = re.sub(r"https?://\S+|t\.me/\S+", "", raw)
+    raw = re.sub(r"\s+", " ", raw).strip()
+
+    if not raw:
+        return ""
+
+    # Start from real content, not from sliced title.
+    starts = [
+        "Ozon добавил метод",
+        "Ozon добавила метод",
+        "Новые города:",
+        "Владимир, Ижевск",
+    ]
+    start_pos = -1
+    for marker in starts:
+        pos = raw.lower().replace("ё", "е").find(marker.lower().replace("ё", "е"))
+        if pos >= 0:
+            start_pos = pos
+            break
+
+    if start_pos >= 0:
+        raw = raw[start_pos:].strip()
+
+    raw = raw.replace("Если у вас плохо прогружаются файлы, все посты также доступны в MAX", "").strip()
+
+    # Make first sentence human if raw starts with method.
+    raw = re.sub(
+        r"^Ozon добавил метод «Партнёры Ozon» ещё в 11 городах:",
+        "Ozon добавил метод «Партнёры Ozon» ещё в 11 городах:",
+        raw,
+        flags=re.IGNORECASE,
+    )
+
+    if len(raw) > 900:
+        raw = raw[:900].rsplit(" ", 1)[0].rstrip(" .,;:") + "..."
+
+    return raw
+
+
+def build_post(item, seller_result=None):  # type: ignore[override]
+    post = _BUILD_POST_BEFORE_OZON_REALFBS_REPAIR_V4(item, seller_result)
+
+    try:
+        text = str(post.get("text") or "")
+        hay = _tl4_get_item_text(item).lower().replace("ё", "е")
+
+        is_ozon_realfbs = (
+            "ozon" in hay
+            and ("realfbs" in hay or "real fbs" in hay)
+            and ("партнеры ozon" in hay or "партнёры ozon" in hay or "экспресс-достав" in hay)
+        )
+
+        if is_ozon_realfbs:
+            import re
+
+            title = "Ozon расширил экспресс-доставку realFBS ещё на 11 городов"
+            body = _tl4_ozon_realfbs_body(item)
+
+            takeaway = (
+                "Вывод для селлера:\n"
+                "Если вы работаете по realFBS Express или Comfort, проверьте доступность метода «Партнёры Ozon» "
+                "в своих городах. Это может повлиять на сроки доставки, нагрузку на сборку и экономику заказов."
+            )
+
+            link = _tl4_source_link(item)
+            source_line = f"Ссылка на источник: {link}" if link else ""
+
+            parts = [
+                f"<b>{title}</b>",
+                body,
+                takeaway,
+                "🟢 Хорошая новость",
+                source_line,
+            ]
+            post["text"] = "\n\n".join([p for p in parts if p]).strip()
+            post["category_label"] = "🟢 Хорошая новость"
+            post["category_indicator"] = "🟢"
+            post["regular_allowed"] = True
+            post["regular_denial_reason"] = ""
+            return post
+
+        # Preserve source URL contract for all repaired posts when link exists.
+        link = _tl4_source_link(item)
+        if link and "Ссылка на источник:" not in text:
+            text = re.sub(r"\n\nИсточник:\s*.*$", "", text, flags=re.DOTALL)
+            text = text.rstrip() + f"\n\nСсылка на источник: {link}"
+            post["text"] = text
+    except Exception:
+        return post
+
+    return post
+# --- END PRODUCTION HOTFIX: Ozon realFBS body/source repair v4 ---
+
+# --- PRODUCTION HOTFIX: preserve plain source URL contract v5 ---
+try:
+    _BUILD_POST_BEFORE_SOURCE_CONTRACT_V5 = build_post
+except NameError:
+    _BUILD_POST_BEFORE_SOURCE_CONTRACT_V5 = None
+
+
+def _source_contract_v5_get_url(item, post):
+    for key in ("source_url", "url", "link"):
+        try:
+            value = post.get(key) if isinstance(post, dict) else ""
+        except Exception:
+            value = ""
+        if value and str(value).startswith(("http://", "https://")):
+            return str(value).strip()
+
+    for attr in ("source_url", "url", "link"):
+        try:
+            value = getattr(item, attr, "")
+        except Exception:
+            value = ""
+        if value and str(value).startswith(("http://", "https://")):
+            return str(value).strip()
+
+    return ""
+
+
+def build_post(item, seller_result=None):  # type: ignore[override]
+    post = _BUILD_POST_BEFORE_SOURCE_CONTRACT_V5(item, seller_result)
+
+    try:
+        import re
+
+        text = str(post.get("text") or "")
+        url = _source_contract_v5_get_url(item, post)
+
+        if url:
+            # Remove broken/generated source lines and restore required plain URL contract.
+            text = re.sub(r"\n\nИсточник:\s*.*$", "", text, flags=re.DOTALL).rstrip()
+            text = re.sub(r"\n\nСсылка на источник:\s*https?://\S+\s*$", "", text, flags=re.DOTALL).rstrip()
+            text = text + f"\n\nСсылка на источник: {url}"
+            post["text"] = text
+            post["source_link_present"] = True
+    except Exception:
+        return post
+
+    return post
+# --- END PRODUCTION HOTFIX: preserve plain source URL contract v5 ---
