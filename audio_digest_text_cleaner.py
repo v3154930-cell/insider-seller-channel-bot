@@ -45,6 +45,17 @@ EMOJI_RE = re.compile(
 )
 
 
+AUDIO_SECTION_LABEL_RE = re.compile(
+    r"^(Первая новость|Вторая новость|Третья новость|Четвёртая новость|Пятая новость|Ещё один сигнал|И коротко ещё|Следующий сигнал)\.?$",
+    flags=re.IGNORECASE,
+)
+
+
+def is_audio_section_label(text: str) -> bool:
+    return bool(AUDIO_SECTION_LABEL_RE.match((text or "").strip()))
+
+
+
 def latest_script_path() -> Path:
     files = sorted(SCRIPTS_DIR.glob("audio_digest_script_*.txt"))
     if not files:
@@ -55,6 +66,8 @@ def latest_script_path() -> Path:
 def normalize_spaces(text: str) -> str:
     text = text.replace("\xa0", " ")
     text = re.sub(r"[ \t]+", " ", text)
+    # Preserve intentional paragraph breaks for TTS pauses.
+    text = re.sub(r" *\n *", "\n", text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
 
@@ -92,6 +105,9 @@ def is_bad_sentence(sentence: str) -> bool:
     s = sentence.strip()
     if not s:
         return True
+
+    if is_audio_section_label(s):
+        return False
 
     if s in BAD_EXACT_PHRASES:
         return True
@@ -163,7 +179,18 @@ def clean_text(text: str) -> str:
     sentences = [s for s in sentences if not is_bad_sentence(s)]
     sentences = dedupe_sentences(sentences)
 
-    cleaned = " ".join(sentences)
+    # Keep soft paragraph breaks for TTS instead of one breathless wall of text.
+    cleaned_parts = []
+    for sent in sentences:
+        cleaned_parts.append(sent)
+        if re.search(r"^(Первая новость|Вторая новость|Третья новость|Ещё один сигнал|И коротко ещё|Подробности|На сегодня|Дайджест|Финиш|Итоги)", sent, flags=re.IGNORECASE):
+            cleaned_parts.append("\n\n")
+        elif re.search(r"(Вывод простой|Для селлера|Главное|Это скорее рыночный сигнал)", sent, flags=re.IGNORECASE):
+            cleaned_parts.append("\n\n")
+        else:
+            cleaned_parts.append(" ")
+
+    cleaned = "".join(cleaned_parts)
     cleaned = normalize_spaces(cleaned)
 
     # Финальная редакторская полировка склеек после RSS/TG-текста:
@@ -180,9 +207,46 @@ def clean_text(text: str) -> str:
     for pattern, repl in glue_fixes:
         cleaned = re.sub(pattern, repl, cleaned)
 
+
+    # Audio boundary fixes: title/body often come glued from TG/RSS.
+    cleaned = re.sub(r"(прямых продажах)\s+(Нагрузка)", r"\1. \2", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"(через «Госуслуги»)\s+(Роспотребнадзор)", r"\1. \2", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"(год назад)\s+(Схемы)", r"\1. \2", cleaned, flags=re.IGNORECASE)
+
     # Финальная подчистка двойных пробелов вокруг тире.
     cleaned = re.sub(r"\s+—\s+", " — ", cleaned)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+
+
+    # Final audio wording polish.
+    cleaned = re.sub(r"\bканал прода\b", "канал продаж", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(
+        r"\.\s*как привлекать трафик на сайт так, чтобы это было окупаемо\?",
+        ".\n\nГлавный вопрос — как привлекать трафик на сайт так, чтобы это было окупаемо.",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    cleaned = re.sub(
+        r"Если упростить, обычно всё сводится к двум направлениям:\s*—\s*органика\s*\(SEO и контент, чтобы находили через поиск и соцсети\)\s*—\s*платный трафик\s*\(контекст и реклама для быстрых тестов и первых продаж\)\.",
+        "Если упростить, есть два пути: органика для долгой игры и платный трафик для быстрых тестов.",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+
+    # Restore TTS-friendly pauses. Do this after other glue fixes.
+    cleaned = re.sub(r"\s+(Первая новость\.)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Вторая новость\.)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Третья новость\.)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Четвёртая новость\.)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Пятая новость\.)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Ещё один сигнал\.)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(И коротко ещё\.)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Подробности —)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Вывод простой:)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Для селлера)", r"\n\n\1", cleaned)
+    cleaned = re.sub(r"\s+(Главное —)", r"\n\n\1", cleaned)
+
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    cleaned = re.sub(r"[ \t]+", " ", cleaned).strip()
 
     return cleaned
 

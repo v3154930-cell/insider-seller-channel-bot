@@ -4,6 +4,8 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from digest_text_cleaner import clean_digest_item_text
+
 DB_PATH = Path("/opt/newsbot_v2/news_queue.db")
 OUT_DIR = Path("/opt/newsbot_v2/audio_digest/scripts")
 
@@ -81,11 +83,40 @@ def voice_text(value: str) -> str:
 
 
 def pause_short() -> str:
-    return " "
+    return "\n\n"
 
 
 def pause_mid() -> str:
-    return " "
+    return "\n\n"
+
+
+AUDIO_CLOSING_LINE = "Подробная информация, ссылки и выводы для селлеров — в текстовых постах и дайджесте, выходивших в течение дня."
+SOFT_AUDIO_JOKES_WITH_NEWS = [
+    "На сегодня всё. Маркетплейсы снова удивили — ровно настолько, насколько мы ожидали.",
+    "Финал простой: день прошёл, новости записали, маркетплейсы по традиции не скучали.",
+    "Итоги зафиксировали, теперь можно спокойно сверить цифры и идти дальше по плану.",
+]
+SOFT_AUDIO_JOKES_NO_NEWS = [
+    "Редкий день, когда можно не хвататься за калькулятор маржи.",
+    "Пользуемся моментом: тишина в новостях — это тоже маленький подарок.",
+    "Можно выдохнуть. Ненадолго, конечно, мы же всё ещё про маркетплейсы.",
+    "Сегодня без громких поворотов. Даже немного подозрительно.",
+]
+
+RU_MONTHS_GEN = {
+    1: "января",
+    2: "февраля",
+    3: "марта",
+    4: "апреля",
+    5: "мая",
+    6: "июня",
+    7: "июля",
+    8: "августа",
+    9: "сентября",
+    10: "октября",
+    11: "ноября",
+    12: "декабря",
+}
 
 
 def norm(value: str) -> str:
@@ -705,12 +736,15 @@ def build_script(news_items, signal_items):
 
         for item in news_items:
             raw_title = item.get("title", "")
+            _, cleaned_raw = clean_digest_item_text(raw_title, item.get("raw", ""))
             topic_k = item.get("topic_key") or audio_topic_key(raw_title, item.get("source", ""))
 
             if topic_k in used_topics or audio_seen_topic(raw_title, used_titles):
                 continue
 
-            title = safe_audio_text(raw_title, max_chars=210)
+            # Если body начинается тем же lead, берём body, чтобы не дублировать заголовок в аудио.
+            audio_seed = cleaned_raw or raw_title
+            title = safe_audio_text(audio_seed, max_chars=210)
             if not title:
                 continue
 
@@ -808,6 +842,93 @@ def build_script(news_items, signal_items):
     return " ".join(parts)
 
 
+def _parse_digest_date(value):
+    if not value:
+        return None
+    if isinstance(value, datetime):
+        return value
+    s = str(value).strip()
+    for fmt in ("%Y-%m-%d", "%Y-%m-%d %H:%M:%S", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            return datetime.strptime(s[:19], fmt)
+        except Exception:
+            pass
+    return None
+
+
+def _resolve_digest_date(items, digest_date=None):
+    dt = _parse_digest_date(digest_date)
+    if dt:
+        return dt
+    for item in items or []:
+        for key in ("digest_date", "created_at", "published_at", "detected_at"):
+            dt = _parse_digest_date(item.get(key))
+            if dt:
+                return dt
+    return None
+
+
+def _intro_for_digest_date(items, digest_date=None):
+    dt = _resolve_digest_date(items, digest_date=digest_date)
+    date_text = f"{dt.day} {RU_MONTHS_GEN.get(dt.month, '')}".strip() if dt else "сегодня"
+    return f"Коротко по новостям, на которые стоит обратить внимание за {date_text}."
+
+
+def build_human_audio_digest(items, intro=None, item_min_chars=220, item_max_chars=350, max_items=5, digest_date=None):
+    intro_line = intro or _intro_for_digest_date(items, digest_date=digest_date)
+    normalized_items = list(items or [])[:max_items]
+
+    parts = [voice_text(clean_text(intro_line))]
+    news_paragraphs = []
+
+    for item in normalized_items:
+        title = clean_text(item.get("title", ""))
+        body = clean_text(item.get("body") or item.get("raw") or item.get("raw_text") or "")
+        source = clean_text(item.get("source", ""))
+        link = clean_text(item.get("link", ""))
+
+        cleaned_title, cleaned_body = clean_digest_item_text(title, body)
+        seed = cleaned_body or cleaned_title
+        seed = re.sub(r"\bИсточник\s*:\s*.*$", "", seed, flags=re.IGNORECASE)
+        seed = re.sub(r"https?://\S+|t\.me/\S+", "", seed, flags=re.IGNORECASE)
+        seed = seed.strip()
+
+        if not seed:
+            paragraph = "Площадка сообщила об обновлении, детали лучше смотреть в текстовом посте."
+        else:
+            why = ""
+            if source:
+                why = f" Это стоит внимания, потому что новость пришла по линии {source} и может повлиять на рабочие процессы."
+            paragraph = f"{seed}{why}"
+
+        paragraph = re.sub(r"\s+", " ", paragraph).strip()
+        if len(paragraph) > item_max_chars:
+            paragraph = safe_audio_text(paragraph, max_chars=item_max_chars)
+        if len(paragraph) < item_min_chars and cleaned_title and cleaned_title.lower() not in paragraph.lower():
+            paragraph = f"{paragraph} В двух словах: {cleaned_title}."
+
+        paragraph = paragraph.replace("Источник:", "").replace("Seller Helper", "")
+        paragraph = paragraph.replace("Проверить комиссию", "").replace("Рассчитать комиссии", "")
+        paragraph = paragraph.replace("Если у вас плохо прогружаются файлы", "")
+        paragraph = paragraph.replace("все посты также доступны в MAX", "")
+        paragraph = paragraph.replace(link, "") if link else paragraph
+        paragraph = re.sub(r"\s+", " ", paragraph).strip()
+        paragraph = voice_text(paragraph)
+        if paragraph:
+            news_paragraphs.append(paragraph)
+
+    parts.extend(news_paragraphs)
+    if news_paragraphs:
+        parts.append(AUDIO_CLOSING_LINE)
+        jokes_pool = SOFT_AUDIO_JOKES_WITH_NEWS
+    else:
+        parts.append("Значимых новостей на сегодня нет.")
+        jokes_pool = SOFT_AUDIO_JOKES_NO_NEWS
+    now = datetime.now()
+    parts.append(jokes_pool[(now.toordinal() + len(news_paragraphs)) % len(jokes_pool)])
+    return "\n\n".join([p for p in parts if p]).strip()
+
+
 def final_voice_cleanup(value: str) -> str:
     value = value or ""
 
@@ -836,6 +957,8 @@ def final_voice_cleanup(value: str) -> str:
 
     # Небольшая речевая правка.
     value = value.replace("Дайджест окончен.", "На сегодня всё.")
+    value = value.replace("Если у вас плохо прогружаются файлы", "")
+    value = value.replace("все посты также доступны в MAX", "")
 
     # audio_digest_style_v1_voice_cleanup
     value = value.replace("сЭллерская бдительность", "селлерская бдительность")
@@ -847,48 +970,173 @@ def final_voice_cleanup(value: str) -> str:
     value = re.sub(r"По тарифам, офертам и условиям работы новых сильных сигналов для отдельной проверки сегодня не обнаружено\.", "По тарифам, офертам и условиям работы новых жёстких сигналов сегодня не было.", value)
 
 
-    # Финальная фонетическая правка для SaluteSpeech:
-    # нужно, чтобы звучало "сЭллер", "СЭллеры", "СЭллер ХЭлпер".
-    seller_replacements = {
-        "селлеров": "сЭллеров",
-        "селлерам": "сЭллерам",
-        "селлерами": "сЭллерами",
-        "селлера": "сЭллера",
-        "селлеры": "сЭллеры",
-        "селлер": "сЭллер",
-
-        "сэллеров": "сЭллеров",
-        "сэллерам": "сЭллерам",
-        "сэллерами": "сЭллерами",
-        "сэллера": "сЭллера",
-        "сэллеры": "сЭллеры",
-        "сэллер": "сЭллер",
-
-        "Селлеров": "СЭллеров",
-        "Селлерам": "СЭллерам",
-        "Селлерами": "СЭллерами",
-        "Селлера": "СЭллера",
-        "Селлеры": "СЭллеры",
-        "Селлер": "СЭллер",
-
-        "Сэллеров": "СЭллеров",
-        "Сэллерам": "СЭллерам",
-        "Сэллерами": "СЭллерами",
-        "Сэллера": "СЭллера",
-        "Сэллеры": "СЭллеры",
-        "Сэллер": "СЭллер",
-
-        "Хелпер": "ХЭлпер",
-        "Хэлпер": "ХЭлпер",
-        "хелпер": "хЭлпер",
-        "хэлпер": "хЭлпер",
-    }
-
-    for old, new in seller_replacements.items():
-        value = value.replace(old, new)
-
     return value
 
+
+
+# --- PRODUCTION HOTFIX: clearer audio digest structure v2 ---
+# Goal: make TTS script sound like a human digest, not a glued RSS paragraph.
+# Rules:
+# - title first, body second;
+# - no "В двух словах" title suffix;
+# - remove title duplication from body;
+# - short, separated blocks;
+# - explicit seller takeaway when useful.
+
+def _audio_strip_noise_v2(text: str) -> str:
+    text = clean_text(text or "")
+    text = re.sub(r"https?://\S+|t\.me/\S+", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\bИсточник\s*:\s*.*$", "", text, flags=re.IGNORECASE)
+    text = text.replace("Seller Helper", "")
+    text = text.replace("Проверить комиссию", "")
+    text = text.replace("Рассчитать комиссии", "")
+    text = text.replace("Если у вас плохо прогружаются файлы", "")
+    text = text.replace("все посты также доступны в MAX", "")
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _audio_remove_title_prefix_v2(title: str, body: str) -> str:
+    title = _audio_strip_noise_v2(title)
+    body = _audio_strip_noise_v2(body)
+
+    if not title or not body:
+        return body
+
+    def norm(v: str) -> str:
+        return re.sub(r"[^а-яa-z0-9]+", " ", (v or "").lower().replace("ё", "е")).strip()
+
+    # Remove exact textual prefix first.
+    for prefix in [title, title.rstrip(".!?"), " ".join(title.split()[:10]), " ".join(title.split()[:8]), " ".join(title.split()[:6])]:
+        prefix = prefix.strip()
+        if len(prefix) >= 20 and body.lower().replace("ё", "е").startswith(prefix.lower().replace("ё", "е")):
+            body = body[len(prefix):].lstrip(" .—-:;")
+            break
+
+    # Normalized fallback: if body still starts with title words, cut by words.
+    title_words = title.split()
+    body_words = body.split()
+    for n in range(min(12, len(title_words)), 4, -1):
+        if norm(" ".join(body_words[:n])) == norm(" ".join(title_words[:n])):
+            body = " ".join(body_words[n:]).lstrip(" .—-:;")
+            break
+
+    # Fix common glued case: title ended, body starts immediately with capital word.
+    body = re.sub(r"\s+", " ", body).strip()
+    return body
+
+
+def _audio_summary_v2(text: str, max_chars: int = 260) -> str:
+    text = _audio_strip_noise_v2(text)
+    if not text:
+        return ""
+
+    # Drop awkward lead-in fragments that sound bad in voice.
+    bad_starts = [
+        r"^Но\s+дальше\s+возникает\s+ключевой\s+вопрос[:：]?\s*",
+        r"^В\s+двух\s+словах[:：]?\s*",
+        r"^Что\s+произошло[:：]?\s*",
+        r"^Звучит\s+хорошо\.\s*",
+    ]
+    for pat in bad_starts:
+        text = re.sub(pat, "", text, flags=re.IGNORECASE).strip()
+
+    text = safe_audio_text(text, max_chars=max_chars)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _audio_takeaway_v2(title: str, body: str, source: str = "") -> str:
+    joined = f"{title} {body}".lower().replace("ё", "е")
+
+    if re.search(r"штраф|фнс|налог|самозанят|провер|блокиров|приостанов|выплат|оферт|маркиров", joined):
+        return "Для селлера это повод проверить, не затрагивает ли новость деньги, документы, выплаты или правила площадки."
+
+    if re.search(r"логистик|склад|поставк|возврат|доставк|сортиров", joined):
+        return "Для селлера главный смысл — заранее учитывать возможное влияние на логистику, сроки и операционные расходы."
+
+    if re.search(r"прямых продаж|сайт|трафик|собственн", joined):
+        return "Вывод простой: маркетплейсы остаются основным каналом, но запасной канал продаж становится всё полезнее."
+
+    if re.search(r"аналитик|рынок|исследован|статистик|тренд|динамик", joined):
+        return "Это скорее рыночный сигнал, чем срочная инструкция, но его стоит держать в голове при планировании."
+
+    return "Главное — не принимать решение по заголовку, а смотреть, влияет ли новость на ваши товары, процессы или маржу."
+
+
+def _audio_item_label_v2(index: int) -> str:
+    labels = {
+        1: "Первая новость.",
+        2: "Вторая новость.",
+        3: "Третья новость.",
+        4: "Ещё один сигнал.",
+        5: "И коротко ещё.",
+    }
+    return labels.get(index, "Следующий сигнал.")
+
+
+def build_human_audio_digest(items, intro=None, item_min_chars=120, item_max_chars=260, max_items=5, digest_date=None):
+    intro_line = intro or _intro_for_digest_date(items, digest_date=digest_date)
+    normalized_items = list(items or [])[:max_items]
+
+    parts = [
+        voice_text(clean_text(intro_line)),
+    ]
+
+    news_count = 0
+
+    for idx, item in enumerate(normalized_items, start=1):
+        title = _audio_strip_noise_v2(item.get("title", ""))
+        body = item.get("body") or item.get("raw") or item.get("raw_text") or ""
+        source = _audio_strip_noise_v2(item.get("source", ""))
+
+        cleaned_title, cleaned_body = clean_digest_item_text(title, body)
+        title = _audio_strip_noise_v2(cleaned_title or title)
+        body = _audio_remove_title_prefix_v2(title, cleaned_body or body)
+
+        if not title and not body:
+            continue
+
+        summary = _audio_summary_v2(body, max_chars=item_max_chars)
+        takeaway = _audio_takeaway_v2(title, summary, source)
+
+        block_parts = [_audio_item_label_v2(idx)]
+
+        if title:
+            # TTS needs a hard sentence boundary between title and body.
+            title = re.sub(r"\\s+", " ", title).strip()
+            if title and not re.search(r"[.!?]$", title):
+                title = title + "."
+            block_parts.append(title)
+
+        if summary and summary.lower().replace("ё", "е") not in (title or "").lower().replace("ё", "е"):
+            block_parts.append(summary.rstrip(".!?") + ".")
+
+        if takeaway:
+            block_parts.append(takeaway)
+
+        paragraph = " ".join(block_parts)
+        paragraph = re.sub(r"\bВ\s+двух\s+словах[:：]?\s*", "", paragraph, flags=re.IGNORECASE)
+        paragraph = re.sub(r"\s+", " ", paragraph).strip()
+        paragraph = voice_text(paragraph)
+
+        if paragraph:
+            parts.append(paragraph)
+            news_count += 1
+
+    if news_count:
+        parts.append("Подробности — в текстовом дайджесте канала.")
+        jokes_pool = SOFT_AUDIO_JOKES_WITH_NEWS
+    else:
+        parts.append("Значимых новостей на сегодня нет. Значит, можно спокойно проверить отчёты и не искать пожар там, где его нет.")
+        jokes_pool = SOFT_AUDIO_JOKES_NO_NEWS
+
+    now = datetime.now()
+    parts.append(jokes_pool[(now.toordinal() + news_count) % len(jokes_pool)])
+
+    # Double newlines are useful for human reading and usually give TTS a softer break.
+    script = "\n\n".join([p for p in parts if p]).strip()
+    return script
 
 def save_script(script, news_count, signal_count):
     OUT_DIR.mkdir(parents=True, exist_ok=True)
@@ -946,7 +1194,15 @@ def main():
 
     signal_items = load_signals(limit=2, exclude_keys=exclude_keys)
 
-    script = build_script(news_items, signal_items)
+    merged_items = [
+        {"title": i.get("title", ""), "body": i.get("raw", ""), "source": i.get("source", ""), "link": ""}
+        for i in news_items
+    ] + [
+        {"title": i.get("title", ""), "body": i.get("title", ""), "source": i.get("source", ""), "link": ""}
+        for i in signal_items
+    ]
+
+    script = build_human_audio_digest(merged_items)
     script = voice_text(script)
     script = final_voice_cleanup(script)
     path = save_script(script, len(news_items), len(signal_items))
