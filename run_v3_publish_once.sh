@@ -22,6 +22,6 @@ export NEWSBOT_V3_MARK_V2_PUBLISHED=true
 export NEWSBOT_V3_MAX_CANDIDATE_ATTEMPTS_PER_RUN=10
 export NEWSBOT_V3_SEND_MASCOT_ATTACHMENTS=false
 
-/opt/newsbot_v2/venv/bin/python -c "import sqlite3; con=sqlite3.connect('/opt/newsbot_v2/news_queue.db'); cur=con.execute(\"UPDATE news SET seller_decision='digest' WHERE seller_decision='publish' AND COALESCE(is_published,0)=0 AND COALESCE(max_message_id,'')='' AND (COALESCE(seller_relevance_score,0)<5 OR COALESCE(actionability_score,0)<5)\"); con.commit(); print('preflight_demoted_weak_publish=',cur.rowcount); con.close()"
+/opt/newsbot_v2/venv/bin/python -c "import sqlite3; con=sqlite3.connect('/opt/newsbot_v2/news_queue.db'); cur=con.execute(\"UPDATE news SET seller_decision='digest' WHERE seller_decision='publish' AND COALESCE(is_published,0)=0 AND COALESCE(max_message_id,'')='' AND (COALESCE(seller_relevance_score,0)<4 OR COALESCE(actionability_score,0)<4)\"); con.commit(); print('preflight_demoted_weak_publish=',cur.rowcount); con.close()"
 
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/v3_controlled_send_canary.py --execute
