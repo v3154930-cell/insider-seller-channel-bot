@@ -1,0 +1,4 @@
+retention:
+  permanent: [published_messages, full_articles, source_registry, source_health]
+  archiveable: [raw_news, normalized_news, scored_news, digest_runs, llm_runs, send_attempts]
+  disposable: [tmp_files, audio_intermediates, cache, oversized_logs]

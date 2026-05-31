@@ -57,10 +57,6 @@ def test_dry_run_unchanged(monkeypatch, tmp_path, capsys):
     assert rc == 0
     assert "V3_CONTROLLED_SEND_STATUS=DRY_RUN" in out
     assert "send_status=dry_run" in out
-    assert "raw_source_url_in_main_post=false" in out
-    assert "source_link_preview_suppressed=true" in out
-    assert "source_url_button_used=false" in out
-    assert "external_url_button_forbidden=true" in out
 
 
 def test_mock_mode_allows_mock_message_id(monkeypatch, tmp_path):

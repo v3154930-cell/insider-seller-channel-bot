@@ -1,191 +1,170 @@
 #!/usr/bin/env python3
-import os
 import sqlite3
-from datetime import datetime, date
+from datetime import date, datetime
 
 DB = "/opt/newsbot_v2/news_queue.db"
-MIN_WEEKDAY_TARGET = 10
-MIN_WEEKEND_TARGET = 3
-BATCH_LIMIT = 1  # promote one candidate at a time; publication frequency is controlled by cron/time window
+DAILY_TARGET = 10
+BATCH_LIMIT = 1
+FAIL_OPEN_MIN_PUBLISHED = 3
 
-DRY_RUN = os.getenv("NEWSBOT_SAFETY_PROMOTE_DRY_RUN", "").strip().lower() in {"1", "true", "yes", "y"}
-
-HARD_POSITIVE = [
-    "выплат", "приостановк", "оферт", "комисси", "тариф", "логист",
-    "доставк", "карточк", "маркирован", "остатк", "честный знак",
-    "налог", "кабинет", "реклам", "продвиж", "пвз", "возврат",
-    "штраф", "блокиров", "склад", "приемк", "приёмк", "fbo", "fbs", "dbs",
-    "ozon доставка", "ozon", "озон", "wildberries", "wb", "вайлдберриз",
-    "яндекс маркет", "маркетплейс", "селлер", "продавц"
+GOOD_MARKERS = [
+    "ozon", "озон", "wildberries", "wb", "вайлдберриз", "яндекс маркет",
+    "маркетплейс", "селлер", "продавец", "продавцов", "кабинет селлера",
+    "отзывы", "рейтинг", "тариф", "комиссия", "логистика", "возврат", "пвз",
 ]
 
-SOFT_POSITIVE = [
-    "рост заказ", "онлайн-заказ", "покупател", "спрос", "импорт",
-    "тамож", "похожие товары", "витрин", "ресейл", "оригинал",
-    "личном кабинете", "сервис", "товар", "ассортимент"
+BAD_MARKERS = [
+    "нефть", "нефтяным", "бумажного ндс", "epharma", "аптек", "цфа",
+    "баранов", "отели", "usdt", "telegram-каналов",
 ]
 
-NEGATIVE = [
-    "топ telegram", "top telegram", "подписаться", "подпишитесь",
-    "рассылка", "email-рассыл", "usdt", "whitebird", "цфа",
-    "плавающей ставкой", "альфа-банк", "банк запустил", "кешбэк",
-    "премиальный сервис", "миль", "путешествен", "акционер",
-    "акции афк", "доля в ozon", "доля в wb", "инвестор",
-    "конференц", "круглый стол", "вебинар", "мероприят",
-    "приглаша", "зарегистр", "15 июня", "13:00", "22 мая",
-    "день предпринимателя", "поздравляем", "ваканс", "карьера",
-    "студентов", "школьников", "опрос", "тендер", "tiktok",
-    "тик ток", "тикток", "рекламное агентство"
-]
 
-def norm(value):
-    return str(value or "").lower()
+def marker_hits(text: str, markers: list[str]) -> list[str]:
+    return [m for m in markers if m in text]
 
-def text_of(row):
-    return " ".join([
-        norm(row["title"]),
-        norm(row["raw_text"]),
-        norm(row["processed_text"]),
-        norm(row["reason_tags"]),
-        norm(row["category"]),
-        norm(row["source"]),
-    ])
 
-def has_any(text, words):
-    return any(w in text for w in words)
+def main() -> None:
+    today = date.today().isoformat()
+    since = today + " 00:00:00"
 
-def rank_row(row):
-    text = text_of(row)
-    base_score = int(row["score"] or 0)
+    con = sqlite3.connect(DB)
+    con.row_factory = sqlite3.Row
 
-    if has_any(text, NEGATIVE):
-        return None, "negative_filter"
+    published_today = con.execute(
+        """
+        SELECT COUNT(*) AS c
+        FROM news
+        WHERE is_published = 1
+          AND seller_decision = 'publish'
+          AND created_at >= ?
+    """,
+        (since,),
+    ).fetchone()["c"]
 
-    hard_hits = sum(1 for w in HARD_POSITIVE if w in text)
-    soft_hits = sum(1 for w in SOFT_POSITIVE if w in text)
+    pending_publish = con.execute(
+        """
+        SELECT COUNT(*) AS c
+        FROM news
+        WHERE IFNULL(is_published,0) = 0
+          AND seller_decision = 'publish'
+    """
+    ).fetchone()["c"]
 
-    if hard_hits == 0 and soft_hits == 0:
-        return None, "no_seller_signal"
+    if published_today >= DAILY_TARGET:
+        print(f"INFO daily minimum already satisfied published_today={published_today} target={DAILY_TARGET}")
 
-    if base_score < 40 and hard_hits < 2:
-        return None, "score_too_low"
+    if pending_publish > 0:
+        print(f"SKIP already has pending_publish={pending_publish}")
+        raise SystemExit(0)
 
-    rank = base_score + hard_hits * 25 + soft_hits * 8
+    need = BATCH_LIMIT
 
-    decision = norm(row["seller_decision"])
-    if decision == "digest":
-        rank += 20
-    elif decision == "ignore":
-        rank -= 20
+    selected: list[sqlite3.Row] = []
+    candidate_rows: list[sqlite3.Row] = []
 
-    source = norm(row["source"])
-    if "oborot" in source or "marketplace_biz" in source or "mpgo" in source:
-        rank += 10
+    if pending_publish == 0:
+        print(
+            f"PROMOTE enabled published_today={published_today} "
+            f"pending_publish={pending_publish} need={need}"
+        )
 
-    return rank, f"rank={rank} hard_hits={hard_hits} soft_hits={soft_hits}"
+        candidate_rows = con.execute(
+            """
+            SELECT id, created_at, source, score, title, raw_text,
+                   seller_decision, seller_relevance_score, actionability_score
+            FROM news
+            WHERE IFNULL(is_published,0) = 0
+              AND seller_decision IN ('digest', 'ignore', 'duplicate')
+            ORDER BY IFNULL(score,0) DESC, created_at DESC
+            LIMIT 200
+        """
+        ).fetchall()
 
-today_obj = date.today()
-today = today_obj.isoformat()
-since = today + " 00:00:00"
-min_daily_target = MIN_WEEKEND_TARGET if today_obj.weekday() >= 5 else MIN_WEEKDAY_TARGET
+        ranked: list[tuple[int, sqlite3.Row, list[str], list[str], str]] = []
+        for r in candidate_rows:
+            blob = " ".join(
+                [
+                    (r["title"] or ""),
+                    (r["raw_text"] or ""),
+                    (r["source"] or ""),
+                ]
+            ).lower()
+            good_hits = marker_hits(blob, GOOD_MARKERS)
+            bad_hits = marker_hits(blob, BAD_MARKERS)
 
-con = sqlite3.connect(DB)
-con.row_factory = sqlite3.Row
+            if bad_hits:
+                print(
+                    f"REJECT #{r['id']} reason=bad_markers bad={bad_hits} "
+                    f"score={r['score']} decision={r['seller_decision']} "
+                    f"title={(r['title'] or '')[:180]}"
+                )
+                continue
 
-published_today = con.execute("""
-    SELECT COUNT(*) AS c
-    FROM news
-    WHERE is_published = 1
-      AND seller_decision = 'publish'
-      AND created_at >= ?
-""", (since,)).fetchone()["c"]
+            if not good_hits:
+                print(
+                    f"REJECT #{r['id']} reason=no_good_markers score={r['score']} "
+                    f"decision={r['seller_decision']} title={(r['title'] or '')[:180]}"
+                )
+                continue
 
-pending_publish = con.execute("""
-    SELECT COUNT(*) AS c
-    FROM news
-    WHERE IFNULL(is_published,0) = 0
-      AND seller_decision = 'publish'
-""").fetchone()["c"]
+            rank = len(good_hits) * 1000 + int(r["score"] or 0)
+            explain = f"good={good_hits} score={r['score']} decision={r['seller_decision']}"
+            ranked.append((rank, r, good_hits, bad_hits, explain))
 
-minimum_met = published_today >= min_daily_target
-# IMPORTANT PROJECT POLICY:
-# min_daily_target is a minimum floor, not a maximum cap.
-# Weekdays: at least 10. Weekends: at least 3.
-# Upper bound is only publication time window + availability of good candidates.
-# Therefore we must NOT stop just because minimum is already met.
+        ranked.sort(key=lambda x: (x[0], x[1]["created_at"]), reverse=True)
+        selected = [x[1] for x in ranked[:need]]
 
-if pending_publish > 0:
-    print(f"SKIP already has pending_publish={pending_publish}")
-    raise SystemExit(0)
+        for _, r, good_hits, _, explain in ranked:
+            verdict = "SELECT" if any(s["id"] == r["id"] for s in selected) else "REJECT"
+            print(
+                f"{verdict} #{r['id']} explain={explain} "
+                f"title={(r['title'] or '')[:180]}"
+            )
 
-need = BATCH_LIMIT
+    ids = [r["id"] for r in selected]
 
-rows = con.execute("""
-    SELECT id, created_at, source, score, title, raw_text, processed_text,
-           reason_tags, category, seller_decision
-    FROM news
-    WHERE created_at >= ?
-      AND IFNULL(is_published,0) = 0
-      AND IFNULL(max_message_id,'') = ''
-      AND seller_decision IN ('digest', 'ignore')
-    ORDER BY score DESC, created_at DESC
-    LIMIT 120
-""", (since,)).fetchall()
-
-scored = []
-skipped = []
-
-for r in rows:
-    rank, reason = rank_row(r)
-    if rank is None:
-        skipped.append((r, reason))
-        continue
-    scored.append((rank, reason, r))
-
-scored.sort(key=lambda x: (x[0], int(x[2]["score"] or 0), str(x[2]["created_at"] or "")), reverse=True)
-selected = scored[:need]
-ids = [r["id"] for _, _, r in selected]
-
-print(
-    f"SAFETY_CHECK at={datetime.now().isoformat(timespec='seconds')} "
-    f"published_today={published_today} pending_publish={pending_publish} "
-    f"need={need} candidates={len(scored)} selected={ids} dry_run={DRY_RUN}"
-)
-
-print("TOP_CANDIDATES:")
-for rank, reason, r in scored[:15]:
     print(
-        f"CANDIDATE #{r['id']} rank={rank} score={r['score']} "
-        f"decision={r['seller_decision']} source={r['source']} reason={reason} "
-        f"title={(r['title'] or '')[:180]}"
+        f"SAFETY_CHECK at={datetime.now().isoformat(timespec='seconds')} "
+        f"published_today={published_today} pending_publish={pending_publish} need={need} selected={ids}"
     )
 
-print("TOP_SKIPPED:")
-for r, reason in skipped[:10]:
-    print(
-        f"SKIP #{r['id']} score={r['score']} decision={r['seller_decision']} "
-        f"source={r['source']} reason={reason} title={(r['title'] or '')[:160]}"
-    )
+    if not ids:
+        print("no_seller_like_candidates")
 
-if ids and not DRY_RUN:
-    q = ",".join("?" for _ in ids)
-    con.execute(f"""
-        UPDATE news
-        SET seller_decision = 'publish',
-            seller_relevance_score = CASE
-                WHEN IFNULL(seller_relevance_score,0) < 8 THEN 8
-                ELSE seller_relevance_score
-            END,
-            actionability_score = CASE
-                WHEN IFNULL(actionability_score,0) < 7 THEN 7
-                ELSE actionability_score
-            END
-        WHERE id IN ({q})
-          AND IFNULL(is_published,0) = 0
-          AND IFNULL(max_message_id,'') = ''
-          AND seller_decision IN ('digest', 'ignore')
-    """, ids)
-    con.commit()
+    if ids:
+        q = ",".join("?" for _ in ids)
+        con.execute(
+            f"""
+            UPDATE news
+            SET seller_decision = 'publish',
+                seller_relevance_score = CASE
+                    WHEN IFNULL(seller_relevance_score,0) < 4 THEN 4
+                    ELSE seller_relevance_score
+                END,
+                actionability_score = CASE
+                    WHEN IFNULL(actionability_score,0) < 4 THEN 4
+                    ELSE actionability_score
+                END
+            WHERE id IN ({q})
+              AND IFNULL(is_published,0) = 0
+      AND COALESCE(seller_relevance_score,0) >= 5
+      AND COALESCE(actionability_score,0) >= 5
+        """,
+            ids,
+        )
+        con.commit()
 
-con.close()
-print(f"DONE promoted={0 if DRY_RUN else len(ids)} selected={ids}")
+    pending_after = con.execute(
+        """
+        SELECT COUNT(*) AS c
+        FROM news
+        WHERE IFNULL(is_published,0) = 0
+          AND seller_decision = 'publish'
+    """
+    ).fetchone()["c"]
+
+    print(f"DONE promoted={len(ids)} pending_publish_after={pending_after}")
+
+
+if __name__ == "__main__":
+    main()

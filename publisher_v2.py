@@ -446,32 +446,36 @@ def main():
                     pending_publish,
                 )
 
-                if published_today < daily_target and pending_publish == 0:
-                    need = min(fallback_batch, max(0, daily_target - published_today))
+                if pending_publish == 0:
+                    need = fallback_batch
                     lookback_arg = f"-{fallback_lookback_hours} hours"
-
-                    _qcur.execute(
+                    _candidate_rows = _qcur.execute(
                         """
-                        WITH candidates AS (
-                            SELECT id
-                            FROM news
-                            WHERE IFNULL(is_published,0) = 0
-                              AND seller_decision = 'digest'
-                              AND datetime(created_at) >= datetime('now','localtime', ?)
-                              AND IFNULL(actionability_score,0) >= ?
-                              AND IFNULL(seller_relevance_score,0) >= ?
-                            ORDER BY
-                              actionability_score DESC,
-                              seller_relevance_score DESC,
-                              datetime(created_at) DESC
-                            LIMIT ?
-                        )
-                        UPDATE news
-                        SET
-                            seller_decision = 'publish',
-                            created_at = CURRENT_TIMESTAMP,
-                            reason_tags = COALESCE(reason_tags,'') || ' | quota_fallback_auto'
-                        WHERE id IN (SELECT id FROM candidates)
+                        SELECT id
+                        FROM news
+                        WHERE IFNULL(is_published,0) = 0
+                          AND seller_decision = 'digest'
+                          AND lower(IFNULL(source,'')) NOT IN ('', 'unknown')
+                          AND datetime(created_at) >= datetime('now','localtime', ?)
+                          AND IFNULL(actionability_score,0) >= ?
+                          AND IFNULL(seller_relevance_score,0) >= ?
+                          AND (
+                            lower(IFNULL(source,'')) NOT LIKE '%rbc%'
+                            OR (
+                              lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%ozon%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%wildberries%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%wb%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%яндекс%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%маркетплейс%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%селлер%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%продавц%'
+                            )
+                          )
+                        ORDER BY
+                          actionability_score DESC,
+                          seller_relevance_score DESC,
+                          datetime(created_at) DESC
+                        LIMIT ?
                         """,
                         (
                             lookback_arg,
@@ -479,9 +483,93 @@ def main():
                             fallback_min_relevance,
                             need,
                         ),
+                    ).fetchall()
+                    candidate_ids = [int(r[0]) for r in (_candidate_rows or [])]
+
+                    digest_total_row = _qcur.execute(
+                        """
+                        SELECT COUNT(*)
+                        FROM news
+                        WHERE IFNULL(is_published,0) = 0
+                          AND seller_decision = 'digest'
+                          AND lower(IFNULL(source,'')) NOT IN ('', 'unknown')
+                        """
+                    ).fetchone()
+                    digest_total = int((digest_total_row or [0])[0] or 0)
+
+                    digest_pass_row = _qcur.execute(
+                        """
+                        SELECT COUNT(*)
+                        FROM news
+                        WHERE IFNULL(is_published,0) = 0
+                          AND seller_decision = 'digest'
+                          AND lower(IFNULL(source,'')) NOT IN ('', 'unknown')
+                          AND datetime(created_at) >= datetime('now','localtime', ?)
+                          AND IFNULL(actionability_score,0) >= ?
+                          AND IFNULL(seller_relevance_score,0) >= ?
+                          AND (
+                            lower(IFNULL(source,'')) NOT LIKE '%rbc%'
+                            OR (
+                              lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%ozon%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%wildberries%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%wb%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%яндекс%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%маркетплейс%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%селлер%'
+                              OR lower(COALESCE(title,'') || ' ' || COALESCE(raw_text,'')) LIKE '%продавц%'
+                            )
+                          )
+                        """,
+                        (
+                            lookback_arg,
+                            fallback_min_actionability,
+                            fallback_min_relevance,
+                        ),
+                    ).fetchone()
+                    digest_pass_threshold = int((digest_pass_row or [0])[0] or 0)
+
+                    logger.info(
+                        "quota fallback candidates before update: ids=%s digest_total=%s digest_pass_threshold=%s",
+                        candidate_ids,
+                        digest_total,
+                        digest_pass_threshold,
                     )
-                    promoted = _qcur.rowcount if _qcur.rowcount is not None else 0
-                    _qconn.commit()
+
+                    if candidate_ids:
+                        _qcur.execute(
+                            f"""
+                        UPDATE news
+                        SET
+                            seller_decision = 'publish',
+                            is_published = 0,
+                            created_at = CURRENT_TIMESTAMP,
+                            reason_tags = CASE
+                                WHEN COALESCE(reason_tags,'') LIKE '%fallback_promoted%' THEN COALESCE(reason_tags,'')
+                                ELSE COALESCE(reason_tags,'') || ' | fallback_promoted'
+                            END
+                        WHERE id IN ({','.join('?' for _ in candidate_ids)})
+                        """,
+                            tuple(candidate_ids),
+                        )
+                        promoted = len(candidate_ids)
+                        _qconn.commit()
+                    else:
+                        promoted = 0
+
+                    promoted_rows = []
+                    if candidate_ids:
+                        _promoted_rows = _qcur.execute(
+                            f"""
+                            SELECT id
+                            FROM news
+                            WHERE id IN ({','.join('?' for _ in candidate_ids)})
+                              AND IFNULL(is_published,0) = 0
+                              AND seller_decision = 'publish'
+                            ORDER BY id
+                            """,
+                            tuple(candidate_ids),
+                        ).fetchall()
+                        promoted_rows = [int(r[0]) for r in (_promoted_rows or [])]
 
                     _after_row = _qcur.execute(
                         """
@@ -494,18 +582,160 @@ def main():
                     pending_after = int((_after_row or [0])[0] or 0)
 
                     logger.info(
-                        "quota fallback promoted digest->publish: need=%s promoted_rowcount=%s pending_after=%s lookback_hours=%s min_rel=%s min_act=%s",
+                        "quota fallback promoted digest->publish: need=%s promoted=%s promoted_ids=%s pending_after=%s digest_total=%s digest_pass_threshold=%s lookback_hours=%s min_rel=%s min_act=%s published_today=%s target=%s",
                         need,
                         promoted,
+                        promoted_rows,
                         pending_after,
+                        digest_total,
+                        digest_pass_threshold,
                         fallback_lookback_hours,
                         fallback_min_relevance,
                         fallback_min_actionability,
+                        published_today,
+                        daily_target,
                     )
             finally:
                 _qconn.close()
     except Exception as e:
         logger.warning("quota fallback failed: %s", e)
+
+    # official_duplicate_restore
+    # Restore strong OFFICIAL duplicates that can otherwise remain hidden forever as unpublished duplicates.
+    try:
+        import sqlite3 as _sqlite3
+
+        _rconn = _sqlite3.connect("news_queue.db")
+        try:
+            _rcur = _rconn.cursor()
+
+            _pending_publish_row = _rcur.execute(
+                """
+                SELECT COUNT(*)
+                FROM news
+                WHERE IFNULL(is_published,0) = 0
+                  AND seller_decision = 'publish'
+                """
+            ).fetchone()
+            pending_publish = int((_pending_publish_row or [0])[0] or 0)
+
+            if pending_publish == 0:
+                _candidate_rows = _rcur.execute(
+                    """
+                    SELECT
+                        n.id,
+                        n.link,
+                        n.content_hash,
+                        n.seller_decision,
+                        IFNULL(n.seller_relevance_score,0) AS rel,
+                        IFNULL(n.actionability_score,0) AS act,
+                        IFNULL(n.created_at,'') AS created_at
+                    FROM news n
+                    WHERE IFNULL(n.is_published,0) = 0
+                      AND lower(IFNULL(n.source,'')) LIKE 'official%'
+                      AND IFNULL(n.seller_relevance_score,0) >= 5
+                      AND IFNULL(n.actionability_score,0) >= 5
+                      AND IFNULL(n.seller_decision,'') = 'duplicate'
+                    ORDER BY
+                        IFNULL(n.actionability_score,0) DESC,
+                        IFNULL(n.seller_relevance_score,0) DESC,
+                        datetime(n.created_at) DESC,
+                        n.id DESC
+                    """
+                ).fetchall()
+
+                restored_rows = []
+                for _row in (_candidate_rows or []):
+                    row_id = int(_row[0])
+                    link = _row[1] or ""
+                    content_hash = _row[2] or ""
+                    current_decision = (_row[3] or "").strip().lower()
+                    rel = int(_row[4] or 0)
+                    act = int(_row[5] or 0)
+                    row_created_at = _row[6] or ""
+
+                    _canon_row = _rcur.execute(
+                        """
+                        SELECT id, IFNULL(is_published,0), IFNULL(seller_decision,'')
+                        FROM news
+                        WHERE (
+                            (? != '' AND link = ?)
+                            OR (? != '' AND content_hash = ?)
+                        )
+                          AND id != ?
+                        ORDER BY datetime(created_at) DESC, id DESC
+                        LIMIT 1
+                        """,
+                        (link, link, content_hash, content_hash, row_id),
+                    ).fetchone()
+                    canonical_id = int(_canon_row[0]) if _canon_row else None
+                    canonical_published = int((_canon_row[1] if _canon_row else 0) or 0)
+                    canonical_decision = ((_canon_row[2] if _canon_row else "") or "").strip().lower()
+
+                    _published_today_row = _rcur.execute(
+                        """
+                        SELECT COUNT(*)
+                        FROM news
+                        WHERE IFNULL(is_published,0) = 1
+                          AND seller_decision = 'publish'
+                          AND lower(IFNULL(source,'')) LIKE 'official%'
+                          AND (
+                            (? != '' AND link = ?)
+                            OR (? != '' AND content_hash = ?)
+                          )
+                          AND datetime(created_at) >= datetime('now','localtime','start of day')
+                        """,
+                        (link, link, content_hash, content_hash),
+                    ).fetchone()
+                    published_today_equivalent = int((_published_today_row or [0])[0] or 0)
+
+                    if published_today_equivalent > 0:
+                        logger.info(
+                            "official duplicate restore skip id=%s canonical_id=%s canonical_published=%s canonical_decision=%s reason=already_published_today",
+                            row_id,
+                            canonical_id,
+                            canonical_published,
+                            canonical_decision,
+                        )
+                        continue
+
+                    target_decision = "publish" if rel >= 5 and act >= 5 else "digest"
+                    _rcur.execute(
+                        """
+                        UPDATE news
+                        SET
+                            seller_decision = ?,
+                            created_at = CASE WHEN ? = 'publish' THEN CURRENT_TIMESTAMP ELSE created_at END,
+                            reason_tags = CASE
+                                WHEN COALESCE(reason_tags,'') LIKE '%official_duplicate_restored%' THEN COALESCE(reason_tags,'')
+                                ELSE COALESCE(reason_tags,'') || ' | official_duplicate_restored'
+                            END
+                        WHERE id = ?
+                          AND IFNULL(is_published,0) = 0
+                        """,
+                        (target_decision, target_decision, row_id),
+                    )
+                    restored_rows.append(
+                        {
+                            "id": row_id,
+                            "from_decision": current_decision,
+                            "to_decision": target_decision,
+                            "canonical_id": canonical_id,
+                            "canonical_published": canonical_published,
+                            "canonical_decision": canonical_decision,
+                            "created_at": row_created_at,
+                        }
+                    )
+                    if target_decision == "publish":
+                        break
+
+                if restored_rows:
+                    _rconn.commit()
+                logger.info("official duplicate restore restored_rows=%s", restored_rows)
+        finally:
+            _rconn.close()
+    except Exception as e:
+        logger.warning("official duplicate restore failed: %s", e)
 
     pending = get_pending_news(30)
     logger.info("pending loaded=%s", len(pending))

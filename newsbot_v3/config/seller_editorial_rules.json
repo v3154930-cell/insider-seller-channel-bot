@@ -1,0 +1,49 @@
+{
+  "version": 1,
+  "topic_taxonomy": [
+    "commission_tariff",
+    "logistics_storage",
+    "returns_disputes",
+    "documents_certification",
+    "marking_chestny_znak",
+    "legal_tax_regulatory",
+    "platform_law",
+    "api_cabinet",
+    "cards_content",
+    "ads_promotion",
+    "finance_payments",
+    "marketplace_banking_fintech",
+    "analytics_market",
+    "corporate_pr",
+    "low_value_background"
+  ],
+  "importance_rules": {
+    "red": [
+      "direct seller action with deadline",
+      "commission or tariff changes",
+      "logistics/storage/returns rules change",
+      "documents/certification/marking obligations",
+      "tax/legal/regulatory deadlines",
+      "cabinet/api/process changes with account/card/blocking/fines risk"
+    ],
+    "yellow": [
+      "service changes with possible seller impact",
+      "finance/payment/banking changes affecting seller operations",
+      "category-specific operational changes",
+      "analytics with practical signals"
+    ],
+    "blue": [
+      "corporate ownership/stake deals",
+      "pr/interviews/strategy without seller action",
+      "generic market background news",
+      "no direct seller action"
+    ]
+  },
+  "policy": {
+    "red_requires_direct_action": true,
+    "corporate_pr_default": "blue_or_weak_yellow",
+    "generic_stake_deal_without_action": "blue",
+    "no_universal_margin_advice_without_cost_change": true,
+    "unclear_action_phrase": "прямых действий пока нет"
+  }
+}

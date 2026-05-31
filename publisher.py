@@ -207,7 +207,7 @@ def clean_outgoing_text(text: str) -> str:
 
     return text.strip()
 
-def send_message(token, channel_id, text, add_helper_button=False, full_article_news_id=None, add_full_article_button=False):
+def send_message(token, channel_id, text, add_helper_button=False, full_article_news_id=None, add_full_article_button=False, button=None):
     token = str(token or "").strip()
     channel_id = normalize_channel_id(channel_id)
     text = text or ""
@@ -243,7 +243,16 @@ def send_message(token, channel_id, text, add_helper_button=False, full_article_
 
     buttons = []
 
-    if add_full_article_button and full_article_news_id:
+    if button and isinstance(button, dict):
+        b_type = str(button.get("type") or "").strip().lower()
+        b_text = str(button.get("text") or "").strip()
+        if b_type == "link" and b_text and str(button.get("url") or "").strip():
+            buttons.append([{
+                "type": "link",
+                "text": b_text,
+                "url": str(button.get("url")).strip()
+            }])
+    if add_full_article_button and full_article_news_id and not buttons:
         buttons.append([
             {
                 "type": "callback",

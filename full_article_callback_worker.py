@@ -161,7 +161,7 @@ def clean_full_text(text):
 
 
 def build_full_article_message(row):
-    news_id, title, raw_text, link, source = row
+    news_id, title, raw_text, link, source, _max_message_id = row
 
     title = clean_full_text(title)
     body = clean_full_text(raw_text)
@@ -196,7 +196,7 @@ def get_article(news_id):
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, title, raw_text, link, source
+        SELECT id, title, raw_text, link, source, max_message_id
         FROM news
         WHERE id = ?
         """,
@@ -262,32 +262,93 @@ def mark_expanded(news_id):
     conn.close()
 
 
+def _seller_helper_keyboard():
+    helper_bot_url = os.getenv("SELLER_HELPER_BOT_URL", "").strip()
+    if not helper_bot_url:
+        return None, False
+    return [
+        {
+            "type": "inline_keyboard",
+            "payload": {
+                "buttons": [
+                    [
+                        {
+                            "type": "link",
+                            "text": "📊 Рассчитать комиссии и маржу",
+                            "url": helper_bot_url,
+                        }
+                    ]
+                ]
+            },
+        }
+    ], True
+
+
 def edit_message_to_full_article(mid, text):
     # MAX edit message endpoint.
     # The API expects message_id in query params.
+    attachments, cta_present = _seller_helper_keyboard()
     payload = {
         "text": text,
         "format": "html",
-        "attachments": []
+        "attachments": attachments or []
     }
-    return api_put(
+    result = api_put(
         "/messages",
         params={"message_id": mid},
         payload=payload,
     )
+    return result, cta_present
 
 
-def expand_full_article(news_id, callback_id=""):
+def get_callback_message_id(callback):
+    if not isinstance(callback, dict):
+        return ""
+    message = callback.get("message")
+    if isinstance(message, dict):
+        for key in ("message_id", "id"):
+            if message.get(key):
+                return str(message.get(key))
+    for key in ("message_id", "msg_id"):
+        if callback.get(key):
+            return str(callback.get(key))
+    return ""
+
+
+def get_callback_chat_id(callback):
+    if not isinstance(callback, dict):
+        return ""
+    message = callback.get("message")
+    if isinstance(message, dict):
+        for key in ("chat_id", "recipient_chat_id"):
+            if message.get(key):
+                return str(message.get(key))
+    for key in ("chat_id", "recipient_chat_id"):
+        if callback.get(key):
+            return str(callback.get(key))
+    return ""
+
+
+def send_visible_full_article(chat_id, text):
+    payload = {
+        "text": text,
+        "format": "html",
+    }
+    attachments, _ = _seller_helper_keyboard()
+    if attachments:
+        payload["attachments"] = attachments
+    return api_post("/messages", params={"chat_id": chat_id}, payload=payload)
+
+
+def expand_full_article(news_id, callback_id="", callback_message_id="", callback_chat_id=""):
     row = get_article(news_id)
     if not row:
         answer_callback(callback_id, "Не нашёл полный текст этой новости.")
         return False
 
-    mid = get_max_message_id(news_id)
-    if not mid:
-        answer_callback(callback_id, "Не найден ID исходного сообщения. Попробуйте для новых постов.")
-        logger.warning("No max_message_id for news_id=%s", news_id)
-        return False
+    mid = get_max_message_id(news_id) or (callback_message_id or "").strip()
+    logger.info("full_article_original_mid=%s", mid or "none")
+    logger.info("degraded_separate_message=false")
 
     if already_expanded(news_id):
         increment_click(news_id)
@@ -295,12 +356,35 @@ def expand_full_article(news_id, callback_id=""):
         return True
 
     message = build_full_article_message(row)
+    if mid:
+        logger.info("full_article_edit_attempt_started=true")
+        try:
+            _, cta_present = edit_message_to_full_article(mid, message)
+            mark_expanded(news_id)
+            answer_callback(callback_id, "Открыл полный текст в посте.")
+            logger.info("full_article_send_mode=edit_original")
+            logger.info("full_article_send_status=ok")
+            logger.info("seller_helper_cta_present=%s", str(cta_present).lower())
+            logger.info("Full article expanded in original message. news_id=%s mid=%s", news_id, mid)
+            return True
+        except Exception as e:
+            logger.exception("full_article_send_status=error err=%s", e)
+            logger.info("full_article_send_mode=edit_original")
+            logger.info("seller_helper_cta_present=false")
 
-    edit_message_to_full_article(mid, message)
-    mark_expanded(news_id)
-    answer_callback(callback_id, "Открыл полный текст в посте.")
-    logger.info("Full article expanded in original message. news_id=%s mid=%s", news_id, mid)
-    return True
+    logger.info("degraded_separate_message=true")
+    logger.info("full_article_send_mode=degraded_separate_message")
+    logger.info("reason=no_original_message_id")
+    if callback_chat_id:
+        send_visible_full_article(callback_chat_id, message)
+        mark_expanded(news_id)
+        logger.info("full_article_send_status=ok")
+        answer_callback(callback_id, "Опубликовал полный текст отдельным сообщением.")
+    else:
+        logger.info("full_article_send_status=error")
+        answer_callback(callback_id, "Не найден ID исходного сообщения.")
+    logger.warning("No editable max_message_id for news_id=%s", news_id)
+    return False
 
 
 def handle_update(update):
@@ -321,7 +405,9 @@ def handle_update(update):
 
     news_id = int(m.group(1))
     logger.info("Full article callback received. news_id=%s callback_id=%s", news_id, callback_id)
-    expand_full_article(news_id, callback_id)
+    callback_mid = get_callback_message_id(callback)
+    callback_chat_id = get_callback_chat_id(callback)
+    expand_full_article(news_id, callback_id, callback_mid, callback_chat_id)
 
 
 def poll_loop():

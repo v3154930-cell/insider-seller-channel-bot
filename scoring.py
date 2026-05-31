@@ -55,7 +55,12 @@ KEYWORD_PATTERNS = {
     'bankruptcy': ['банкрот', 'ликвидация', 'закрыт', 'убыток', 'долг', 'дефолт'],
     'restriction': ['блокировка', 'бан', 'ограничение', 'приостановка', 'запрет', 'удаление'],
     'marketplace': ['маркетплейс', 'озон', 'wildberries', 'wb', 'яндекс маркет', 'мегамаркет', 'ozon', 'aliexpress'],
-    'seller_impact': ['изменение правил', 'повышение тарифа', 'снижение', 'новое правило', 'комиссия'],
+    'seller_impact': [
+        'изменение правил', 'повышение тарифа', 'снижение', 'новое правило', 'комиссия',
+        'нестандартн', 'негабарит', 'тяжел', 'тяжёл', 'кластер',
+        'рекомендац', 'ставк', 'реклам', 'кабинет продавца',
+        'истори платеж', 'история платеж', 'платеж', 'оплат'
+    ],
     'deal': ['сделка', 'приобретение', 'покупка', 'продажа', 'инвестиция', 'миллиард', 'миллион'],
     'important_sale': ['акция', 'скидка', 'распродажа', 'спецпредложение', 'промокод', 'бонус', 'кешбэк'],
     'logistics': ['логистика', 'доставка', 'склад', 'фулфилмент', 'транспорт'],
@@ -166,6 +171,11 @@ NOISE_PATTERNS = [
     r'updated:',
 ]
 
+MARKETPLACE_CONTEXT = [
+    'маркетплейс', 'ozon', 'озон', 'wildberries', 'wb', 'вайлдберриз',
+    'яндекс маркет', 'seller', 'селлер', 'продавц', 'кабинет продавца'
+]
+
 def calculate_score(title: str, description: str, category: str = 'general', source: str | None = None) -> Tuple[int, str, List[str]]:
     """Рассчитывает score, priority bucket и reason tags для новости"""
     text = f"{title} {description}".lower()
@@ -208,8 +218,17 @@ def is_noise(title: str, description: str) -> bool:
     """Проверяет, является ли новость шумом"""
     text = f"{title} {description}".lower()
     
+    has_marketplace_context = any(k in text for k in MARKETPLACE_CONTEXT)
     for pattern in NOISE_PATTERNS:
         if re.search(pattern, text, re.IGNORECASE):
+            # keep marketplace-operational content even if a generic noise token appears
+            if has_marketplace_context and any(
+                s in text for s in [
+                    'тариф', 'комисси', 'логист', 'реклам', 'ставк', 'кабинет',
+                    'платеж', 'оплат', 'оферт', 'услови', 'возврат'
+                ]
+            ):
+                continue
             return True
     
     return False

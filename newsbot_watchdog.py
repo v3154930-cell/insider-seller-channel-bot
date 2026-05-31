@@ -251,6 +251,16 @@ def send_to_admin(text):
         timeout=20,
     )
     if resp.status_code >= 300:
+        if resp.status_code == 429:
+            # MAX rate limit: token/env are valid, but API temporarily refuses messages.
+            # Do not crash watchdog cron with traceback; log/return structured result.
+            return {
+                "ok": False,
+                "rate_limited": True,
+                "status_code": resp.status_code,
+                "response": resp.text[:500],
+            }
+
         raise RuntimeError(f"MAX API error {resp.status_code}: {resp.text[:500]}")
     return resp.json()
 

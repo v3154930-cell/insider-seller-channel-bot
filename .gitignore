@@ -18,3 +18,25 @@ _quarantine*/
 *-info
 data/*.db*
 news_queue.db*
+
+# Runtime / generated audio digest artifacts
+audio_digest/salute/*.mp3
+audio_digest/salute/*.wav
+audio_digest/scripts/audio_digest_script_*.txt
+audio_digest/scripts/*.before_cleaner
+data/audio_digest_markers/
+
+# Local backups and archives
+_archive_*/
+_cleanup_backup_*/
+backups/
+*.bak_*
+*.before_*
+crontab_before_*.txt
+
+# Accidental shell fragments
+assert
+from
+
+# Local recovery snapshots, keep on disk only
+docs/code_snapshots/

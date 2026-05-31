@@ -195,6 +195,39 @@ def compute_content_hash(title: str, link: str) -> str:
     normalized = f"{title.strip().lower()}|{link.strip().lower()}"
     return hashlib.sha256(normalized.encode('utf-8')).hexdigest()[:16]
 
+def get_existing_news_status(link: str, content_hash: str) -> Dict[str, str]:
+    """
+    Returns current DB lifecycle status for diagnostics.
+    Status:
+      - new
+      - existing_unpublished
+      - existing_published
+      - duplicate
+    """
+    if not link and not content_hash:
+        return {"status": "new", "canonical_id": "", "canonical_published": "0"}
+
+    row = _fetch_one(
+        '''SELECT id, IFNULL(is_published,0), IFNULL(seller_decision,'')
+           FROM news
+           WHERE (link = ? AND ? != '')
+              OR (content_hash = ? AND ? != '')
+           ORDER BY id DESC
+           LIMIT 1''',
+        (link or "", link or "", content_hash or "", content_hash or "")
+    )
+    if not row:
+        return {"status": "new", "canonical_id": "", "canonical_published": "0"}
+
+    row_id = str(row[0])
+    is_published = int(row[1] or 0)
+    seller_decision = str(row[2] or "")
+    if seller_decision == "duplicate":
+        return {"status": "duplicate", "canonical_id": row_id, "canonical_published": str(is_published)}
+    if is_published == 1:
+        return {"status": "existing_published", "canonical_id": row_id, "canonical_published": "1"}
+    return {"status": "existing_unpublished", "canonical_id": row_id, "canonical_published": "0"}
+
 def add_to_queue(title: str, raw_text: str, link: str, source: str, 
                  importance: str = "normal", category: str = "general") -> bool:
     content_hash = compute_content_hash(title, link)
@@ -232,9 +265,9 @@ def _add_to_queue_batch_raw(items: List[Dict], seller_decisions: Dict[str, Dict]
             content_hash = compute_content_hash(item.get('title', ''), link)
             
             seller_info = seller_decisions.get(link, {})
-            seller_decision = seller_info.get('decision', 'pending')
-            seller_relevance = seller_info.get('seller_relevance_score', 0)
-            actionability = seller_info.get('actionability_score', 0)
+            seller_decision = seller_info.get('decision', item.get('seller_decision', 'pending'))
+            seller_relevance = seller_info.get('seller_relevance_score', item.get('seller_relevance_score', 0))
+            actionability = seller_info.get('actionability_score', item.get('actionability_score', 0))
             
             # seller_decision is a routing decision, not a delivery fact.
             # A news item must be marked as published only after successful sending to MAX.
@@ -255,11 +288,7 @@ def _add_to_queue_batch_raw(items: List[Dict], seller_decisions: Dict[str, Dict]
                      category = excluded.category,
                      score = excluded.score,
                      priority_bucket = excluded.priority_bucket,
-reason_tags = excluded.reason_tags,
-created_at = CASE
-    WHEN news.is_published = 0 AND excluded.seller_decision = 'publish' THEN CURRENT_TIMESTAMP
-    ELSE news.created_at
-END,
+                     reason_tags = excluded.reason_tags,
                       created_at = CASE
                           WHEN news.is_published = 1 THEN news.created_at
                           ELSE CURRENT_TIMESTAMP
@@ -267,6 +296,10 @@ END,
                       seller_decision = CASE
                           WHEN news.is_published = 1 THEN news.seller_decision
                           WHEN news.seller_decision = 'publish' THEN news.seller_decision
+                          WHEN news.seller_decision = 'duplicate'
+                               AND excluded.seller_relevance_score >= 5
+                               AND excluded.actionability_score >= 5
+                               THEN excluded.seller_decision
                           ELSE excluded.seller_decision
                       END,
                       seller_relevance_score = CASE
@@ -324,8 +357,8 @@ def get_pending_news(count: int = 2) -> List[Dict]:
         '''SELECT id, title, raw_text, processed_text, link, source, importance, category, 
                   score, priority_bucket, reason_tags, created_at
            FROM news
-           WHERE is_published = 0
-         AND seller_decision = 'publish'
+           WHERE IFNULL(is_published, 0) = 0
+             AND IFNULL(seller_decision, '') = 'publish'
            ORDER BY 
                CASE importance 
                    WHEN 'critical' THEN 1 
@@ -745,19 +778,26 @@ def add_to_queue_batch(items, seller_decisions=None, *args, **kwargs):
                 if not link:
                     continue
 
-                try:
-                    result = evaluate_item(item)
-                except Exception as e:
+                preset_decision = str(item.get("seller_decision") or "").strip()
+                if preset_decision in ("publish", "digest", "ignore", "duplicate"):
+                    decision = preset_decision
+                    rel = int(item.get("seller_relevance_score") or 0)
+                    act = int(item.get("actionability_score") or 0)
+                    reason = "collector_routing"
+                else:
                     try:
-                        logger.warning("seller_filter_live evaluate failed link=%s err=%s", link[:120], e)
-                    except Exception:
-                        pass
-                    continue
+                        result = evaluate_item(item)
+                    except Exception as e:
+                        try:
+                            logger.warning("seller_filter_live evaluate failed link=%s err=%s", link[:120], e)
+                        except Exception:
+                            pass
+                        continue
 
-                decision = (result.get("decision") or "digest").strip()
-                rel = int(result.get("seller_relevance_score") or 0)
-                act = int(result.get("actionability_score") or 0)
-                reason = str(result.get("reason") or "seller_filter_live").strip()
+                    decision = (result.get("decision") or "digest").strip()
+                    rel = int(result.get("seller_relevance_score") or 0)
+                    act = int(result.get("actionability_score") or 0)
+                    reason = str(result.get("reason") or "seller_filter_live").strip()
 
                 decisions[link] = {
                     "decision": decision,
@@ -807,4 +847,3 @@ def add_to_queue_batch(items, seller_decisions=None, *args, **kwargs):
             pass
 
     return _add_to_queue_batch_raw(items, seller_decisions=decisions, *args, **kwargs)
-

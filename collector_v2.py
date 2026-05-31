@@ -4,7 +4,7 @@ import logging
 from typing import Dict, Any, List
 from seller_filter import evaluate_item as evaluate_seller_filter_item
 
-from db import init_db, add_to_queue_batch, get_all_pending_count
+from db import init_db, add_to_queue_batch, get_all_pending_count, get_existing_news_status, compute_content_hash
 from parsers import get_all_news
 from telegram_json_sources_v2 import fetch_telegram_json_sources
 from scoring import score_items
@@ -140,6 +140,7 @@ def main():
 
     selected = []
     seller_decisions = {}
+    selected_diagnostics = []
 
     for item in news:
         score = seller_score(item)
@@ -155,6 +156,8 @@ def main():
             q_item = normalize_item_for_queue(item)
             q_item["seller_score"] = score
             link = q_item.get("link") or ""
+            content_hash = compute_content_hash(q_item.get("title", ""), link)
+            existing_status = get_existing_news_status(link, content_hash)
 
             if score >= 3:
                 decision = "publish"
@@ -162,6 +165,12 @@ def main():
             else:
                 decision = "digest"
                 actionability = max(1, min(score, 10))
+
+            q_item["seller_decision"] = decision
+            q_item["seller_relevance_score"] = min(score, 10)
+            q_item["actionability_score"] = actionability
+            q_item["existing_db_status"] = existing_status.get("status", "new")
+            q_item["canonical_published"] = existing_status.get("canonical_published", "0")
 
             if link:
                 seller_decisions[link] = {
@@ -172,6 +181,21 @@ def main():
                 }
 
             selected.append(q_item)
+            selected_diagnostics.append(
+                "existing DB status title=%r source=%r decision=%s rel=%s act=%s status=%s canonical_published=%s link=%r" % (
+                    str(q_item.get("title", ""))[:120],
+                    str(q_item.get("source", ""))[:60],
+                    decision,
+                    q_item["seller_relevance_score"],
+                    q_item["actionability_score"],
+                    q_item["existing_db_status"],
+                    q_item["canonical_published"],
+                    str(link)[:180],
+                )
+            )
+
+    for line in selected_diagnostics[:80]:
+        logger.info(line)
 
     logger.info("Selected seller-relevant news: %s", len(selected))
     logger.info(
@@ -189,6 +213,36 @@ def main():
 
     pending = get_all_pending_count()
     logger.info("Pending after collector v2: %s", pending)
+    try:
+        from db import _fetch_one
+        pending_publish_row = _fetch_one(
+            "SELECT COUNT(*) FROM news WHERE IFNULL(is_published,0)=0 AND seller_decision='publish'"
+        )
+        pending_publish_after_write = int((pending_publish_row or [0])[0] or 0)
+    except Exception as e:
+        logger.warning("Failed to read pending_publish_after_write: %s", e)
+        pending_publish_after_write = -1
+
+    publish_selected = [
+        i for i in selected
+        if i.get("seller_decision") == "publish"
+        and not (
+            i.get("existing_db_status") in ("existing_published", "duplicate")
+            and str(i.get("canonical_published", "0")) == "1"
+        )
+    ]
+    logger.info("publish_selected_fresh=%s total_publish_selected=%s", len(publish_selected), sum(1 for i in selected if i.get("seller_decision") == "publish"))
+    if publish_selected and pending_publish_after_write == 0:
+        examples = [
+            f"{idx+1}) title={str(i.get('title',''))[:120]!r} link={str(i.get('link',''))[:120]!r}"
+            for idx, i in enumerate(publish_selected[:5])
+        ]
+        logger.error(
+            "INVARIANT_BROKEN publish decisions > 0 but pending_publish_after_write == 0; publish_selected=%s inserted=%s examples=%s",
+            len(publish_selected),
+            inserted,
+            " | ".join(examples),
+        )
 
     logger.info("=== Collector v2 finished ===")
 

@@ -1,0 +1,9 @@
+rss_sources:
+  - name: Example RSS
+    url: https://example.com/rss
+telegram_sources:
+  - name: Example TG JSON
+    url: https://example.com/tg.json
+official_json_sources:
+  - name: Official WB JSON
+    url: https://example.com/official_wb.json

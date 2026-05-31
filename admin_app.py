@@ -128,7 +128,7 @@ def key_expiry_info(prefix):
         else:
             result["status"] = "активен"
 
-    except Exception:
+    except (TypeError, ValueError):
         pass
 
     return result

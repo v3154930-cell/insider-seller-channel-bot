@@ -11,6 +11,7 @@ import pytz
 from db import init_db, _fetch_all, mark_news_in_digest
 from publisher_v2 import normalize_channel_id
 from publisher_imports import send_message
+from digest_text_cleaner import clean_digest_item_text
 
 logging.basicConfig(
     level=logging.INFO,
@@ -386,15 +387,28 @@ def clean_digest_title(title: str, raw_text: str = "", limit: int = 78) -> str:
 
     return t or "Без заголовка"
 
-def format_item_line(item: Dict[str, Any]) -> str:
+def format_item_line(item: Dict[str, Any], idx: int) -> str:
     source = item.get("source") or "Источник"
     title = clean_digest_title(item.get("title") or "", item.get("raw_text") or "")
+    _, cleaned_body = clean_digest_item_text(title, item.get("raw_text") or "")
+    detail = cleaned_body
+    if detail:
+        parts = re.split(r"(?<=[.!?])\s+", detail)
+        detail = " ".join([p.strip() for p in parts[:2] if p.strip()])
+    if len(detail) > 260:
+        cut = detail[:260]
+        sp = cut.rfind(" ")
+        detail = (cut[:sp] if sp > 180 else cut).rstrip(" ,;:-") + "…"
+    if not detail:
+        detail = seller_check_line(item)
     link = item.get("link") or ""
-    check = seller_check_line(item)
 
+    line = f"{idx}. <b>{title}</b>"
+    line += f"\n   Почему важно: {detail}"
+    line += f"\n   Источник: {source}"
     if link:
-        return f"• <b>[{source}]</b> {title}\n  {check}\n  {link}"
-    return f"• <b>[{source}]</b> {title}\n  {check}"
+        line += f"\n   Ссылка: {link}"
+    return line
 
 
 
@@ -499,8 +513,8 @@ def build_morning_digest() -> str:
     lines.append("")
 
     if main_items:
-        for item in main_items:
-            lines.append(format_item_line(item))
+        for idx, item in enumerate(main_items, start=1):
+            lines.append(format_item_line(item, idx))
             lines.append("")
     else:
         lines.append("За ночь новых важных материалов для селлеров не обнаружено.")
@@ -516,8 +530,8 @@ def build_morning_digest() -> str:
     if offer_items:
         lines.append("<b>⚠️ Сигналы по условиям / тарифам / выплатам</b>")
         lines.append("")
-        for item in offer_items[:3]:
-            lines.append(format_item_line(item))
+        for idx, item in enumerate(offer_items[:3], start=1):
+            lines.append(format_item_line(item, idx))
             lines.append("")
     else:
         lines.append("<b>✅ По условиям работы маркетплейсов</b>")
@@ -552,8 +566,8 @@ def build_evening_digest() -> str:
     lines.append("")
 
     if offer_items:
-        for item in offer_items[:7]:
-            lines.append(format_item_line(item))
+        for idx, item in enumerate(offer_items[:7], start=1):
+            lines.append(format_item_line(item, idx))
             lines.append("")
     else:
         lines.append("За день явных изменений условий работы маркетплейсов в базе v2 не обнаружено.")
@@ -563,8 +577,9 @@ def build_evening_digest() -> str:
     if other_items:
         lines.append("<b>📰 Другие важные новости для селлеров</b>")
         lines.append("")
-        for item in other_items[:5]:
-            lines.append(format_item_line(item))
+        start_idx = len(offer_items[:7]) + 1
+        for idx, item in enumerate(other_items[:5], start=start_idx):
+            lines.append(format_item_line(item, idx))
             lines.append("")
 
     lines.append("---")

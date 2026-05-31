@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="LOGISTICS placeholder">
+  <defs><linearGradient id="bg" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stop-color="#f4f7fb"/><stop offset="100%" stop-color="#e6edf7"/></linearGradient></defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <rect x="80" y="80" width="1040" height="470" rx="28" fill="#ffffff" stroke="#c9d6ea" stroke-width="4"/>
+  <circle cx="220" cy="195" r="42" fill="#8ba7d6" opacity="0.25"/>
+  <circle cx="980" cy="435" r="36" fill="#8ba7d6" opacity="0.2"/>
+  <text x="600" y="280" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="42" fill="#1f365c" font-weight="700">NEWSBOT V3 PLACEHOLDER</text>
+  <text x="600" y="345" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="46" fill="#224b84" font-weight="700">LOGISTICS</text>
+  <text x="600" y="410" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-size="24" fill="#56719a">Neutral non-branded visual</text>
+</svg>

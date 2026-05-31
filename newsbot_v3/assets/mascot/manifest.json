@@ -1,0 +1,156 @@
+{
+  "base": {
+    "key": "base",
+    "source_filename": "01_Friendly_Approved_Style_Base.png",
+    "source_path": "source/01_Friendly_Approved_Style_Base.png",
+    "web_path": "web/01_Friendly_Approved_Style_Base.png",
+    "mobile_path": "mobile/01_Friendly_Approved_Style_Base.png",
+    "intended_use": "fallback/default news mascot",
+    "title_ru": "Базовый маскот",
+    "title_en": "Base mascot"
+  },
+  "good_news": {
+    "key": "good_news",
+    "source_filename": "02_Happy_Good_News.png",
+    "source_path": "source/02_Happy_Good_News.png",
+    "web_path": "web/02_Happy_Good_News.png",
+    "mobile_path": "mobile/02_Happy_Good_News.png",
+    "intended_use": "positive marketplace news",
+    "title_ru": "Хорошие новости",
+    "title_en": "Good news"
+  },
+  "important": {
+    "key": "important",
+    "source_filename": "03_Alert_Urgent_Important.png",
+    "source_path": "source/03_Alert_Urgent_Important.png",
+    "web_path": "web/03_Alert_Urgent_Important.png",
+    "mobile_path": "mobile/03_Alert_Urgent_Important.png",
+    "intended_use": "urgent/important seller updates",
+    "title_ru": "Важные обновления",
+    "title_en": "Important"
+  },
+  "analytics": {
+    "key": "analytics",
+    "source_filename": "04_Thoughtful_Analytics.png",
+    "source_path": "source/04_Thoughtful_Analytics.png",
+    "web_path": "web/04_Thoughtful_Analytics.png",
+    "mobile_path": "mobile/04_Thoughtful_Analytics.png",
+    "intended_use": "analytics/statistics/market observations",
+    "title_ru": "Аналитика",
+    "title_en": "Analytics"
+  },
+  "law_taxes": {
+    "key": "law_taxes",
+    "source_filename": "05_Serious_Law_Taxes.png",
+    "source_path": "source/05_Serious_Law_Taxes.png",
+    "web_path": "web/05_Serious_Law_Taxes.png",
+    "mobile_path": "mobile/05_Serious_Law_Taxes.png",
+    "intended_use": "law, taxes, court, regulation",
+    "title_ru": "Закон и налоги",
+    "title_en": "Law and taxes"
+  },
+  "compliance": {
+    "key": "compliance",
+    "source_filename": "06_Confident_Marking_Compliance.png",
+    "source_path": "source/06_Confident_Marking_Compliance.png",
+    "web_path": "web/06_Confident_Marking_Compliance.png",
+    "mobile_path": "mobile/06_Confident_Marking_Compliance.png",
+    "intended_use": "marking, certification, compliance, rules",
+    "title_ru": "Комплаенс и маркировка",
+    "title_en": "Compliance"
+  },
+  "money_profit": {
+    "key": "money_profit",
+    "source_filename": "07_Optimistic_Money_Profit.png",
+    "source_path": "source/07_Optimistic_Money_Profit.png",
+    "web_path": "web/07_Optimistic_Money_Profit.png",
+    "mobile_path": "mobile/07_Optimistic_Money_Profit.png",
+    "intended_use": "money, payouts, profit, economics",
+    "title_ru": "Деньги и прибыль",
+    "title_en": "Money and profit"
+  },
+  "morning_digest": {
+    "key": "morning_digest",
+    "source_filename": "08_Fresh_Morning_Digest.png",
+    "source_path": "source/08_Fresh_Morning_Digest.png",
+    "web_path": "web/08_Fresh_Morning_Digest.png",
+    "mobile_path": "mobile/08_Fresh_Morning_Digest.png",
+    "intended_use": "morning digest",
+    "title_ru": "Утренний дайджест",
+    "title_en": "Morning digest"
+  },
+  "evening_digest": {
+    "key": "evening_digest",
+    "source_filename": "09_Calm_Evening_Digest.png",
+    "source_path": "source/09_Calm_Evening_Digest.png",
+    "web_path": "web/09_Calm_Evening_Digest.png",
+    "mobile_path": "mobile/09_Calm_Evening_Digest.png",
+    "intended_use": "evening/final digest",
+    "title_ru": "Вечерний дайджест",
+    "title_en": "Evening digest"
+  },
+  "interesting": {
+    "key": "interesting",
+    "source_filename": "10_Curious_Interesting_News.png",
+    "source_path": "source/10_Curious_Interesting_News.png",
+    "web_path": "web/10_Curious_Interesting_News.png",
+    "mobile_path": "mobile/10_Curious_Interesting_News.png",
+    "intended_use": "interesting/light news",
+    "title_ru": "Интересные новости",
+    "title_en": "Interesting"
+  },
+  "audio_digest": {
+    "key": "audio_digest",
+    "source_filename": "11_Energetic_Audio_Digest.png",
+    "source_path": "source/11_Energetic_Audio_Digest.png",
+    "web_path": "web/11_Energetic_Audio_Digest.png",
+    "mobile_path": "mobile/11_Energetic_Audio_Digest.png",
+    "intended_use": "audio digest",
+    "title_ru": "Аудиодайджест",
+    "title_en": "Audio digest"
+  },
+  "base_friendly": {
+    "key": "base_friendly",
+    "source_filename": "01_Friendly_Approved_Style_Base.png",
+    "source_path": "source/01_Friendly_Approved_Style_Base.png",
+    "web_path": "web/01_Friendly_Approved_Style_Base.png",
+    "mobile_path": "mobile/01_Friendly_Approved_Style_Base.png",
+    "intended_use": "fallback/default news mascot",
+    "title_ru": "Базовый маскот",
+    "title_en": "Base mascot",
+    "alias_of": "base"
+  },
+  "urgent_important": {
+    "key": "urgent_important",
+    "source_filename": "03_Alert_Urgent_Important.png",
+    "source_path": "source/03_Alert_Urgent_Important.png",
+    "web_path": "web/03_Alert_Urgent_Important.png",
+    "mobile_path": "mobile/03_Alert_Urgent_Important.png",
+    "intended_use": "urgent/important seller updates",
+    "title_ru": "Важные обновления",
+    "title_en": "Important",
+    "alias_of": "important"
+  },
+  "marking_compliance": {
+    "key": "marking_compliance",
+    "source_filename": "06_Confident_Marking_Compliance.png",
+    "source_path": "source/06_Confident_Marking_Compliance.png",
+    "web_path": "web/06_Confident_Marking_Compliance.png",
+    "mobile_path": "mobile/06_Confident_Marking_Compliance.png",
+    "intended_use": "marking, certification, compliance, rules",
+    "title_ru": "Комплаенс и маркировка",
+    "title_en": "Compliance",
+    "alias_of": "compliance"
+  },
+  "interesting_news": {
+    "key": "interesting_news",
+    "source_filename": "10_Curious_Interesting_News.png",
+    "source_path": "source/10_Curious_Interesting_News.png",
+    "web_path": "web/10_Curious_Interesting_News.png",
+    "mobile_path": "mobile/10_Curious_Interesting_News.png",
+    "intended_use": "interesting/light news",
+    "title_ru": "Интересные новости",
+    "title_en": "Interesting",
+    "alias_of": "interesting"
+  }
+}
