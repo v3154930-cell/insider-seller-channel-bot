@@ -47,7 +47,7 @@ def select_mascot_kind(post_kind: str = "regular", tags: list[str] | None = None
         return "money_profit"
     if _tagged(hay, ("interesting", "интерес")):
         return "interesting_news"
-    return "base_friendly"
+    return "interesting_news"
 
 
 def select_mascot_asset(**kwargs) -> tuple[str, str]:
