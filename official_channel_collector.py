@@ -424,7 +424,7 @@ def main():
     json_seen, json_inserted = collect_official_json_sources(cur)
     total_seen += json_seen
     total_inserted += json_inserted
-
+    conn.commit()
 
     # If GitHub official JSON is available, it is the primary source.
     # Direct Telegram web parsing is only a fallback, because the VPS often gets
