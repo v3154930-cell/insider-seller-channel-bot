@@ -95,6 +95,9 @@ STRICT_OFFICIAL_KEEP_WORDS = [
     "тарифы",
     "комиссии",
     "стоимость услуг",
+    "ставка",
+    "ставки",
+    "вознаграждение",
     "новый api-метод",
     "новый метод",
     "изменения в методах",
@@ -111,10 +114,13 @@ STRICT_OFFICIAL_KEEP_WORDS = [
 def is_publishable_official_signal_text(text: str) -> bool:
     t = norm(text)
 
+    if any(w in t for w in STRICT_OFFICIAL_KEEP_WORDS):
+        return True
+
     if any(w in t for w in STRICT_OFFICIAL_DROP_WORDS):
         return False
 
-    return any(w in t for w in STRICT_OFFICIAL_KEEP_WORDS)
+    return False
 
 
 def norm(text: str) -> str:

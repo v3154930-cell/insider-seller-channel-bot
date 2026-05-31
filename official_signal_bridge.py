@@ -269,6 +269,9 @@ def main():
 
         item = build_item(group)
         rel, act = score_for(group)
+        item["seller_decision"] = decision
+        item["seller_relevance_score"] = rel
+        item["actionability_score"] = act
 
         items.append(item)
         decisions[item["link"]] = {
