@@ -1,141 +1,181 @@
 #!/usr/bin/env python3
-import json
-import os
-import shlex
+import re
 import sqlite3
-import subprocess
 from datetime import datetime
 
-DB_PATH = os.getenv("NEWSBOT_DB_PATH", "/opt/newsbot_v2/news_queue.db")
-CANARY_CMD_TEMPLATE = os.getenv(
-    "NEWSBOT_V3_CANARY_CMD_TEMPLATE",
-    "PYTHONPATH=/opt/newsbot_v2/newsbot_v3:/opt/newsbot_v2 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/v3_controlled_send_canary.py --v2-id {id}",
+DB = "/opt/newsbot_v2/news_queue.db"
+
+MARKETPLACE_WORDS = (
+    "ozon", "wildberries", "wb", "яндекс", "yandex",
+    "маркетплейс", "маркет"
 )
 
+SELLER_IMPACT_WORDS = (
+    "тариф", "тарифы", "комисси", "логист", "доставк",
+    "оферт", "выплат", "штраф", "блокиров", "маркиров",
+    "честный знак", "api", "апи", "fbo", "fbs", "realfbs",
+    "возврат", "хранение", "склад", "карточк", "пвз",
+    "заказ", "остатк", "киз", "приостановк", "витрин",
+    "кабинет другого продавца"
+)
 
-def parse_kv_output(text):
-    out = {}
-    for line in str(text or "").splitlines():
-        if "=" not in line:
-            continue
-        k, v = line.split("=", 1)
-        out[k.strip()] = v.strip()
-    return out
+BAD_REGULAR_WORDS = (
+    "вебинар", "круглый стол", "зарегистр", "обучение",
+    "курс", "эфир", "подкаст", "поздравляем",
+    "день предпринимателя", "розыгрыш", "конкурс",
+    "sellerden", "генератор видео", "tiktok", "тик ток",
+    "все, что вы могли пропустить", "всё, что вы могли пропустить",
+    "#дайджест_ozon", "дайджест ozon"
+)
 
+def norm(value):
+    return (value or "").lower().replace("ё", "е")
 
-def run_canary_for_id(v2_id):
-    cmd = CANARY_CMD_TEMPLATE.format(id=str(v2_id))
-    proc = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-    combined = (proc.stdout or "") + ("\n" + proc.stderr if proc.stderr else "")
-    parsed = parse_kv_output(combined)
-    parsed["_exit_code"] = proc.returncode
-    parsed["_raw_output"] = combined.strip()
-    return parsed
+def has_any(text, words):
+    return any(w in text for w in words)
 
-
-def canary_is_eligible(diag):
-    status = str(diag.get("V3_CONTROLLED_SEND_STATUS") or "")
-    selected = str(diag.get("selected_candidate_id") or "")
-    eligible_count = int(str(diag.get("v2_publish_candidates_eligible") or "0") or "0")
-    return status == "DRY_RUN" and selected not in ("", "None", "null") and eligible_count > 0
-
-
-def demotion_for_canary(diag):
-    reason = str(diag.get("canary_editorial_gate_reason") or "")
-    send_status = str(diag.get("send_status") or "")
-    selection_reason = str(diag.get("selection_reason") or "")
-    merged = " ".join([reason, send_status, selection_reason]).lower()
-
-    if "native_ad_leadgen" in merged:
-        return "ignore", "native_ad_leadgen"
-    if "duplicate" in merged or "already_published" in merged or "v2_already_published" in merged:
-        return "ignore", "duplicate_or_canonical_published"
-    if "low_score" in merged or "no_unpublished_v2_publish_candidate" in merged:
-        return "digest", "low_score_or_nonactionable"
-    if "digest" in merged:
-        return "digest", "digest_candidate"
-    return "digest", "noneligible_by_canary"
-
-
-def run_preflight(conn):
-    rows = conn.execute(
-        """SELECT id FROM news WHERE COALESCE(is_published,0)=0 AND seller_decision='publish' ORDER BY id ASC"""
-    ).fetchall()
-    pending_ids = [int(r[0]) for r in rows]
-
-    eligible_before = 0
-    demoted_ids = []
-    demotion_reasons = {}
-    check_errors = {}
-
-    conn.execute("BEGIN")
-    try:
-        for news_id in pending_ids:
-            try:
-                diag = run_canary_for_id(news_id)
-                if int(diag.get("_exit_code", 1)) != 0:
-                    check_errors[str(news_id)] = f"canary_exit_nonzero:{diag.get('_exit_code')}"
-                    continue
-                if canary_is_eligible(diag):
-                    eligible_before += 1
-                    continue
-                target_decision, reason = demotion_for_canary(diag)
-                before = conn.total_changes
-                conn.execute(
-                    "UPDATE news SET seller_decision=? WHERE id=? AND seller_decision='publish' AND COALESCE(is_published,0)=0",
-                    (target_decision, news_id),
-                )
-                if conn.total_changes > before:
-                    demoted_ids.append(news_id)
-                    demotion_reasons[str(news_id)] = reason
-            except Exception as e:
-                check_errors[str(news_id)] = f"canary_check_failed:{e}"
-        conn.commit()
-    except Exception:
-        conn.rollback()
-        raise
-
-    raw_after = int(
-        conn.execute("SELECT COUNT(*) FROM news WHERE COALESCE(is_published,0)=0 AND seller_decision='publish'").fetchone()[0]
+def row_text(row):
+    return norm(
+        str(row["title"] or "") + " " +
+        str(row["raw_text"] or "") + " " +
+        str(row["source"] or "")
     )
 
-    eligible_after = 0
-    remaining = conn.execute(
-        "SELECT id FROM news WHERE COALESCE(is_published,0)=0 AND seller_decision='publish' ORDER BY id ASC"
-    ).fetchall()
-    for r in remaining:
-        news_id = int(r[0])
-        try:
-            diag = run_canary_for_id(news_id)
-            if int(diag.get("_exit_code", 1)) != 0:
-                check_errors.setdefault(str(news_id), f"canary_exit_nonzero:{diag.get('_exit_code')}")
-                continue
-            if canary_is_eligible(diag):
-                eligible_after += 1
-        except Exception as e:
-            check_errors.setdefault(str(news_id), f"canary_check_failed:{e}")
+def topic_key(text):
+    rules = (
+        ("gosuslugi_complaints", ("госуслуг", "жалоб")),
+        ("ozon_realfbs_partners", ("ozon", "realfbs", "экспресс")),
+        ("ozon_delivery_external", ("ozon доставка", "без выхода на витрину")),
+        ("wb_payout_offer", ("wildberries", "приостанов", "выплат")),
+        ("wb_payout_offer", ("wb", "приостанов", "выплат")),
+        ("wb_marked_cards_transfer", ("wb", "перенос", "карточ", "маркиров")),
+        ("wb_marked_cards_transfer", ("wildberries", "перенос", "карточ", "маркиров")),
+        ("wb_foreign_commission", ("wb", "иностран", "комисси")),
+        ("wb_foreign_commission", ("wildberries", "иностран", "комисси")),
+        ("wb_foreign_commission", ("китайск", "селлер", "комисси")),
+    )
+    for key, words in rules:
+        if all(w in text for w in words):
+            return key
 
-    return {
-        "raw_pending_publish_count_before": len(pending_ids),
-        "canary_checked_pending_ids": pending_ids,
-        "v3_eligible_pending_publish_count_before": eligible_before,
-        "demoted_noneligible_publish_count": len(demoted_ids),
-        "demoted_ids": demoted_ids,
-        "demotion_reasons": demotion_reasons,
-        "raw_pending_publish_count_after": raw_after,
-        "v3_eligible_pending_publish_count_after": eligible_after,
-        "check_errors": check_errors,
-    }
-
+    cleaned = re.sub(r"[^a-zа-я0-9 ]+", " ", text)
+    tokens = [x for x in cleaned.split() if len(x) >= 4]
+    return "kw:" + "_".join(tokens[:12])
 
 def main():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    out = run_preflight(conn)
-    out["db_path"] = DB_PATH
-    out["ts"] = datetime.now().isoformat(timespec="seconds")
-    print(json.dumps(out, ensure_ascii=False))
+    con = sqlite3.connect(DB)
+    con.row_factory = sqlite3.Row
 
+    published_topics = set()
+    for r in con.execute("""
+        SELECT title, raw_text, source
+        FROM news
+        WHERE COALESCE(is_published,0)=1
+           OR COALESCE(max_message_id,'')!=''
+    """):
+        published_topics.add(topic_key(row_text(r)))
+
+    rows = con.execute("""
+        SELECT id, title, raw_text, source, seller_decision,
+               seller_relevance_score, actionability_score,
+               is_published, max_message_id
+        FROM news
+        WHERE COALESCE(is_published,0)=0
+          AND COALESCE(max_message_id,'')=''
+          AND COALESCE(seller_decision,'') IN ('publish','digest','pending','ignore','')
+        ORDER BY id DESC
+        LIMIT 800
+    """).fetchall()
+
+    seen_current_publish = set()
+    updated = 0
+    promoted = 0
+    demoted = 0
+    duplicates = 0
+
+    for r in rows:
+        rid = int(r["id"])
+        old_decision = r["seller_decision"] or "pending"
+        old_rel = int(r["seller_relevance_score"] or 0)
+        old_act = int(r["actionability_score"] or 0)
+
+        text = row_text(r)
+        key = topic_key(text)
+
+        is_marketplace = has_any(text, MARKETPLACE_WORDS)
+        is_impact = has_any(text, SELLER_IMPACT_WORDS)
+        is_bad = has_any(text, BAD_REGULAR_WORDS)
+
+        decision = old_decision
+        rel = old_rel
+        act = old_act
+        reason = "keep"
+
+        if is_bad:
+            decision = "digest"
+            reason = "bad_regular_to_digest"
+        elif key in published_topics:
+            decision = "digest"
+            reason = "semantic_duplicate_published"
+            duplicates += 1
+        elif is_marketplace and is_impact:
+            decision = "publish"
+            rel = max(rel, 4)
+            act = max(act, 4)
+            reason = "seller_impact_to_publish"
+        elif old_decision == "publish":
+            decision = "digest"
+            reason = "weak_publish_to_digest"
+
+        if decision == "publish":
+            if key in seen_current_publish:
+                decision = "digest"
+                reason = "semantic_duplicate_pending"
+                duplicates += 1
+            else:
+                seen_current_publish.add(key)
+
+        if decision != old_decision or rel != old_rel or act != old_act:
+            if decision == "publish" and old_decision != "publish":
+                promoted += 1
+            if old_decision == "publish" and decision != "publish":
+                demoted += 1
+
+            con.execute("""
+                UPDATE news
+                SET seller_decision=?,
+                    seller_relevance_score=?,
+                    actionability_score=?,
+                    reason_tags=TRIM(COALESCE(reason_tags,'') || ' | queue_prepare_v3_single_gateway:' || ?)
+                WHERE id=?
+                  AND COALESCE(is_published,0)=0
+                  AND COALESCE(max_message_id,'')=''
+            """, (decision, rel, act, reason, rid))
+            updated += 1
+
+    con.commit()
+
+    print("QUEUE_PREPARE_V3_SINGLE_GATEWAY_STATUS=OK")
+    print("checked=", len(rows))
+    print("updated=", updated)
+    print("promoted_to_publish=", promoted)
+    print("demoted_from_publish=", demoted)
+    print("duplicates_demoted=", duplicates)
+
+    print("=== publish pending ===")
+    for r in con.execute("""
+        SELECT id, source, seller_decision, seller_relevance_score,
+               actionability_score, substr(title,1,240) AS title
+        FROM news
+        WHERE seller_decision='publish'
+          AND COALESCE(is_published,0)=0
+          AND COALESCE(max_message_id,'')=''
+        ORDER BY seller_relevance_score DESC, actionability_score DESC, id DESC
+        LIMIT 30
+    """):
+        print(dict(r))
+
+    con.close()
 
 if __name__ == "__main__":
     main()

@@ -330,11 +330,16 @@ def main() -> int:
     real_send = args.execute
     target_channel = os.getenv("NEWSBOT_V3_PRODUCTION_CHANNEL_ID", "")
     visual_assets_enabled = visuals_enabled()
-    mascot_asset_kind, mascot_asset_selected = select_mascot_asset(post_kind="regular")
+    item = candidate["item"] if candidate else None
+    mascot_asset_kind, mascot_asset_selected = select_mascot_asset(
+        post_kind="regular",
+        tags=(candidate or {}).get("topic_tags") or [],
+        title=getattr(item, "title", ""),
+        text=getattr(item, "text", ""),
+        source=getattr(item, "source_name", ""),
+    )
     mascot_attachment_planned = visual_assets_enabled and bool(mascot_asset_selected)
     mascot_send_status = "dry_run" if (not real_send and mascot_attachment_planned) else "skipped"
-
-    item = candidate["item"] if candidate else None
     source_image_present = bool(
         getattr(item, "image_url", None)
         or getattr(item, "media_url", None)
