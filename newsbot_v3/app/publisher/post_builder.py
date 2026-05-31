@@ -285,7 +285,7 @@ def should_add_read_more_button(item: NewsItem, post_text: str) -> ReadMoreDecis
 def build_post(item: NewsItem, seller_result: dict | None = None) -> dict:
     seller_result = seller_result or {}
     title = _sanitize_regular_post_field(item.title)
-    summary_source = seller_result.get("summary") or getattr(item, "summary", "") or (getattr(item, "text", "") or "")[:420]
+    summary_source = seller_result.get("summary") or getattr(item, "summary", "") or (getattr(item, "text", "") or "")[:900]
     summary = _strip_title_prefix(_sanitize_regular_post_field(summary_source), title)
     conclusion_source = seller_result.get("seller_conclusion") or getattr(item, "seller_conclusion", "") or "Что важно селлеру: проверьте, затрагивает ли изменение ваши товары и процессы."
     conclusion = _strip_title_prefix(_sanitize_regular_post_field(conclusion_source), title)
@@ -1002,7 +1002,7 @@ def _tl4_ozon_realfbs_body(item):
     )
 
     if len(raw) > 900:
-        raw = raw[:900].rsplit(" ", 1)[0].rstrip(" .,;:") + "..."
+        raw = raw[:1600].rsplit(" ", 1)[0].rstrip(" .,;:") + "..."
 
     return raw
 

@@ -25,10 +25,10 @@ class LLMRouter:
 
         if mode == "primary_ok_mock":
             fallback = conservative_fallback(text, scoring)
-            return {**base, "llm_provider_used": primary, "llm_attempt": 1, "llm_status": "ok", "llm_fallback_used": False, "summary": (text[:240] or fallback["summary"]), "seller_conclusion": "Проверьте применимость для вашего магазина только если изменение затрагивает ваши процессы."}
+            return {**base, "llm_provider_used": primary, "llm_attempt": 1, "llm_status": "ok", "llm_fallback_used": False, "summary": (text[:700] or fallback["summary"]), "seller_conclusion": "Проверьте применимость для вашего магазина только если изменение затрагивает ваши процессы."}
         if mode == "primary_fail_fallback_ok_mock":
             fallback = conservative_fallback(text, scoring)
-            return {**base, "llm_provider_used": "gigachat", "llm_attempt": 2, "llm_status": "fallback", "llm_fallback_used": True, "summary": (text[:220] or fallback["summary"]), "seller_conclusion": "Приоритизируйте проверку только для затронутых категорий и операций."}
+            return {**base, "llm_provider_used": "gigachat", "llm_attempt": 2, "llm_status": "fallback", "llm_fallback_used": True, "summary": (text[:700] or fallback["summary"]), "seller_conclusion": "Приоритизируйте проверку только для затронутых категорий и операций."}
         if mode == "all_fail_template_fallback_mock":
             return {**base, "llm_provider_used": "template", "llm_attempt": 2, "llm_status": "error", "llm_fallback_used": True, **conservative_fallback(text, scoring)}
 

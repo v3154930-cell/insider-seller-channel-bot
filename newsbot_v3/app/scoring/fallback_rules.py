@@ -2,7 +2,7 @@ from __future__ import annotations
 
 
 def _summary(text: str) -> str:
-    return (text or "").strip()[:280] or "Нет подробного текста."
+    return (text or "").strip()[:700] or "Нет подробного текста."
 
 
 def _conclusion(is_low_value: bool, actionability_score: int) -> str:
