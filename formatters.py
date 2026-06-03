@@ -354,26 +354,47 @@ def get_insight(title, description):
     else:
         return 'Важная информация для селлеров'
 
+def _split_llm_processed_text(body):
+    s = _fmt_clean_spaces(body)
+    if not s:
+        return "", ""
+    if not (s.startswith("Кратко:") or "Вывод для селлера:" in s):
+        return "", ""
+    summary = ""
+    meaning = ""
+    if "Вывод для селлера:" in s:
+        left, right = s.split("Вывод для селлера:", 1)
+        summary = left.strip()
+        meaning = right.strip()
+    else:
+        summary = s.strip()
+    if summary.startswith("Кратко:"):
+        summary = summary[len("Кратко:"):].strip()
+    return summary, meaning
+
 def format_news(item, enhanced_text=None):
     """Форматирует новость — HTML для MAX. Fallback без LLM."""
     source = item.get('source', 'Новость')
     title = item.get('title', '') or ''
     body = (
-        item.get('raw_text')
-        or item.get('description')
-        or item.get('processed_text')
+        item.get('processed_text')
         or item.get('short_text')
+        or item.get('raw_text')
+        or item.get('description')
         or ''
     )
 
     clean_title = clean_post_title(title, body)
+    llm_summary, llm_meaning = _split_llm_processed_text(body)
 
     if enhanced_text:
         short_text = _fmt_clean_spaces(enhanced_text)
+    elif llm_summary:
+        short_text = llm_summary
     else:
         short_text = safe_post_summary(title, body, limit=430)
 
-    meaning = seller_meaning_by_topic(title, body, source)
+    meaning = llm_meaning or seller_meaning_by_topic(title, body, source)
 
     # Ссылку НЕ добавляем здесь: publisher_v2 потом вызывает append_source_line().
     post = f"""<b>📦 {source}</b>
