@@ -347,6 +347,91 @@ def mark_duplicate_as_digest(news_id, duplicate_of):
 
 # END PUBLISHER SEMANTIC DEDUP V1
 
+
+def send_message_with_optional_mascot(token, channel_id, text, item, full_article_available=False):
+    """
+    Try to send regular publisher post with mascot image.
+    If image upload/send fails, fall back to old text-only send_message().
+    """
+    try:
+        from publisher import clean_outgoing_text
+        from newsbot_v3.app.max_client import MaxClient
+        from newsbot_v3.app.visual.mascot_assets import select_mascot_asset, visuals_enabled
+    except Exception as exc:
+        logger.warning("Mascot imports failed for id=%s: %s; fallback to text", item.get("id"), exc)
+        return send_message(
+            token,
+            channel_id,
+            text,
+            full_article_news_id=item.get("id"),
+            add_full_article_button=full_article_available,
+        )
+
+    mascot_kind = ""
+    mascot_path = ""
+
+    try:
+        mascot_kind, mascot_path = select_mascot_asset(
+            post_kind="regular",
+            tags=[],
+            title=str(item.get("title") or ""),
+            text=str(item.get("processed_text") or item.get("raw_text") or ""),
+            source=str(item.get("source") or ""),
+        )
+    except Exception as exc:
+        logger.warning("Mascot select failed for id=%s: %s", item.get("id"), exc)
+
+    if visuals_enabled() and mascot_path:
+        try:
+            client = MaxClient(
+                mock_mode=False,
+                real_send_enabled=True,
+                target_channel=str(channel_id),
+                test_channel_id=str(channel_id),
+                allow_production_channel=True,
+                production_channel_id=str(channel_id),
+                max_token=str(token),
+            )
+
+            clean_text = clean_outgoing_text(text)
+
+            if full_article_available:
+                resp = client.send_text_with_callback_button_and_image(
+                    str(channel_id),
+                    clean_text,
+                    "📖 Читать полностью",
+                    f"full_article:{item.get('id')}",
+                    mascot_path,
+                )
+            else:
+                resp = client.send_text_with_image(str(channel_id), clean_text, mascot_path)
+
+            logger.info(
+                "Mascot image sent for id=%s kind=%s path=%s",
+                item.get("id"),
+                mascot_kind,
+                mascot_path,
+            )
+            return resp
+
+        except Exception as exc:
+            logger.warning(
+                "Mascot image send failed for id=%s kind=%s path=%s: %s; fallback to text",
+                item.get("id"),
+                mascot_kind,
+                mascot_path,
+                exc,
+            )
+
+    return send_message(
+        token,
+        channel_id,
+        text,
+        full_article_news_id=item.get("id"),
+        add_full_article_button=full_article_available,
+    )
+
+
 def main():
     token = os.getenv("MAX_BOT_TOKEN")
     channel_id = normalize_channel_id(os.getenv("CHANNEL_ID"))
@@ -778,7 +863,7 @@ def main():
 
         if enhanced:
             logger.info("Final LLM enhance ok for id=%s", item.get("id"))
-            text = enhanced
+            text = format_news(item, enhanced_text=enhanced)
         else:
             logger.warning("Final LLM enhance failed for id=%s, using template fallback", item.get("id"))
             text = format_news(item)
@@ -788,24 +873,12 @@ def main():
         full_article_available = has_full_article(item)
 
 
-        ok = send_message(
-
-
+        ok = send_message_with_optional_mascot(
             token,
-
-
             channel_id,
-
-
             text,
-
-
-            full_article_news_id=item.get("id"),
-
-
-            add_full_article_button=full_article_available,
-
-
+            item,
+            full_article_available=full_article_available,
         )
 
         if ok:

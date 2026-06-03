@@ -354,6 +354,30 @@ def get_insight(title, description):
     else:
         return 'Важная информация для селлеров'
 
+
+def _traffic_light_for_item(item):
+    try:
+        rel = int(item.get("seller_relevance_score") or 0)
+    except Exception:
+        rel = 0
+    try:
+        act = int(item.get("actionability_score") or 0)
+    except Exception:
+        act = 0
+    try:
+        score = int(item.get("score") or 0)
+    except Exception:
+        score = 0
+
+    best = max(rel, act, score // 10 if score > 10 else score)
+
+    if best >= 7:
+        return "🔴"
+    if best >= 3:
+        return "🟡"
+    return "🔵"
+
+
 def _split_llm_processed_text(body):
     s = _fmt_clean_spaces(body)
     if not s:
@@ -376,6 +400,7 @@ def format_news(item, enhanced_text=None):
     """Форматирует новость — HTML для MAX. Fallback без LLM."""
     source = item.get('source', 'Новость')
     title = item.get('title', '') or ''
+    traffic_light = _traffic_light_for_item(item)
     body = (
         item.get('processed_text')
         or item.get('short_text')
@@ -397,7 +422,7 @@ def format_news(item, enhanced_text=None):
     meaning = llm_meaning or seller_meaning_by_topic(title, body, source)
 
     # Ссылку НЕ добавляем здесь: publisher_v2 потом вызывает append_source_line().
-    post = f"""<b>📦 {source}</b>
+    post = f"""<b>{traffic_light} 📦 {source}</b>
 
 <b>{clean_title}</b>
 
