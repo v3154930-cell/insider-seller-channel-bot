@@ -412,14 +412,21 @@ def format_news(item, enhanced_text=None):
     clean_title = clean_post_title(title, body)
     llm_summary, llm_meaning = _split_llm_processed_text(body)
 
+    enhanced_summary = ""
+    enhanced_meaning = ""
     if enhanced_text:
-        short_text = _fmt_clean_spaces(enhanced_text)
+        enhanced_summary, enhanced_meaning = _split_llm_processed_text(enhanced_text)
+        if not enhanced_summary:
+            enhanced_summary = _fmt_clean_spaces(enhanced_text)
+
+    if enhanced_summary:
+        short_text = enhanced_summary
     elif llm_summary:
         short_text = llm_summary
     else:
         short_text = safe_post_summary(title, body, limit=430)
 
-    meaning = llm_meaning or seller_meaning_by_topic(title, body, source)
+    meaning = enhanced_meaning or llm_meaning or seller_meaning_by_topic(title, body, source)
 
     # Ссылку НЕ добавляем здесь: publisher_v2 потом вызывает append_source_line().
     post = f"""<b>{traffic_light} 📦 {source}</b>
