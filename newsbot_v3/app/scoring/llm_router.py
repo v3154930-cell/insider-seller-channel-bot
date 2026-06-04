@@ -11,6 +11,11 @@ from urllib import error, request
 from .fallback_rules import conservative_fallback
 from .prompts import get_prompt
 
+try:
+    from app.editor.editor_profile import EDITOR_PROFILE_V1
+except Exception:
+    EDITOR_PROFILE_V1 = ""
+
 
 @dataclass(frozen=True)
 class ProviderResponse:
@@ -49,6 +54,8 @@ class LLMRouter:
         primary = self.env.get("LLM_PROVIDER", self.DEFAULT_PROVIDER).strip() or self.DEFAULT_PROVIDER
         enabled = mode != "disabled"
         prompt = get_prompt(prompt_type)
+        if EDITOR_PROFILE_V1:
+            prompt = f"{EDITOR_PROFILE_V1}\n\nБазовая инструкция задачи:\n{prompt}"
 
         base = {
             "llm_enabled": enabled,
