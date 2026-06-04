@@ -396,6 +396,39 @@ def _split_llm_processed_text(body):
         summary = summary[len("Кратко:"):].strip()
     return summary, meaning
 
+
+def _strip_llm_technical_noise(text: str) -> str:
+    text = str(text or "")
+
+    # Remove diagnostics that must never be visible in channel posts.
+    text = re.sub(r"(?im)^\s*LLM\s*:\s*.*$", "", text)
+    text = re.sub(r"(?im)^\s*LLM\s+error\s*:\s*.*$", "", text)
+    text = re.sub(r"(?im)^\s*llm_[a-z_]+\s*=\s*.*$", "", text)
+    text = re.sub(r"(?im)^\s*(production_mutation|queue_mutation|live_send)\s*=\s*.*$", "", text)
+    text = re.sub(r"(?im)^\s*(summary_mode|prompt_type)\s*=\s*.*$", "", text)
+
+    # Remove leaked pseudo-technical status fragments inside paragraphs.
+    text = re.sub(r"\s*LLM:\s*status=[^.\n]*(?:\.|$)", " ", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s*LLM error:\s*[^.\n]*(?:\.|$)", " ", text, flags=re.IGNORECASE)
+
+    # Remove accidental markdown/code fences from LLM.
+    text = text.replace("```json", "").replace("```", "")
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _clean_visible_llm_text(text: str) -> str:
+    text = _strip_llm_technical_noise(text)
+    text = re.sub(r"(?i)</?b>", "", text)
+    text = re.sub(r"(?i)</?strong>", "", text)
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"(?i)</?[^>]+>", "", text)
+    text = text.replace("🎯", "").strip()
+    text = re.sub(r"^\s*(Кратко|Summary)\s*[:：]\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
 def format_news(item, enhanced_text=None):
     """Форматирует новость — HTML для MAX. Fallback без LLM."""
     source = item.get('source', 'Новость')
@@ -415,9 +448,12 @@ def format_news(item, enhanced_text=None):
     enhanced_summary = ""
     enhanced_meaning = ""
     if enhanced_text:
+        enhanced_text = _strip_llm_technical_noise(enhanced_text)
         enhanced_summary, enhanced_meaning = _split_llm_processed_text(enhanced_text)
+        enhanced_summary = _clean_visible_llm_text(enhanced_summary)
+        enhanced_meaning = _clean_visible_llm_text(enhanced_meaning)
         if not enhanced_summary:
-            enhanced_summary = _fmt_clean_spaces(enhanced_text)
+            enhanced_summary = _clean_visible_llm_text(enhanced_text)
 
     if enhanced_summary:
         short_text = enhanced_summary
@@ -426,7 +462,9 @@ def format_news(item, enhanced_text=None):
     else:
         short_text = safe_post_summary(title, body, limit=430)
 
+    short_text = _clean_visible_llm_text(short_text)
     meaning = enhanced_meaning or llm_meaning or seller_meaning_by_topic(title, body, source)
+    meaning = _clean_visible_llm_text(meaning)
 
     # Ссылку НЕ добавляем здесь: publisher_v2 потом вызывает append_source_line().
     post = f"""<b>{traffic_light} 📦 {source}</b>
