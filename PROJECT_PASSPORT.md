@@ -8,6 +8,11 @@ Current priority: keep NEWSBOT regular publishing alive and stable. Broad news f
 
 ## Key recent commits
 
+- 66d245a Improve audio digest script readability and pauses
+- 09ec8a6 Avoid duplicate seller conclusions in LLM posts
+- a627f38 Save final LLM enhanced text for published posts
+- f764d3f Restore traffic light and mascot images for LLM posts
+- 59e1918 Enable LLM preprocessing for publisher posts
 - 251bf66 Reduce regular post truncation
 - 9862a80 Use neutral regular mascot by default
 - 59ff64a Use broad queue gateway and regular visual context
@@ -53,6 +58,16 @@ Post text and truncation files:
 - newsbot_v3/app/publisher/post_builder.py
 - newsbot_v3/app/scoring/llm_router.py
 - newsbot_v3/app/scoring/fallback_rules.py
+- publisher_v2.py
+- formatters.py
+
+Current LLM contour:
+- Primary provider: GitHub Models.
+- Fallback provider: GigaChat-2.
+- Final fallback: template/rules.
+- LLM output is saved to processed_text when final enhancement succeeds.
+- LLM posts must still pass through format_news so traffic light, structure and mascot wrapper are preserved.
+- Do not print duplicate seller conclusions: enhanced text should be split into summary and seller conclusion.
 
 Recent fix: regular post summary/fallback became longer, raw fallback expanded to about 1600 characters.
 
@@ -66,6 +81,23 @@ Do not commit runtime/API cache files unless explicitly requested:
 - logs
 - runtime DB files
 - temporary backups
+
+## 2026-06-04 session update
+
+Completed:
+- Enabled real LLM preprocessing/enhancement for regular posts.
+- Confirmed GitHub Models works as primary LLM provider.
+- Confirmed GigaChat-2 works as fallback provider.
+- Confirmed template/rules fallback remains as third contour.
+- Restored traffic light and mascot images for LLM posts.
+- Saved final LLM enhanced text into processed_text for observability.
+- Fixed duplicate seller conclusion in LLM posts.
+- Improved audio digest scenario readability: preserved paragraph pauses for SaluteSpeech, cleaned several repeated/glued fragments, improved script readability.
+
+Watch:
+- LLM quality in real posts for 1–2 days before broad prompt changes.
+- Audio digest MP3 quality on next generated output.
+- Do not commit generated audio/script artifacts unless explicitly requested.
 
 ## Safe checks
 
@@ -81,9 +113,10 @@ cd /opt/newsbot_v2 && date && tail -n 180 logs/v3_publish.log && sqlite3 /opt/ne
 ## Next development tasks
 
 1. Normalize GitHub repository state for Codex.
-2. Diagnose whether LLM actually works or mostly falls back to rules.
-3. Improve audio digest as a separate product without touching regular publishing.
+2. Observe LLM post quality on real publications: hallucinations, weak seller conclusions, wrong traffic light, bad mascot routing.
+3. Continue audio digest polish as a separate product: listen to new MP3 output, remove remaining glued phrases, improve spoken style.
 4. Clean duplicates and native ads with narrow rules only.
+5. Add lightweight observability for LLM provider usage: GitHub vs GigaChat vs template fallback.
 
 ## Rules for future work
 
