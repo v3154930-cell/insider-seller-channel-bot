@@ -348,6 +348,32 @@ def mark_duplicate_as_digest(news_id, duplicate_of):
 # END PUBLISHER SEMANTIC DEDUP V1
 
 
+
+def save_processed_text_if_empty(news_id, processed_text):
+    if not news_id or not processed_text:
+        return False
+    try:
+        import sqlite3
+        con = sqlite3.connect("news_queue.db")
+        try:
+            cur = con.execute(
+                """
+                UPDATE news
+                SET processed_text = ?
+                WHERE id = ?
+                  AND (processed_text IS NULL OR TRIM(processed_text) = '')
+                """,
+                (str(processed_text).strip(), news_id),
+            )
+            con.commit()
+            return cur.rowcount > 0
+        finally:
+            con.close()
+    except Exception as exc:
+        logger.warning("save_processed_text_if_empty failed for id=%s: %s", news_id, exc)
+        return False
+
+
 def send_message_with_optional_mascot(token, channel_id, text, item, full_article_available=False):
     """
     Try to send regular publisher post with mascot image.
@@ -863,6 +889,9 @@ def main():
 
         if enhanced:
             logger.info("Final LLM enhance ok for id=%s", item.get("id"))
+            saved_processed = save_processed_text_if_empty(item.get("id"), enhanced)
+            if saved_processed:
+                logger.info("Final LLM enhanced text saved to processed_text for id=%s", item.get("id"))
             text = format_news(item, enhanced_text=enhanced)
         else:
             logger.warning("Final LLM enhance failed for id=%s, using template fallback", item.get("id"))
