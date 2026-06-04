@@ -1104,7 +1104,9 @@ def build_human_audio_digest(items, intro=None, item_min_chars=120, item_max_cha
 
         if title:
             # TTS needs a hard sentence boundary between title and body.
-            title = re.sub(r"\\s+", " ", title).strip()
+            title = re.sub(r"\s+", " ", title).strip()
+            if len(title) > 140:
+                title = safe_audio_text(title, max_chars=140)
             if title and not re.search(r"[.!?]$", title):
                 title = title + "."
             block_parts.append(title)
@@ -1113,11 +1115,14 @@ def build_human_audio_digest(items, intro=None, item_min_chars=120, item_max_cha
             block_parts.append(summary.rstrip(".!?") + ".")
 
         if takeaway:
-            block_parts.append(takeaway)
+            block_parts.append(takeaway.rstrip(".!?") + ".")
 
-        paragraph = " ".join(block_parts)
+        # Separate label, title, body and takeaway with paragraph breaks.
+        paragraph = "\n\n".join(block_parts)
         paragraph = re.sub(r"\bВ\s+двух\s+словах[:：]?\s*", "", paragraph, flags=re.IGNORECASE)
-        paragraph = re.sub(r"\s+", " ", paragraph).strip()
+        paragraph = re.sub(r"[ \t]+", " ", paragraph)
+        paragraph = re.sub(r" *\n *", "\n", paragraph)
+        paragraph = re.sub(r"\n{3,}", "\n\n", paragraph).strip()
         paragraph = voice_text(paragraph)
 
         if paragraph:

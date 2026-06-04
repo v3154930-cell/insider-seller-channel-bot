@@ -52,7 +52,12 @@ def get_latest_script():
 
 def trim_for_salute(text: str, limit=3900) -> str:
     text = text or ""
-    text = re.sub(r"\s+", " ", text).strip()
+
+    # Keep paragraph breaks for TTS pauses.
+    text = text.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
 
     if len(text) <= limit:
         return text
@@ -62,7 +67,7 @@ def trim_for_salute(text: str, limit=3900) -> str:
     if cut > 1000:
         text = text[:cut + 1]
 
-    return text
+    return text.strip()
 
 
 def get_access_token():

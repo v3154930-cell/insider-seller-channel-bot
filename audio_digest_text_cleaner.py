@@ -163,8 +163,53 @@ def dedupe_sentences(sentences):
     return result
 
 
+
+def fix_audio_repetitions(text: str) -> str:
+    text = text or ""
+
+    # Fix broken years like "2. 025".
+    text = re.sub(r"\b([12])\.\s*(\d{3})\b", r"\1\2", text)
+
+    # Fix broken word fragments.
+    text = re.sub(r"\bт\.\s*овар\b", "товар", text, flags=re.IGNORECASE)
+
+    # Remove exact repeated sentence-like chunks.
+    text = re.sub(
+        r"(\b[^.!?\n]{18,180}?[.!?])\s+\1",
+        r"\1",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # Remove repeated opening phrase in logistics/tariff blocks.
+    text = re.sub(
+        r"\b(По\s+подготовке\s+товара\s+к\s+вывозу[^.!?\n]{0,90}[.!?,])\s*По\s+подготовке\s+товара\s+к\s+вывозу",
+        r"\1",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    # Remove neighbouring duplicated words.
+    text = re.sub(r"\b([А-Яа-яA-Za-zЁё]{4,})\s+\1\b", r"\1", text, flags=re.IGNORECASE)
+
+    # Common glued fragments from marketplace/RSS texts.
+    text = re.sub(r"\bRВайлдберриз\b", "Рэ-вэ-бэ", text)
+    text = re.sub(r"\bRWB\b", "Рэ-вэ-бэ", text, flags=re.IGNORECASE)
+    text = re.sub(r"(сэллере)\s+(Подписчик)", r"\1. \2", text, flags=re.IGNORECASE)
+    text = re.sub(r"(считать)\s+(Замгендира)", r"\1. \2", text, flags=re.IGNORECASE)
+    text = re.sub(r"(ответственность\s+[—-]\s+на\s+сэллере)\s+(Подписчик)", r"\1. \2", text, flags=re.IGNORECASE)
+
+    # Clean ugly punctuation.
+    text = re.sub(r",\s*\.", ".", text)
+    text = re.sub(r"\.\s*,", ".", text)
+    text = re.sub(r"\s+([.,!?;:])", r"\1", text)
+
+    return text
+
+
 def clean_text(text: str) -> str:
     text = normalize_spaces(text)
+    text = fix_audio_repetitions(text)
     text = EMOJI_RE.sub("", text)
 
     # Убираем декоративные маркеры, которые в аудио не нужны.
@@ -245,6 +290,10 @@ def clean_text(text: str) -> str:
     cleaned = re.sub(r"\s+(Для селлера)", r"\n\n\1", cleaned)
     cleaned = re.sub(r"\s+(Главное —)", r"\n\n\1", cleaned)
 
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    cleaned = re.sub(r"[ \t]+", " ", cleaned).strip()
+
+    cleaned = fix_audio_repetitions(cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     cleaned = re.sub(r"[ \t]+", " ", cleaned).strip()
 
