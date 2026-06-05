@@ -1109,3 +1109,192 @@ def build_post(item, seller_result=None):  # type: ignore[override]
 
     return post
 # --- END PRODUCTION HOTFIX: preserve plain source URL contract v5 ---
+
+# --- PRODUCTION HOTFIX: V3 LLM editor contract v6 ---
+try:
+    _BUILD_POST_BEFORE_LLM_EDITOR_CONTRACT_V6 = build_post
+except NameError:
+    _BUILD_POST_BEFORE_LLM_EDITOR_CONTRACT_V6 = None
+
+
+def _v3_editor_clean_fragment_v6(text):
+    import re
+
+    text = str(text or "")
+    text = re.sub(r"(?is)<[^>]+>", "", text)
+    text = text.replace("```json", "").replace("```", "")
+    text = text.replace("🎯", "")
+
+    # Drop bridge/runtime metadata. This is not post body.
+    text = re.sub(
+        r"(?im)^\s*(Площадка|Типы сигналов|Уровни|Источник|Дата источника|source|levels|signal_types)\s*[:：].*$",
+        "",
+        text,
+    )
+
+    # Drop LLM diagnostics if ever leaked.
+    text = re.sub(
+        r"(?im)^\s*(llm_[a-z_]+|summary_mode|prompt_type|production_mutation|queue_mutation|live_send)\s*=.*$",
+        "",
+        text,
+    )
+    text = re.sub(r"(?im)^\s*LLM\s*:.*$", "", text)
+
+    # Formatter owns labels.
+    text = re.sub(r"^\s*(Кратко|Summary)\s*[:：]\s*", "", text, flags=re.IGNORECASE)
+    text = re.sub(
+        r"^\s*(Вывод для селлера|Что это значит для селлера|Seller conclusion)\s*[:：]\s*",
+        "",
+        text,
+        flags=re.IGNORECASE,
+    )
+
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r" *\n *", "\n", text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
+def _v3_editor_safe_title_v6(item, seller_result=None, old_text=""):
+    import re
+
+    seller_result = seller_result or {}
+
+    # Model title can be added later; for now this supports it if router returns it.
+    title = (
+        seller_result.get("title_suggestion")
+        or seller_result.get("title")
+        or getattr(item, "title", "")
+        or ""
+    )
+    title = _v3_editor_clean_fragment_v6(title)
+
+    if not title:
+        m = re.search(r"<b>(.*?)</b>", str(old_text or ""), flags=re.DOTALL)
+        if m:
+            title = _v3_editor_clean_fragment_v6(m.group(1))
+
+    title = re.sub(r"https?://\S+|t\.me/\S+", "", title).strip()
+    title = title.strip(" -–—|:;")
+
+    # Do NOT cut to first sentence. That was the bug.
+    limit = 150
+    if len(title) <= limit:
+        return title
+
+    cut = title[: limit + 1]
+    candidates = []
+
+    for sep in (" — ", " – ", ": ", "; ", " | ", " / "):
+        pos = cut.rfind(sep)
+        if pos >= 70:
+            candidates.append(pos)
+
+    # Prefer sentence boundary only if it does not leave a stupid stub.
+    pos = cut.rfind(". ")
+    if pos >= 95:
+        candidates.append(pos)
+
+    for sep in (", ", " "):
+        pos = cut.rfind(sep)
+        if pos >= 105:
+            candidates.append(pos)
+
+    if candidates:
+        title = cut[: max(candidates)].strip()
+    else:
+        title = cut[:limit].strip()
+
+    title = title.rstrip(" .,—-:;")
+    return title + "…"
+
+
+def _v3_editor_body_from_old_v6(old_text):
+    import re
+
+    text = str(old_text or "")
+
+    # Remove title.
+    text = re.sub(r"(?s)^\s*<b>.*?</b>\s*", "", text).strip()
+
+    # Remove old seller conclusion and source/category tail.
+    text = re.sub(r"(?s)\n*\s*Вывод для селлера:\s*.*?(?=\n\n[🔴🟠🟢🔵] |\n\nИсточник:|\n\nСсылка на источник:|\Z)", "", text)
+    text = re.sub(r"(?s)\n\n[🔴🟠🟢🔵] .*?(?=\n\nИсточник:|\n\nСсылка на источник:|\Z)", "", text)
+    text = re.sub(r"(?s)\n\nИсточник:\s*.*$", "", text)
+    text = re.sub(r"(?s)\n\nСсылка на источник:\s*https?://\S+\s*$", "", text)
+
+    return _v3_editor_clean_fragment_v6(text)
+
+
+def _v3_editor_extract_category_line_v6(post):
+    import re
+
+    text = str((post or {}).get("text") or "")
+    m = re.search(r"\n\n([🔴🟠🟢🔵] [^\n]+)", text)
+    if m:
+        return m.group(1).strip()
+
+    label = str((post or {}).get("category_label") or "").strip()
+    return label
+
+
+def _v3_editor_source_line_v6(item, post):
+    for key in ("source_url", "url", "link"):
+        try:
+            value = post.get(key) if isinstance(post, dict) else ""
+        except Exception:
+            value = ""
+        if value and str(value).startswith(("http://", "https://")):
+            return f"Ссылка на источник: {str(value).strip()}"
+
+    for attr in ("source_url", "url", "link"):
+        try:
+            value = getattr(item, attr, "")
+        except Exception:
+            value = ""
+        if value and str(value).startswith(("http://", "https://")):
+            return f"Ссылка на источник: {str(value).strip()}"
+
+    return ""
+
+
+def build_post(item, seller_result=None):  # type: ignore[override]
+    post = _BUILD_POST_BEFORE_LLM_EDITOR_CONTRACT_V6(item, seller_result)
+
+    try:
+        seller_result = seller_result or {}
+        old_text = str(post.get("text") or "")
+
+        title = _v3_editor_safe_title_v6(item, seller_result, old_text=old_text)
+
+        model_summary = _v3_editor_clean_fragment_v6(seller_result.get("summary") or "")
+        model_conclusion = _v3_editor_clean_fragment_v6(seller_result.get("seller_conclusion") or "")
+
+        body = model_summary or _v3_editor_body_from_old_v6(old_text)
+
+        if not model_conclusion:
+            model_conclusion = (
+                "Проверьте, есть ли практическое влияние на ваши товары, логистику, выплаты или маржу."
+            )
+
+        category_line = _v3_editor_extract_category_line_v6(post)
+        source_line = _v3_editor_source_line_v6(item, post)
+
+        parts = []
+        if title:
+            parts.append(f"<b>{title}</b>")
+        if body:
+            parts.append(body)
+        if model_conclusion:
+            parts.append("🎯 Что это значит для селлера:\n" + model_conclusion)
+        if category_line:
+            parts.append(category_line)
+        if source_line:
+            parts.append(source_line)
+
+        post["text"] = "\n\n".join([p for p in parts if p]).strip()
+        return post
+    except Exception:
+        return post
+# --- END PRODUCTION HOTFIX: V3 LLM editor contract v6 ---

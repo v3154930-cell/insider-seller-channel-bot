@@ -330,6 +330,7 @@ class LLMRouter:
         fallback = conservative_fallback(text, scoring)
         parsed = self._parse_llm_json(content)
 
+        title_suggestion = self._clean_text(parsed.get("title_suggestion")) if isinstance(parsed, dict) else ""
         summary = self._clean_text(parsed.get("summary")) if isinstance(parsed, dict) else ""
         conclusion = self._clean_text(parsed.get("seller_conclusion")) if isinstance(parsed, dict) else ""
 
@@ -341,6 +342,7 @@ class LLMRouter:
 
         return {
             **fallback,
+            "title_suggestion": title_suggestion,
             "summary": summary or fallback["summary"],
             "seller_conclusion": conclusion or fallback["seller_conclusion"],
         }

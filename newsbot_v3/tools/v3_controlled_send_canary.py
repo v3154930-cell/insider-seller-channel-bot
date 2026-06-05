@@ -21,6 +21,7 @@ from app.max_client import MaxClient, MaxClientGuardError, MaxClientSendError
 from app.publisher.candidate_normalizer import is_v2_row_already_published, normalize_v2_row_to_candidate
 from app.publisher.native_ad_filter import detect_native_ad_leadgen_reason
 from app.publisher.post_builder import build_post
+from app.scoring.llm_router import LLMRouter
 from app.publisher.selection_policy import dry_run_selection
 from app.publisher.quality_gate import evaluate_selection_quality_gate
 from app.publisher.cta import SELLER_HELPER_BUTTON_TEXT, SELLER_HELPER_CTA
@@ -426,7 +427,52 @@ def main() -> int:
             print(f"{k}={v}")
         return 0
 
-    post = build_post(candidate["item"])
+    seller_result = {}
+    try:
+        llm_item = candidate["item"]
+        llm_text = "\n\n".join(
+            str(x or "")
+            for x in (
+                getattr(llm_item, "title", ""),
+                getattr(llm_item, "summary", ""),
+                getattr(llm_item, "text", ""),
+                getattr(llm_item, "raw_text", ""),
+                getattr(llm_item, "processed_text", ""),
+            )
+            if str(x or "").strip()
+        ).strip()
+
+        if llm_text:
+            llm_result = LLMRouter(env=dict(os.environ)).run(
+                text=llm_text,
+                prompt_type="seller_summary",
+                scoring={},
+            )
+            result["llm_status"] = str(llm_result.get("llm_status", ""))
+            result["llm_provider_used"] = str(llm_result.get("llm_provider_used", ""))
+            result["llm_summary_mode"] = str(llm_result.get("summary_mode", ""))
+            result["llm_fallback_used"] = str(llm_result.get("llm_fallback_used", ""))
+            result["llm_error"] = str(llm_result.get("llm_error", ""))
+
+            if llm_result.get("llm_status") == "ok" and not llm_result.get("llm_fallback_used"):
+                seller_result = llm_result
+                print(
+                    "V3_LLM_EDITOR_STATUS=ok "
+                    f"id={getattr(llm_item, 'news_id', '')} "
+                    f"provider={llm_result.get('llm_provider_used', '')}"
+                )
+            else:
+                print(
+                    "V3_LLM_EDITOR_STATUS=fallback "
+                    f"id={getattr(llm_item, 'news_id', '')} "
+                    f"error={llm_result.get('llm_error', '')}"
+                )
+    except Exception as exc:
+        result["llm_status"] = "error"
+        result["llm_error"] = str(exc)
+        print(f"V3_LLM_EDITOR_STATUS=error error={exc}")
+
+    post = build_post(candidate["item"], seller_result=seller_result)
     result.update(
         {
             "quality_gate_passed": "true",
