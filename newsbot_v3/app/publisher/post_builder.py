@@ -1298,3 +1298,60 @@ def build_post(item, seller_result=None):  # type: ignore[override]
     except Exception:
         return post
 # --- END PRODUCTION HOTFIX: V3 LLM editor contract v6 ---
+
+# --- HOTFIX: restore full article callback button for V3 LLM posts ---
+_BUILD_POST_BEFORE_READ_MORE_RESTORE_V7 = build_post
+
+def _v3_read_more_full_text_v7(item):
+    import re
+
+    chunks = []
+    for attr in ("full_text", "raw_text", "text", "body", "summary"):
+        try:
+            value = getattr(item, attr, "")
+        except Exception:
+            value = ""
+        value = str(value or "").strip()
+        if value:
+            chunks.append(value)
+
+    text = "\n\n".join(chunks)
+    text = re.sub(r"https?://\S+|t\.me/\S+", "", text)
+    text = re.sub(
+        r"(?im)^\s*(Площадка|Типы сигналов|Уровни|Источник|Дата источника)\s*[:：].*$",
+        "",
+        text,
+    )
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+def _v3_read_more_news_id_v7(item):
+    for attr in ("news_id", "id", "v2_news_id"):
+        try:
+            value = getattr(item, attr, "")
+        except Exception:
+            value = ""
+        value = str(value or "").strip()
+        if value:
+            return value
+    return ""
+
+def build_post(item, seller_result=None):  # type: ignore[override]
+    post = _BUILD_POST_BEFORE_READ_MORE_RESTORE_V7(item, seller_result)
+
+    try:
+        full_text = _v3_read_more_full_text_v7(item)
+        news_id = _v3_read_more_news_id_v7(item)
+
+        if news_id and len(full_text) >= 300:
+            post["button_text"] = "Читать полностью"
+            post["callback_payload"] = f"full_article:{news_id}"
+            post["read_more_button_type"] = "callback"
+            post["read_more_button_text"] = "Читать полностью"
+            post["read_more_button_present"] = True
+            post["callback_button_used"] = True
+    except Exception:
+        return post
+
+    return post
+# --- END HOTFIX: restore full article callback button for V3 LLM posts ---
