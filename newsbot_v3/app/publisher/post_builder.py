@@ -1350,6 +1350,9 @@ def build_post(item, seller_result=None):  # type: ignore[override]
             post["read_more_button_text"] = "Читать полностью"
             post["read_more_button_present"] = True
             post["callback_button_used"] = True
+            post["read_more_needed"] = True
+            post["read_more_payload"] = post["callback_payload"]
+            post["read_more_callback_payload_present"] = True
     except Exception:
         return post
 
