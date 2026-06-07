@@ -1327,7 +1327,29 @@ def _v3_full_article_has_raw_text_v8(item):
     # Use original/source text, not LLM summary and not cleaned post text.
     # raw_text is the contract field in news_queue.db.
     raw = str(_v3_full_article_value_v8(item, "raw_text") or "").strip()
-    return bool(raw)
+    if raw:
+        return True
+
+    # Canary may pass a lightweight item without raw_text. In that case,
+    # restore the product contract by checking the source DB by news id.
+    news_id = _v3_full_article_news_id_v8(item)
+    if not news_id:
+        return False
+
+    try:
+        import os
+        import sqlite3
+
+        db_path = os.getenv("NEWSBOT_DB_PATH", "/opt/newsbot_v2/news_queue.db")
+        con = sqlite3.connect(db_path)
+        row = con.execute(
+            "SELECT COALESCE(raw_text, '') FROM news WHERE id = ? LIMIT 1",
+            (news_id,),
+        ).fetchone()
+        con.close()
+        return bool(row and str(row[0] or "").strip())
+    except Exception:
+        return False
 
 
 def build_post(item, seller_result=None):  # type: ignore[override]
