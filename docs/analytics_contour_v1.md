@@ -34,3 +34,23 @@ TG/media are early-warning signals only. They are not authoritative for tariff c
 ## Do not touch live NEWSBOT
 
 Do not modify or depend on changes to `run_v3_queue_prepare_once.sh`, `run_v3_publish_once.sh`, `newsbot_v3/tools/v3_controlled_send_canary.py`, `newsbot_v3/app/publisher/post_builder.py`, the V3 publisher, LLM editor, `full_article` button, Seller Helper CTA, cron, or `publisher_v2/formatters.py` for regular V3 posts.
+
+## Periodic draft quality v2
+
+`build_analytics_periodic_draft_v1.py` remains a deterministic, no-LLM draft builder, but the draft ranking is cleaned before human-facing report text is saved to `analytics_reports`.
+
+Quality v2 behavior:
+
+- Promotional, native-ad, leadgen, webinar/course, bot-sale, discount, quota, and similar service-sale rows are **not deleted from the database**. They are only excluded from top-news ranking and counted in `filtered_out_summary`.
+- Internal routing and pipeline tags are hidden from user-facing report text. Examples include `seller_filter_live`, `queue_prepare_v3`, `official_signal_bridge`, `group_key=...`, `signal_ids=...`, `collector_routing`, `semantic_duplicate`, `weak_publish_to_digest`, and `seller_impact_to_publish`.
+- Known internal topic tags are normalized into readable labels, for example `commission_tariff` becomes `tariffs/commissions`, `logistics_storage` becomes `logistics/storage`, and `returns_disputes` becomes `returns/disputes`.
+- Draft fields use the fixed `analytics_reports` schema and separate official signals, marketplace breakdown, topic breakdown, TG/media context, items needing official validation, and filtered-out summary inside existing text fields.
+- Top-news scoring stays deterministic: seller relevance and actionability remain the base, official sources are boosted, direct actionable-change language is boosted, promo/native rows are strongly penalized and filtered out of top ranking, unknown marketplace rows are slightly penalized, and older rows inside the selected period receive a small recency penalty.
+
+Example commands:
+
+```bash
+/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all
+/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 30 --marketplace wildberries --topic tariff
+/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all --limit-top 15 --include-filtered-debug
+```
