@@ -10,11 +10,11 @@ def classify_seller_topic(title: str, text: str, source: str | None = None, mark
 
     if hit("комис", "тариф", "эквайринг комиссия", "fee"):
         tags.append("commission_tariff")
-    if hit("логист", "хранен", "fbo", "fbs", "достав", "возврат"):
+    if hit("логист", "хранен", "fbo", "fbs", "dbs", "realfbs", "достав", "возврат", "поставк", "забор", "вывоз", "склад"):
         tags.append("logistics_storage")
     if hit("возврат", "спор", "претензи"):
         tags.append("returns_disputes")
-    if hit("сертифик", "декларац", "документ", "разрешитель"):
+    if hit("сертифик", "декларац", "документ", "разрешитель", "комплаенс"):
         tags.append("documents_certification")
     if hit("честный знак", "маркиров", "км", "datamatrix"):
         tags.append("marking_chestny_znak")
@@ -22,7 +22,7 @@ def classify_seller_topic(title: str, text: str, source: str | None = None, mark
         tags.append("legal_tax_regulatory")
     if hit("закон о платформ", "маркетплейс закон", "platform law"):
         tags.append("platform_law")
-    if hit("api", "личный кабинет", "кабинет продавца", "оферта", "процесс"):
+    if hit("api", "личный кабинет", "кабинет продавца", "оферта", "отчет", "отчёт", "эдо", "процесс"):
         tags.append("api_cabinet")
     if hit("карточк", "контент", "seo", "описани", "медиа"):
         tags.append("cards_content")
@@ -34,7 +34,7 @@ def classify_seller_topic(title: str, text: str, source: str | None = None, mark
         tags.append("marketplace_banking_fintech")
     if hit("аналит", "исследован", "тренд", "динамик рынка"):
         tags.append("analytics_market")
-    if hit("доля", "пакет акций", "приобрет", "партнерств", "интервью", "стратег"):
+    if hit("доля", "пакет акций", "приобрет", "партнерств", "партнёрств", "интервью", "стратег", "инвестиц", "инвестир", "рейтинг", "data insight", "лидер", "соглашение", "сотрудничеств"):
         tags.append("corporate_pr")
 
     if not tags:

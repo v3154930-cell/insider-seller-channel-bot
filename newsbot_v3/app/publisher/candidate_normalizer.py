@@ -4,7 +4,13 @@ import hashlib
 from typing import Any
 
 from app.models import NewsItem
-from app.scoring.seller_actionability import determine_importance, score_seller_actionability
+from app.scoring.seller_actionability import (
+    determine_importance,
+    is_direct_seller_action,
+    macro_noise_penalty,
+    score_seller_actionability,
+    seller_action_boost,
+)
 
 SELLER_SIGNALS = (
     "seller", "селлер", "продав", "маркетплейс", "wildberries", "wb", "ozon", "яндекс маркет", "avito",
@@ -57,12 +63,32 @@ def normalize_v2_row_to_candidate(row: dict[str, Any]) -> dict[str, Any]:
     scored = score_seller_actionability(title, text, source=source)
     tags = list(scored.get("topics", []))
     direct = bool(scored.get("direct_actions"))
+    direct_seller_action = is_direct_seller_action(title, text, source=source)
     importance, _importance_reason = determine_importance(scored)
 
-    if seller_relevant:
-        rel = max(3, int(row.get("seller_relevance_score") or scored.get("seller_relevance_score") or 0))
-        act = max(3, int(row.get("actionability_score") or scored.get("actionability_score") or 0))
-        score = 0.8
+    if seller_relevant or direct_seller_action:
+        scored_rel = int(scored.get("seller_relevance_score") or 0)
+        scored_act = int(scored.get("actionability_score") or 0)
+        raw_rel = int(row.get("seller_relevance_score") or 0)
+        raw_act = int(row.get("actionability_score") or 0)
+
+        # Trust deterministic V3 demotions over generous legacy V2 scores for macro/corporate news,
+        # but keep genuine seller-action rows high even when the legacy fields are missing.
+        if scored.get("is_macro_corporate_noise") or scored.get("is_foreign_marketplace_noise"):
+            rel = scored_rel
+            act = scored_act
+        elif direct_seller_action:
+            rel = max(4, raw_rel, scored_rel)
+            act = max(3, raw_act, scored_act)
+        else:
+            rel = max(2, min(raw_rel, 3), scored_rel)
+            act = max(1, min(raw_act, 2), scored_act)
+
+        direct = direct_seller_action
+        score = float(scored.get("ranking_score") or 0.0)
+        if not score:
+            score = 0.45 + seller_action_boost(title, text, source=source) - macro_noise_penalty(title, text, source=source)
+        score = max(0.05, min(0.98, score))
     else:
         rel, act, direct, importance, score = 1, 1, False, "🔵", 0.3
         tags = ["low_value_background"]
