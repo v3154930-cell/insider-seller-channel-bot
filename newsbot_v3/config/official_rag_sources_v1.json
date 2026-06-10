@@ -1,0 +1,101 @@
+[
+  {
+    "source_key": "pravo_legal_publication_portal",
+    "source_name": "Official legal information publication portal",
+    "source_url": "https://pravo.gov.ru/",
+    "source_type": "official_html",
+    "rag_layer": "legal_official",
+    "marketplace": "all",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public legal source; use for contextual RAG only."
+  },
+  {
+    "source_key": "regulation_public_discussions",
+    "source_name": "Official regulation project portal",
+    "source_url": "https://regulation.gov.ru/",
+    "source_type": "official_html",
+    "rag_layer": "compliance_official",
+    "marketplace": "all",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public source for draft regulatory acts and discussions."
+  },
+  {
+    "source_key": "nalog_tax_official",
+    "source_name": "Federal Tax Service official site",
+    "source_url": "https://www.nalog.gov.ru/",
+    "source_type": "official_html",
+    "rag_layer": "tax_official",
+    "marketplace": "all",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public tax source; does not replace accounting review."
+  },
+  {
+    "source_key": "rospotrebnadzor_compliance_official",
+    "source_name": "Rospotrebnadzor official site",
+    "source_url": "https://rospotrebnadzor.ru/",
+    "source_type": "official_html",
+    "rag_layer": "compliance_official",
+    "marketplace": "all",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public consumer-protection and compliance source."
+  },
+  {
+    "source_key": "fsa_accreditation_official",
+    "source_name": "Federal Accreditation Service official site",
+    "source_url": "https://fsa.gov.ru/",
+    "source_type": "official_html",
+    "rag_layer": "compliance_official",
+    "marketplace": "all",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public certification/accreditation source."
+  },
+  {
+    "source_key": "chestny_znak_marking_official",
+    "source_name": "Chestny ZNAK official marking site",
+    "source_url": "https://xn--80ajghhoc2aj1c8b.xn--p1ai/",
+    "source_type": "official_html",
+    "rag_layer": "compliance_official",
+    "marketplace": "all",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public product-marking source."
+  },
+  {
+    "source_key": "ozon_seller_news_official",
+    "source_name": "Ozon Seller official news",
+    "source_url": "https://seller.ozon.ru/media/news/",
+    "source_type": "official_html",
+    "rag_layer": "marketplace_offer",
+    "marketplace": "ozon",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public Ozon seller documentation/news source already used by the project."
+  },
+  {
+    "source_key": "wildberries_seller_news_official",
+    "source_name": "Wildberries Seller official news",
+    "source_url": "https://seller.wildberries.ru/news/ru",
+    "source_type": "official_html",
+    "rag_layer": "marketplace_offer",
+    "marketplace": "wildberries",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public Wildberries seller source already used by the project."
+  },
+  {
+    "source_key": "yandex_market_seller_docs_official",
+    "source_name": "Yandex Market seller support docs",
+    "source_url": "https://yandex.ru/support/marketplace/",
+    "source_type": "official_html",
+    "rag_layer": "marketplace_offer",
+    "marketplace": "yandex_market",
+    "trust_level": "high",
+    "refresh_policy": "manual_dry_run_first",
+    "notes": "Official public Yandex Market seller documentation source already used by the project."
+  }
+]
