@@ -55,20 +55,26 @@ Example commands:
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all --limit-top 15 --include-filtered-debug
 ```
 
-## Official RAG ingestion quality gates
+## Legal and court-practice RAG source discovery
 
-`newsbot_v3/tools/ingest_official_rag_sources_v1.py` is a manual ingestion tool for official RAG sources. Real ingestion must be preceded by a dry run and human review of every source status, error type, title, extracted text length, and insertion decision.
+A first legal/court-practice seed list lives in `newsbot_v3/config/legal_rag_sources_v1.json`. It is a **manual-review seed**, not an ingestion manifest: every row is marked `dry_run_first/manual_review_required`, and no live ingestion, DB schema migration, publisher change, cron change, MAX send, NEWSBOT publication behavior, or tariff calculation change is implied.
 
-Quality gates are intentionally conservative:
+Scope of the seed list:
 
-- Tiny extracted documents are skipped before hashing or insertion. The default minimum extracted body size is 500 clean-text characters, and operators can adjust it with `--min-clean-text-chars` for a run.
-- Dynamically-rendered pages may fetch successfully but expose only a short shell, navigation, or placeholder body to the static extractor. Those rows are reported as `too_short_clean_text` and must not be inserted until extraction is fixed or reviewed.
-- Broken encoding / mojibake in titles or clean text is reported as `mojibake_detected`. These sources require manual review of server encoding, response headers, or source-specific extraction before they can be trusted for RAG.
-- Generic titles such as an empty title or only a marketplace name are treated as weak metadata; if the extracted body is also below the minimum length gate, the document is skipped instead of becoming low-quality RAG context.
-- Dry-run mode does not mutate `rag_documents`. Operators should only run real ingestion after reviewing dry-run output for expected fetch errors (`timeout`, `redirect_loop`, `http_error`, `unsupported_content_type`), duplicates, and quality-gate skips.
+- Core official legal sources for marketplace sellers, Docobrazec, and OfferDoctor: consumer protection, retail sale rules, platform economy, Civil Code offer/acceptance/agency/commission/service/liability blocks, online cash registers, personal data, advertising, electronic signature, technical regulation, marking/Chestny Znak legal basis, and FNS tax explanations.
+- Supreme Court materials: Plenum guidance, consumer-protection review materials, and selected definitions relevant to distance selling, product information, returns, and consumer claims.
+- Public court-practice discovery entries for seller/platform disputes: marketplace penalties, blocked cards/accounts, withheld payouts, offer terms, marking/KIZ, intermediary/platform liability, product cards, counterfeit/IP disputes, and seller/product information.
 
-Example dry-run command:
+Validation and trust policy:
+
+- Do **not** ingest real documents from this seed until a manual reviewer confirms URL freshness, document status, and whether newer amendments or superseding guidance exist.
+- Do **not** use Consultant, Garant, or other commercial legal database URLs as RAG sources. If a useful case is first discovered through a commercial snippet, replace it with an official/public concrete court-act URL before ingestion.
+- Prefer official/public concrete document URLs over homepages. A homepage-only source should be rejected unless there is no public document alternative and the row explicitly remains a discovery lead.
+- Ordinary arbitral/court decisions are marked lower-trust than Supreme Court materials and should be used only as illustrative practice, not as authoritative general rules.
+- `unified_tariffs.db` remains the numeric source of truth for tariff, commission, and fee calculations; legal RAG may only explain context, obligations, and dispute practice.
+
+Local validation command:
 
 ```bash
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --dry-run --min-clean-text-chars 500
+python -m pytest newsbot_v3/tests/test_legal_rag_sources_v1.py
 ```
