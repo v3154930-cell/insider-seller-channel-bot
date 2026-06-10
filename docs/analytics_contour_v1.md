@@ -31,6 +31,19 @@ TG/media are early-warning signals only. They are not authoritative for tariff c
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 30 --marketplace wildberries --topic tariff
 ```
 
+
+## Official RAG source dry-runs
+
+Official RAG source ingestion dry-runs must be reviewed before real ingestion. Some official marketplace and legal sites may timeout, redirect-loop, block automated requests, or render important content dynamically in the browser, so a dry-run result can require manual validation instead of immediate ingestion.
+
+Record expected runtime fetch issues as `fetch_error` / classified `error_type` values or `empty_clean_text` rows in the dry-run output, then review those sources manually before enabling a non-dry-run ingest. Empty extracted documents must not be inserted into `rag_documents`.
+
+Example command:
+
+```bash
+/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --dry-run --limit 10 --timeout 10
+```
+
 ## Do not touch live NEWSBOT
 
 Do not modify or depend on changes to `run_v3_queue_prepare_once.sh`, `run_v3_publish_once.sh`, `newsbot_v3/tools/v3_controlled_send_canary.py`, `newsbot_v3/app/publisher/post_builder.py`, the V3 publisher, LLM editor, `full_article` button, Seller Helper CTA, cron, or `publisher_v2/formatters.py` for regular V3 posts.
@@ -54,36 +67,3 @@ Example commands:
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 30 --marketplace wildberries --topic tariff
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all --limit-top 15 --include-filtered-debug
 ```
-
-## Official legal/compliance/marketplace RAG sources
-
-`newsbot_v3/tools/ingest_official_rag_sources_v1.py` is a dry-run-first foundation for loading official/public legal, compliance, tax, tariff, marketplace-offer, and seller-template documents into `/opt/newsbot_v2/data/rag_store.db`.
-
-Safety rules:
-
-- RAG remains explanatory and contextual. It can support analytics, Seller Helper explanations, Docobrazec, and future OfferDoctor checks, but it must not become the calculator for numeric tariff, commission, storage, logistics, or fee values.
-- `/opt/newsbot_v2/data/unified_tariffs.db` remains the source of truth for numeric tariff calculations.
-- Commercial legal databases such as Consultant, Garant, or similar services are excluded and must not be scraped or ingested.
-- Only official/public sources and public marketplace documentation are allowed. The v1 allowlist is deterministic and limited to official Russian legal/regulatory/tax/compliance domains plus public seller documentation domains already used by the project.
-- The seed registry lives in `newsbot_v3/config/official_rag_sources_v1.json` and extends the existing `analytics_source_registry`; it is not a second source registry. `init_analytics_source_registry_v1.py` mirrors those planned sources into `analytics_source_registry` without changing publisher runtime behavior.
-- If an existing production `analytics_source_registry` still has the original v1 CHECK constraints, new conceptual categories are recorded through legacy-compatible registry layers instead of running a destructive migration: `marketplace_offer` → `official_signal`, `compliance_official`/`tax_official` → `legal_official`, and `seller_templates` → `docobrazec_base`, with the requested layer preserved in notes. Fresh databases use the extended layer list directly.
-- The ingestion tool refuses non-allowlisted URLs, accepts only `text/html` and `text/plain`, uses a timeout and max document size limit, extracts title and clean text, computes a SHA-256 content hash, and skips duplicates by `content_hash` and/or `source_url` when those columns exist.
-
-Dry-run first deployment process:
-
-```bash
-cd /opt/newsbot_v2
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/rag_healthcheck_v1.py
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/init_analytics_source_registry_v1.py
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --dry-run --limit 5
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --dry-run --layer legal_official --limit 3
-```
-
-After reviewing the dry-run report (`source_key`, URL, layer, status, title, clean text length, content hash, and inserted/skipped reason), run a narrow non-dry-run command for a specific reviewed source only:
-
-```bash
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --source-key pravo_legal_publication_portal --limit 1
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/rag_healthcheck_v1.py
-```
-
-This process does not modify cron, publisher runtime logic, MAX sending logic, or live publishing behavior.
