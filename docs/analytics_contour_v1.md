@@ -31,19 +31,6 @@ TG/media are early-warning signals only. They are not authoritative for tariff c
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 30 --marketplace wildberries --topic tariff
 ```
 
-
-## Official RAG source dry-runs
-
-Official RAG source ingestion dry-runs must be reviewed before real ingestion. Some official marketplace and legal sites may timeout, redirect-loop, block automated requests, or render important content dynamically in the browser, so a dry-run result can require manual validation instead of immediate ingestion.
-
-Record expected runtime fetch issues as `fetch_error` / classified `error_type` values or `empty_clean_text` rows in the dry-run output, then review those sources manually before enabling a non-dry-run ingest. Empty extracted documents must not be inserted into `rag_documents`.
-
-Example command:
-
-```bash
-/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --dry-run --limit 10 --timeout 10
-```
-
 ## Do not touch live NEWSBOT
 
 Do not modify or depend on changes to `run_v3_queue_prepare_once.sh`, `run_v3_publish_once.sh`, `newsbot_v3/tools/v3_controlled_send_canary.py`, `newsbot_v3/app/publisher/post_builder.py`, the V3 publisher, LLM editor, `full_article` button, Seller Helper CTA, cron, or `publisher_v2/formatters.py` for regular V3 posts.
@@ -66,4 +53,22 @@ Example commands:
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 30 --marketplace wildberries --topic tariff
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all --limit-top 15 --include-filtered-debug
+```
+
+## Official RAG ingestion quality gates
+
+`newsbot_v3/tools/ingest_official_rag_sources_v1.py` is a manual ingestion tool for official RAG sources. Real ingestion must be preceded by a dry run and human review of every source status, error type, title, extracted text length, and insertion decision.
+
+Quality gates are intentionally conservative:
+
+- Tiny extracted documents are skipped before hashing or insertion. The default minimum extracted body size is 500 clean-text characters, and operators can adjust it with `--min-clean-text-chars` for a run.
+- Dynamically-rendered pages may fetch successfully but expose only a short shell, navigation, or placeholder body to the static extractor. Those rows are reported as `too_short_clean_text` and must not be inserted until extraction is fixed or reviewed.
+- Broken encoding / mojibake in titles or clean text is reported as `mojibake_detected`. These sources require manual review of server encoding, response headers, or source-specific extraction before they can be trusted for RAG.
+- Generic titles such as an empty title or only a marketplace name are treated as weak metadata; if the extracted body is also below the minimum length gate, the document is skipped instead of becoming low-quality RAG context.
+- Dry-run mode does not mutate `rag_documents`. Operators should only run real ingestion after reviewing dry-run output for expected fetch errors (`timeout`, `redirect_loop`, `http_error`, `unsupported_content_type`), duplicates, and quality-gate skips.
+
+Example dry-run command:
+
+```bash
+/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --dry-run --min-clean-text-chars 500
 ```

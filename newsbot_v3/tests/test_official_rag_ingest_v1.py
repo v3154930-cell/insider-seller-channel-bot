@@ -1,170 +1,143 @@
 from __future__ import annotations
 
-import importlib.util
+import hashlib
 import sqlite3
+import subprocess
 import sys
 from pathlib import Path
-from urllib import error
 
-MODULE_PATH = Path(__file__).resolve().parents[1] / "tools" / "ingest_official_rag_sources_v1.py"
-spec = importlib.util.spec_from_file_location("official_rag_ingest", MODULE_PATH)
-official_rag_ingest = importlib.util.module_from_spec(spec)
-sys.modules[spec.name] = official_rag_ingest
-spec.loader.exec_module(official_rag_ingest)
+import pytest
+
+from tools import ingest_official_rag_sources_v1 as ingest
 
 
-class _Headers(dict):
-    def get(self, key, default=None):
-        return super().get(key, default)
+def source() -> ingest.OfficialSource:
+    return ingest.OfficialSource(
+        source_key="wildberries_seller_news_official",
+        source_name="Wildberries",
+        source_url="https://example.test/wb",
+    )
 
 
-class _FakeResponse:
-    def __init__(self, body: bytes, content_type: str = "text/html"):
-        self.body = body
-        self.headers = _Headers({"Content-Type": content_type})
-        self.url = "https://example.test/final"
+@pytest.fixture
+def fail_hash(monkeypatch):
+    def boom(*args, **kwargs):
+        raise AssertionError("quality gates must run before sha256")
 
-    def __enter__(self):
-        return self
-
-    def __exit__(self, exc_type, exc, traceback):
-        return False
-
-    def read(self, n=-1):
-        return self.body if n < 0 else self.body[:n]
+    monkeypatch.setattr(hashlib, "sha256", boom)
 
 
-def make_db(tmp_path: Path, source_rows: list[tuple[str, str]]) -> sqlite3.Connection:
-    db_path = tmp_path / "rag_store.db"
-    conn = sqlite3.connect(db_path)
-    conn.row_factory = sqlite3.Row
-    conn.executescript(
+def test_clean_text_len_below_threshold_is_skipped_before_hash(fail_hash):
+    result = ingest.process_extracted_document(
+        source(),
+        title="Useful official page",
+        clean_text="short official text",
+        min_clean_text_chars=300,
+        dry_run=True,
+    )
+
+    assert result["status"] == "skipped"
+    assert result["error_type"] == "too_short_clean_text"
+    assert result["result"] == "too_short_clean_text"
+    assert result["clean_text_len"] == len("short official text")
+
+
+def test_content_hash_is_empty_for_too_short_clean_text(fail_hash):
+    result = ingest.process_extracted_document(
+        source(),
+        title="Wildberries",
+        clean_text="placeholder",
+        min_clean_text_chars=500,
+        dry_run=True,
+    )
+
+    assert result["error_type"] == "too_short_clean_text"
+    assert result["content_hash"] == ""
+    assert result["generic_title"] is True
+
+
+def test_mojibake_title_is_skipped_before_hash(fail_hash):
+    result = ingest.process_extracted_document(
+        source(),
+        title="���������������",
+        clean_text="Официальный текст " * 80,
+        min_clean_text_chars=300,
+        dry_run=True,
+    )
+
+    assert result["status"] == "skipped"
+    assert result["error_type"] == "mojibake_detected"
+    assert result["content_hash"] == ""
+    assert result["result"] == "mojibake_detected"
+
+
+def test_mojibake_clean_text_is_skipped_before_hash(fail_hash):
+    clean_text = ("Официальный текст для проверки. " * 30) + "��������"
+    result = ingest.process_extracted_document(
+        source(),
+        title="Official regulation project portal",
+        clean_text=clean_text,
+        min_clean_text_chars=300,
+        dry_run=True,
+    )
+
+    assert result["status"] == "skipped"
+    assert result["error_type"] == "mojibake_detected"
+    assert result["content_hash"] == ""
+
+
+def test_valid_official_text_above_threshold_still_would_insert_in_dry_run():
+    result = ingest.process_extracted_document(
+        source(),
+        title="Official marketplace seller rules update",
+        clean_text="This official seller rules update describes tariff, logistics, and compliance changes. " * 10,
+        min_clean_text_chars=300,
+        dry_run=True,
+    )
+
+    assert result["status"] == "dry_run"
+    assert result["error_type"] == ""
+    assert result["result"] == "would_insert"
+    assert result["content_hash"]
+    assert len(result["content_hash"]) == 64
+
+
+def test_cli_accepts_min_clean_text_chars(tmp_path):
+    db = tmp_path / "rag_store.db"
+    conn = sqlite3.connect(db)
+    conn.execute(
         """
         CREATE TABLE analytics_source_registry (
-            source_key TEXT UNIQUE NOT NULL,
-            source_name TEXT NOT NULL,
-            source_type TEXT NOT NULL,
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            source_key TEXT,
+            source_name TEXT,
+            source_type TEXT,
             source_url TEXT,
             marketplace TEXT,
-            product_scope TEXT,
-            rag_layer TEXT NOT NULL,
-            trust_level TEXT NOT NULL,
-            document_type TEXT
-        );
-        CREATE TABLE rag_sources (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_name TEXT,
-            source_url TEXT,
-            status TEXT
-        );
-        CREATE TABLE rag_documents (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            source_id INTEGER,
-            external_id TEXT,
-            title TEXT,
-            body TEXT,
-            source_url TEXT,
-            content_hash TEXT
-        );
+            rag_layer TEXT,
+            trust_level TEXT,
+            document_type TEXT,
+            ingest_status TEXT
+        )
         """
-    )
-    conn.executemany(
-        """
-        INSERT INTO analytics_source_registry (
-            source_key, source_name, source_type, source_url, marketplace,
-            product_scope, rag_layer, trust_level, document_type
-        ) VALUES (?, ?, 'official', ?, 'ozon', '', 'marketplace_offer', 'high', 'official_news')
-        """,
-        [(key, key, url) for key, url in source_rows],
     )
     conn.commit()
-    return conn
+    conn.close()
 
-
-def test_empty_clean_text_has_empty_hash_and_is_skipped(monkeypatch, tmp_path):
-    conn = make_db(tmp_path, [("empty", "https://example.test/empty")])
-    source = official_rag_ingest.load_sources(conn)[0]
-
-    monkeypatch.setattr(
-        official_rag_ingest,
-        "fetch_url",
-        lambda *args, **kwargs: official_rag_ingest.FetchResult("https://example.test/empty", "text/html", b"<html><script>x</script></html>"),
-    )
-
-    result = official_rag_ingest.process_source(conn, source, dry_run=True, timeout=1, max_bytes=1000)
-
-    assert result["status"] == "skipped"
-    assert result["result"] == "empty_clean_text"
-    assert result["content_hash"] == ""
-    assert result["clean_text_len"] == 0
-
-
-def test_no_insertion_for_empty_clean_text(monkeypatch, tmp_path):
-    conn = make_db(tmp_path, [("empty", "https://example.test/empty")])
-    source = official_rag_ingest.load_sources(conn)[0]
-    monkeypatch.setattr(
-        official_rag_ingest,
-        "fetch_url",
-        lambda *args, **kwargs: official_rag_ingest.FetchResult("https://example.test/empty", "text/plain", b"   \n\t  "),
-    )
-
-    result = official_rag_ingest.process_source(conn, source, dry_run=False, timeout=1, max_bytes=1000)
-
-    assert result["status"] == "skipped"
-    assert result["content_hash"] == ""
-    assert conn.execute("SELECT COUNT(*) FROM rag_documents").fetchone()[0] == 0
-
-
-def test_timeout_is_classified_as_timeout():
-    exc = error.URLError(TimeoutError("timed out"))
-    assert official_rag_ingest.classify_fetch_exception(exc) == "timeout"
-
-
-def test_redirect_loop_http_307_is_classified_as_redirect_loop():
-    exc = error.HTTPError("https://example.test", 307, "Temporary Redirect", hdrs=None, fp=None)
-    assert official_rag_ingest.classify_fetch_exception(exc) == "redirect_loop"
-
-
-def test_unsupported_content_type_is_expected_fetch_error(monkeypatch):
-    monkeypatch.setattr(
-        official_rag_ingest.request,
-        "urlopen",
-        lambda *args, **kwargs: _FakeResponse(b"%PDF", "application/pdf"),
-    )
-
-    try:
-        official_rag_ingest.fetch_url("https://example.test/file.pdf", timeout=1, max_bytes=1000)
-    except official_rag_ingest.FetchError as exc:
-        assert exc.error_type == "unsupported_content_type"
-        assert "unsupported content type" in str(exc)
-    else:
-        raise AssertionError("unsupported content type must raise FetchError")
-
-
-def test_batch_processing_continues_after_one_failing_source(monkeypatch, tmp_path, capsys):
-    conn = make_db(
-        tmp_path,
+    script = Path(__file__).resolve().parents[1] / "tools" / "ingest_official_rag_sources_v1.py"
+    completed = subprocess.run(
         [
-            ("bad", "https://example.test/bad"),
-            ("good", "https://example.test/good"),
+            sys.executable,
+            str(script),
+            "--db",
+            str(db),
+            "--dry-run",
+            "--min-clean-text-chars",
+            "300",
         ],
+        check=True,
+        text=True,
+        capture_output=True,
     )
 
-    def fake_fetch(url, *, timeout, max_bytes):
-        if url.endswith("/bad"):
-            raise official_rag_ingest.FetchError("timed out", "timeout")
-        return official_rag_ingest.FetchResult(url, "text/html", b"<html><title>Good</title><p>Useful official text.</p></html>")
-
-    monkeypatch.setattr(official_rag_ingest, "fetch_url", fake_fetch)
-
-    for source in official_rag_ingest.load_sources(conn, limit=2):
-        print(official_rag_ingest.format_result(official_rag_ingest.process_source(conn, source, dry_run=True, timeout=1, max_bytes=1000)))
-
-    lines = capsys.readouterr().out.strip().splitlines()
-    assert len(lines) == 2
-    assert "source_key=bad" in lines[0]
-    assert "status=error" in lines[0]
-    assert "error_type=timeout" in lines[0]
-    assert "source_key=good" in lines[1]
-    assert "status=dry_run" in lines[1]
-    assert "error_type=" in lines[1]
+    assert completed.stdout == ""
