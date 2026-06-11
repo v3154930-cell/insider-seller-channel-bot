@@ -31,6 +31,21 @@ TG/media are early-warning signals only. They are not authoritative for tariff c
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 30 --marketplace wildberries --topic tariff
 ```
 
+
+## Official RAG ingestion safety
+
+Official RAG ingestion must be staged source-by-source before any batch run. Use `--source-key` for the first pass so only the reviewed registry entry is fetched and evaluated.
+
+Safe single-source workflow:
+
+```bash
+/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --db /opt/newsbot_v2/data/rag_store.db --dry-run --source-key nalog_tax_official --layer legal_official
+# Review dry-run output and confirm the selected source, URL, layer, and quality-gate result before writing rows.
+/opt/newsbot_v2/venv/bin/python newsbot_v3/tools/ingest_official_rag_sources_v1.py --db /opt/newsbot_v2/data/rag_store.db --source-key nalog_tax_official --layer legal_official
+```
+
+Do not run real batch ingestion until the dry-run for the exact `source_key` has been reviewed. Batch ingestion can insert official sources that still need manual review; the safe default is to ingest one source only, inspect the resulting RAG rows, and then proceed to the next source.
+
 ## Do not touch live NEWSBOT
 
 Do not modify or depend on changes to `run_v3_queue_prepare_once.sh`, `run_v3_publish_once.sh`, `newsbot_v3/tools/v3_controlled_send_canary.py`, `newsbot_v3/app/publisher/post_builder.py`, the V3 publisher, LLM editor, `full_article` button, Seller Helper CTA, cron, or `publisher_v2/formatters.py` for regular V3 posts.
@@ -53,28 +68,4 @@ Example commands:
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 30 --marketplace wildberries --topic tariff
 /opt/newsbot_v2/venv/bin/python newsbot_v3/tools/build_analytics_periodic_draft_v1.py --days 7 --marketplace all --limit-top 15 --include-filtered-debug
-```
-
-## Legal and court-practice RAG source discovery
-
-A first legal/court-practice seed list lives in `newsbot_v3/config/legal_rag_sources_v1.json`. It is a **manual-review seed**, not an ingestion manifest: every row is marked `dry_run_first/manual_review_required`, and no live ingestion, DB schema migration, publisher change, cron change, MAX send, NEWSBOT publication behavior, or tariff calculation change is implied.
-
-Scope of the seed list:
-
-- Core official legal sources for marketplace sellers, Docobrazec, and OfferDoctor: consumer protection, retail sale rules, platform economy, Civil Code offer/acceptance/agency/commission/service/liability blocks, online cash registers, personal data, advertising, electronic signature, technical regulation, marking/Chestny Znak legal basis, and FNS tax explanations.
-- Supreme Court materials: Plenum guidance, consumer-protection review materials, and selected definitions relevant to distance selling, product information, returns, and consumer claims.
-- Public court-practice discovery entries for seller/platform disputes: marketplace penalties, blocked cards/accounts, withheld payouts, offer terms, marking/KIZ, intermediary/platform liability, product cards, counterfeit/IP disputes, and seller/product information.
-
-Validation and trust policy:
-
-- Do **not** ingest real documents from this seed until a manual reviewer confirms URL freshness, document status, and whether newer amendments or superseding guidance exist.
-- Do **not** use Consultant, Garant, or other commercial legal database URLs as RAG sources. If a useful case is first discovered through a commercial snippet, replace it with an official/public concrete court-act URL before ingestion.
-- Prefer official/public concrete document URLs over homepages. A homepage-only source should be rejected unless there is no public document alternative and the row explicitly remains a discovery lead.
-- Ordinary arbitral/court decisions are marked lower-trust than Supreme Court materials and should be used only as illustrative practice, not as authoritative general rules.
-- `unified_tariffs.db` remains the numeric source of truth for tariff, commission, and fee calculations; legal RAG may only explain context, obligations, and dispute practice.
-
-Local validation command:
-
-```bash
-python -m pytest newsbot_v3/tests/test_legal_rag_sources_v1.py
 ```
