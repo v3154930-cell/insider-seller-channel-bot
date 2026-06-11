@@ -85,6 +85,7 @@ def ensure_rag_documents(conn: sqlite3.Connection) -> None:
         "source": "TEXT",
         "source_key": "TEXT",
         "source_url": "TEXT",
+        "ingest_status": "TEXT DEFAULT 'ingested'",
         "raw_text": "TEXT",
         "clean_text": "TEXT",
         "content_hash": "TEXT",
