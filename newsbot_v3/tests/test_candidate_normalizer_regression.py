@@ -47,6 +47,35 @@ def test_native_ad_event_webinar_patterns_are_blocked() -> None:
     assert reason == "native_ad_leadgen"
 
 
+def test_selection_retries_after_top_scored_candidate_fails_quality_gate() -> None:
+    weak_high_score = {
+        "id": "candidate-weak",
+        "title": "Маркетплейсы обсуждают фоновые новости",
+        "score": 0.95,
+        "importance": "🔴",
+        "seller_relevance_score": 4,
+        "actionability_score": 1,
+        "direct_action": False,
+        "direct_publish": True,
+        "topic_tags": ["commission_tariff"],
+    }
+    strong_lower_score = {
+        "id": "candidate-strong",
+        "title": "WB обновил оферту для продавцов",
+        "score": 0.70,
+        "importance": "🟡",
+        "seller_relevance_score": 7,
+        "actionability_score": 7,
+        "direct_action": True,
+        "direct_publish": True,
+        "topic_tags": ["commission_tariff", "api_cabinet"],
+    }
+
+    sel = dry_run_selection([weak_high_score, strong_lower_score], published_today=0)
+    assert sel["selected_candidate_id"] == "candidate-strong"
+    assert sel["selection_quality_gate_status"] == "passed"
+
+
 def test_clean_marketplace_policy_news_stays_unblocked() -> None:
     reason = detect_native_ad_leadgen_reason(
         "WB обновил правила логистики для продавцов",
