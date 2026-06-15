@@ -34,6 +34,36 @@ def _pick_strongest(candidates: list[dict[str, Any]]) -> tuple[dict[str, Any] | 
     return max(candidates, key=lambda x: float(x.get("score", 0))), "best_available_fallback"
 
 
+def _ranked_candidates(candidates: list[dict[str, Any]]) -> list[tuple[dict[str, Any], str]]:
+    ranked: list[tuple[dict[str, Any], str]] = []
+    seen: set[int] = set()
+
+    def add(items: list[dict[str, Any]], reason: str) -> None:
+        for item in sorted(items, key=lambda x: float(x.get("score", 0)), reverse=True):
+            marker = id(item)
+            if marker in seen:
+                continue
+            seen.add(marker)
+            ranked.append((item, reason))
+
+    add([c for c in candidates if c.get("importance") == "🔴"], "red_priority")
+    add([c for c in candidates if _is_strong_yellow(c)], "strong_yellow_priority")
+    add([c for c in candidates if _is_relevance_actionable(c)], "relevance_actionability_priority")
+    add(candidates, "best_available_fallback")
+    return ranked
+
+
+def _pick_gate_passing(candidates: list[dict[str, Any]], after_min: bool) -> tuple[dict[str, Any] | None, str, dict[str, Any]]:
+    first_failed: tuple[str, dict[str, Any]] | None = None
+    for candidate, reason in _ranked_candidates(candidates):
+        gate_diag = evaluate_selection_quality_gate(candidate, after_daily_min=after_min)
+        if gate_diag.get("selection_quality_gate_status") != "skipped":
+            return candidate, reason, gate_diag
+        if first_failed is None:
+            first_failed = (reason, gate_diag)
+    return None, "skipped_low_action_background", (first_failed[1] if first_failed else evaluate_selection_quality_gate(None, after_daily_min=after_min))
+
+
 def dry_run_selection(candidates: list[dict[str, Any]], published_today: int) -> dict[str, Any]:
     now = datetime.utcnow()
     target = daily_min_target(now)
@@ -62,16 +92,13 @@ def dry_run_selection(candidates: list[dict[str, Any]], published_today: int) ->
 
     if after_min and not fallback_pool and weak:
         selected, reason = None, "skipped_low_value_after_min"
+        gate_diag = evaluate_selection_quality_gate(None, after_daily_min=after_min)
     else:
-        selected, reason = _pick_strongest(fallback_pool if fallback_pool else direct)
+        selected, reason, gate_diag = _pick_gate_passing(fallback_pool if fallback_pool else direct, after_min)
 
     if not selected and native_ad_blocked > 0 and not filtered_candidates:
         reason = "skipped_native_ad_leadgen"
-
-    gate_diag = evaluate_selection_quality_gate(selected, after_daily_min=after_min)
-    if selected and gate_diag.get("selection_quality_gate_status") == "skipped":
-        selected = None
-        reason = "skipped_low_action_background"
+        gate_diag = evaluate_selection_quality_gate(None, after_daily_min=after_min)
 
     return {
         "publisher_dry_run": True,
